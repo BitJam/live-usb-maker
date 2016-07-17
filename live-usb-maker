@@ -122,7 +122,7 @@ main() {
     esac
 
     [ -z "${FAT_SIZE##[0-9]}" ] && fatal "esp-size must be larger than 9"
-    echo $FAT_SIZE | grep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than 9"
+    echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than 9"
 
     local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
 
