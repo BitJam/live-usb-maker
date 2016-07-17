@@ -79,7 +79,9 @@ Practice
 --------
 This program started out as proof-of-concept for passing along
 instructions for creating ext4 LiveUSBs with a small fat32 partition
-for UEFI booting.
+for UEFI booting.  In a nutshell: copy the efi/ and boot/ directories
+to the fat32 partition and then record UUIDs so the two partitons know
+about each other.
 
 Legacy booting is done via the ext4 partition so it has the "boot"
 flag set.  UEFI booting is done via the fat32 partition so it has the
@@ -101,7 +103,7 @@ For MX-15, you need to add the line.  This script adds it under the
 "set menu_color_highlight" line which is not robust.  But starting
 with MX-16 (or earlier) we will use a grub.cfg that is similar to the
 one in antiX-16 so this non-robust approach is only for backward
-compatibility.
+compatibility with MX-15 and antiX-15.
 
 
 Optimizing for Size
