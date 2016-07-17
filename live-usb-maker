@@ -198,8 +198,8 @@ mount_iso() {
 
 my_mount() {
     local dev=$1  dir=$2
-    cmd mount $dev $dir || fatal "Could not mount $dev at $dir"
-    mountpoint -q $dir  || fatal "Failed to mount $dev at $dir"
+    PRETEND= cmd mount $dev $dir || fatal "Could not mount $dev at $dir"
+    mountpoint -q $dir || fatal "Failed to mount $dev at $dir"
 }
 
 do_partition() {
