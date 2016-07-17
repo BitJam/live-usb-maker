@@ -4,10 +4,11 @@
 
      MBR_GPT="msdos"
         SIZE=100
-    ALL_CMDS="all partition make-ext make-efi copy-ext copy-efi uuids install"
+    ALL_CMDS="all partition makefs makefs-ext makefs-efi copy copy-ext copy-efi uuids install"
 
  EXT_OPTIONS="-m0 -N10000 -J size=32"
    EXT_LABEL="LiveUSB"
+    EFI_SIZE=100
 
 usage() {
     local ret=${1:-0}
@@ -25,10 +26,12 @@ If one or more commands are given then only perform those commands
 Commands:
     all              Do all commands
     partition        Partition the live usb
-    make-ext         Create the ext file system
-    make-efi         Create the efi file system
+    makefs-ext       Create the ext file system
+    makefs-efi       Create the efi file system
+    makefs           Both makefs-ext and makefs-efi
     copy-ext         Copy files to live usb ext partition
     copy-efi         Copy files to ESP partition
+    copy             Both copy-ext and copy-efi
     uuids            Write UUIDs linking file systems
     install
 
@@ -138,14 +141,14 @@ main() {
         echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
     done
 
-    need partition && do_partition "$usb_dev" "$MBR_GPT" $SIZE 
+    need partition && do_partition "$usb_dev" "$MBR_GPT" $EFI_SIZE $SIZE
 
     # FIXME for mmcblk
     local ext_dev=$(get_partition $usb_dev 1)
     local efi_dev=$(get_partition $usb_dev 2)
 
-    need make-ext && do_makefs_ext $ext_dev
-    need make-efi && do_makefs_efi $efi_dev
+    need makefs-ext && do_makefs_ext $ext_dev
+    need makefs-efi && do_makefs_efi $efi_dev
 
     cmd mount $ext_dev $EXT_DIR || fatal "Could not mount $ext_dev at $EXT_DIR"
     cmd mount $efi_dev $EFI_DIR || fatal "Could not mount $efi_dev at $EFI_DIR"
@@ -206,7 +209,6 @@ do_makefs() {
     cmd mkfs.fat -n "LIVE-ESP" $efi_dev \
         || fatal "Could not make fat32 file system on $efi_dev"
 }
-
 
 do_copy_ext() {
     local iso_dir=$1  ext_dir=$2
@@ -290,14 +292,14 @@ do_install() {
 }
 
 need() {
-    local cmd=$1
-    echo "$CMDS" | egrep -q "(^| )($cmd|all)( |$)" || return 1
+    local cmd=$1  cmd2=${1%%-*}
+    echo "$CMDS" | egrep -q "(^| )($cmd|$cmd2|all)( |$)" || return 1
     msg "=> $cmd"
     return 0
 }
 
 write_file() {
-    file=$1 
+    file=$1
     shift
     echo "$*" > $file
 }
@@ -338,6 +340,7 @@ get_partition() {
               *) echo  ${dev}$num   ;;
     esac
 }
+
 #-------------------------------------------------------------------------------
 # Send "$@".  Expects
 #
