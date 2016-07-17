@@ -250,7 +250,7 @@ do_copy_efi() {
     for top in $iso_dir/{efi,EFI,boot}; do
         test -e $top || continue
         cmd cp -r $top $efi_dir/ \
-            || warn "Error when copying %s files to efi partition"  $(pqw $(basename $top))
+            || warn "Error when copying %s files to efi partition" $(basename $top)
     done
 }
 
@@ -435,6 +435,8 @@ set_colors() {
 
 pq()     { echo "$hi_co$*$m_co"           ;}
 pqw()    { echo "$hi_co$*$warn_co"        ;}
+pqe()    { echo "$hi_co$*$err_co"         ;}
+pqh()    { echo "$m_co$*$hi_co"           ;}
 
 msg() {
     fmt=$1
@@ -445,14 +447,14 @@ msg() {
 fatal() {
     local fmt=$1
     shift
-    printf "$err_co$ME fatal error:$nc_co $fmt\n" "$@" >&2
+    printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
     exit 2
 }
 
 warn() {
     local fmt=$1
     shift
-    printf "$warn_co$ME warning: $fmt$nc_co\n" "$@" >&2
+    printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >&2
 }
 
 clean_up() {
