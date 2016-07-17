@@ -408,7 +408,7 @@ read_params() {
 }
 
 cmd() {
-    [ "$VERBOSE" ] && echo " >" "$@"
+    [ "$VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|...|"
     [ "$PRETEND" ] && return 0
     "$@"
     return $?
