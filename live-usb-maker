@@ -39,6 +39,7 @@ Commands:
 
 Options:
   -c --clean        Delete files from each partition before copying
+  -d --debug        Pause before cleaning up
   -e --esp-size     Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
   -F --force-ext    Force creation of ext4 filesystem even if one exists
@@ -61,6 +62,7 @@ eval_argument() {
     local arg=$1 val=$2
         case $arg in
              -clean|c)  CLEAN=true                      ;;
+             -debug|d)  DEBUG=true                      ;;
           -esp-size|e)  FAT_SIZE=$val                   ;;
       -esp-size=*|e=*)  FAT_SIZE=$val                   ;;
              -force|f)  FORCE=true                      ;;
@@ -88,7 +90,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cfFghLqsv"
+    local SHIFT SHORT_STACK="cdefFghLpPqsv"
     local VERBOSE ISO_FILE DEVICE
 
     [ $# -eq 0 ] && usage
@@ -470,6 +472,12 @@ warn() {
 
 clean_up() {
     msg "cleaning up"
+
+    if [ "$DEBUG" ]; then
+        echo -n "${green}Press <Enter>$nc_co "
+        read x
+    fi
+
     sync; sync
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
         mountpoint -q $mp && umount -l $mp
