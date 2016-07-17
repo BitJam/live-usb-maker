@@ -163,12 +163,20 @@ main() {
     local total_size=$(parted $usb_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     local mib_size=$((total_size * SIZE / 100 - 1))
     local ext_size=$((mib_size - FAT_SIZE))
+    local ext_needed=$(du_size $ISO_DIR/*)
+    local fat_needed=$(du_size $ISO_DIR/{boot,EFI,efi})
+    local ext_extra=$((ext_size - ext_needed))
+    local fat_extra=$((FAT_SIZE - fat_needed))
 
     local mem_fmt="%20s:$white %7s$msg_co MiB"
     msg "$mem_fmt" "total size"     $total_size
     msg "$mem_fmt" "requested size" $mib_size
-    msg "$mem_fmt" "fat size"       $FAT_SIZE
     msg "$mem_fmt" "ext size"       $ext_size
+    msg "$mem_fmt" "ext needed"     $ext_needed
+    msg "$mem_fmt" "ext extra"      $ext_extra
+    msg "$mem_fmt" "fat size"       $FAT_SIZE
+    msg "$mem_fmt" "fat needed"     $fat_needed
+    msg "$mem_fmt" "fat extra"      $fat_extra
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
 
@@ -428,6 +436,10 @@ cmd() {
     [ "$PRETEND" ] && return 0
     "$@"
     return $?
+}
+
+du_size() {
+    du --apparent-size -scm "$@" 2>/dev/null | tail -n 1 | cut -f1
 }
 
 set_colors() {
