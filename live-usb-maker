@@ -160,7 +160,7 @@ main() {
 
     mount_iso "$ISO_FILE" $ISO_DIR || fatal "Could not mount iso file $ISO_FILE"
 
-    local total_size=$(parted $drive unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    local total_size=$(parted $usb_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     msg "total size: %s MiB" $(pq $total_size)
     local mib_size=$((total_size * size / 100 - 1))
 
