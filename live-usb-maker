@@ -5,7 +5,8 @@
      MBR_GPT="msdos"
         SIZE=100
     FAT_SIZE=50
-  MIB_MARGIN=10
+  EXT_MARGIN=20
+  FAT_MARGIN=5
 
     ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
 
@@ -172,17 +173,21 @@ main() {
     local mem_fmt="%20s:$white %7s$msg_co MiB"
     msg "$mem_fmt" "total size"     $total_size
     msg "$mem_fmt" "requested size" $mib_size
-    msg "$mem_fmt" "ext size"       $ext_size
+    msg "$mem_fmt" "ext avaiable"   $ext_size
     msg "$mem_fmt" "ext needed"     $ext_needed
     msg "$mem_fmt" "ext extra"      $ext_extra
-    msg "$mem_fmt" "fat size"       $FAT_SIZE
+    msg "$mem_fmt" "fat avaiable"   $FAT_SIZE
     msg "$mem_fmt" "fat needed"     $fat_needed
     msg "$mem_fmt" "fat extra"      $fat_extra
+    msg
 
     if [ ${#CMDS} -le 0 ]; then
-        echo -e "\nNo command(s) given"
+        echo -e "No command(s) given.  Try \"all\""
         exit 0
     fi
+
+    check_size ext $ext_extra $EXT_MARGIN
+    check_size fat $fat_extra $FAT_MARGIN
 
     echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && exit 0
 
