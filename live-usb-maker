@@ -174,17 +174,22 @@ mount_iso() {
 }
 
 do_partition() {
-    local drive=$1  type=${2:-msdos}  size=${3:-100}
+    local drive=$1  type=${2:-msdos}  efi_size=$3 size=${4:-100}
 
     local total_size=$(parted $drive unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     msg "total size: %s MiB" $(pq $total_size)
+    local max_size=$((total_size * size / 100 - 1))
+    local ext_1=1
+    local ext_2=$((max_size - $efi_size))
+    local efi_1=$((max_size - $efi_size))
+    local efi_2=$max_size
 
     local end_1=$((size - 1))
-    parted --script --align optimal $usb_dev \
-        unit %                               \
+    cmd parted --script --align optimal $usb_dev \
+        unit MiB                             \
         mklabel $type                        \
-        mkpart primary ext4  0      $end_1   \
-        mkpart primary fat32 $end_1 $size    \
+        mkpart primary ext4  $ext_1 $ext_2   \
+        mkpart primary fat32 $efi_1 $efi_2   \
         set 1 boot on                        \
         set 2 esp  on
 }
