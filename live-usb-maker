@@ -33,7 +33,7 @@ At least one command must be given.  If "all" is not given then only the
 commands given will be run.
 
 Commands:
-    sizes            Only show sizes
+    sizes            Only show and check sizes, don't do anything
     all              Do all commands
     partition        Partition the live usb
     makefs-ext       Create the ext file system
