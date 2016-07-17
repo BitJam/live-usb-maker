@@ -32,3 +32,69 @@ Options:
   -s --size=XX      Percent of usb-device to use (default 100%)
   -v --verbose      Print more, show commands when run
 ```
+
+Theory
+------
+We want to use ext4 for our LiveUSBs due to its ruggedness and
+features.  But we need a fat32 partition in order to boot via UEFI.
+So we use ext4 for the main LiveUSB partition and add a 2nd small
+fat32 partition for booting via UEFI. 
+
+Each partition needs to know about the other one.  We communicate
+this with the UUIDs of the partitions.  The fat32 partition needs
+to know where the kernel and initrd.gz are.  This is accomplished
+with a line like:
+```
+search --no-floppy --set=root --fs-uuid $EXT4_UUID
+```
+in the grub.cfg file.
+
+The Live system (on the ext4 partition needs to know about where
+the Grub2 UEFI bootloader grub.cfg file is in order to be able
+to save boot parameters selected by the user.  This is accomplished
+with the antiX/esp-uuid file which contains the UUID of the
+fat32 ESP partition.
+
+
+Practice
+--------
+This program started out as proof-of-concept for passing along
+instructions for creating ext4 LiveUSBs with a small fat32
+partition for UEFI booting.  One complication is the format
+of the grub.cfg file changed between MX-15 and antiX-16.
+
+For antiX-16, to specify the ext4 UUID you should uncomment the
+following line and replace %UUID% with the UUID of the ext4
+partition:
+```
+# search --no-floppy --set=root --fs-uuid %UUID%
+```
+
+For MX-15, you need to add the line.  This script adds it under the
+"set menu_color_highlight" line which is not robust.  But starting
+with MX-16 (or earlier) we will use a grub.cfg that is similar to the
+one in antiX-16 so this non-robust approach is only for backward
+compatibility.
+
+Alignment and Size
+------------------
+I specified partition locations and sizes in parted using percents.
+This allows automatic alignment but wastes a few percent of the space
+on the device since the fat32 partition only needs about 10 Meg or so,
+not 320 Meg.  I may improve this in the future.  Using percentages was
+fast and easy for now.
+
+OTOH, I more than make up for this with the options used for creating
+the ext4 file system:
+```
+m0 -N10000 -J size=32
+```
+This limits the number of inodes, the size of the journal and sets
+aside no extra space reserved for root.  The idea is that our LiveUSB
+does not normally contain many files (compared to an installed system)
+nor does it need extra space reserved for root.  I've been using
+"-N2000 -J size-16" for years without a problem.  I increased them by
+factors of five and two for a greater margin of safety.  A user will
+be limited to roughly 10,000 files on these LiveUSBs.  This seems like
+a reasonable limit and yet provides significant savings in space
+consumed by the file system.
