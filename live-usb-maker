@@ -149,9 +149,6 @@ main() {
     local ext_dev=$(get_partition $usb_dev 1)
     local fat_dev=$(get_partition $usb_dev 2)
 
-    test_umount $ext_dev
-    test_umount $fat_dev
-
     [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
         || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
 
@@ -198,7 +195,12 @@ main() {
 
     echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && exit 0
 
-    #fatal "Please specify a command such as \"all\"."
+    # Note: these tests add about 300 milliseconds
+    test_umount $usb_dev
+    local p
+    for p in $(seq 1 20); do
+        test_umount $(get_partition $usb_dev $p)
+    done
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
 
