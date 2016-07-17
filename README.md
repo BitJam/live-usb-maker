@@ -1,7 +1,7 @@
 # live-usb-maker
 Create an antiX/MX LiveUSB
 ```
-Usage: live-usb-maker [options] <iso-file> <usb-device> [commands]
+Usage: live-usb-maker [options] <iso-file> <usb-device> <commands>
 
 Create a live-usb on <usb-device> from <iso-file>.  This will destroy
 any existing information on <usb-device>.
@@ -9,14 +9,18 @@ any existing information on <usb-device>.
 Use ext4 as the filesystem for the live-usb and add a small fat32 file
 system for booting via UEFI.
 
-If one or more commands are given then only perform those commands
+At least one command must be given.  If "all" is not given then only the
+commands given will be run.
+
 Commands:
     all              Do all commands
     partition        Partition the live usb
-    make-ext         Create the ext file system
-    make-efi         Create the efi file system
+    makefs-ext       Create the ext file system
+    makefs-efi       Create the efi file system
+    makefs           Both makefs-ext and makefs-efi
     copy-ext         Copy files to live usb ext partition
     copy-efi         Copy files to ESP partition
+    copy             Both copy-ext and copy-efi
     uuids            Write UUIDs linking file systems
     install
 
@@ -28,9 +32,13 @@ Options:
   -h --help         Show this usage
   -L --label=Name   Label ext partition with Name
   -p --pretend      Don't run most commands, just show them
+  -P --Pretend      Pretend witout verbose
   -q --quiet        Print less
   -s --size=XX      Percent of usb-device to use (default 100%)
   -v --verbose      Print more, show commands when run
+
+Note: short options stack. Example: -Ff instead of -F -f
+Note: options can be intermingled with commands and parameters
 ```
 
 The Script
@@ -39,7 +47,7 @@ The --verbose and --pretend (which implies --verbose) options were
 meant to make it very clear what the script is doing.  They also
 helped in debugging.  You can control which steps are done with
 the commands.  The command "all" does everything.  There are a
-few failsafes built in but you can disable the with --force and
+few failsafes built in but they can be disabled with --force and
 --force-ext.
 
 Theory
