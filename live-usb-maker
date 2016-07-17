@@ -199,6 +199,13 @@ my_mount() {
 do_partition() {
     local drive=$1  type=${2:-msdos}  fat_size=$3 size=${4:-100}
 
+    local boot_flag
+    case $type in
+          gpt) boot_flag=legacy_boot ;;
+        msdos) boot_flag=boot        ;;
+            *) fatal "Unknown partitioning scheme: $type.  Expected msdos or gpt" ;;
+    esac
+
     local total_size=$(parted $drive unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     msg "total size: %s MiB" $(pq $total_size)
     local max_size=$((total_size * size / 100 - 1))
@@ -213,7 +220,7 @@ do_partition() {
         mklabel $type                        \
         mkpart primary ext4  $ext_1 $ext_2   \
         mkpart primary fat32 $fat_1 $fat_2   \
-        set 1 boot on                        \
+        set 1 $boot_flag on                  \
         set 2 esp  on
 }
 
