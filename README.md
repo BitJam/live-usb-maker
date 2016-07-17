@@ -96,16 +96,9 @@ one in antiX-16 so this non-robust approach is only for backward
 compatibility.
 
 
-Alignment and Size
-------------------
-I specified partition locations and sizes in parted using percents.
-This allows automatic alignment but wastes a few percent of the space
-on the device since the fat32 partition only needs about 10 Meg or so,
-not 320 Meg.  I may improve this in the future.  Using percentages was
-fast and easy for now.
-
-OTOH, I more than make up for this loss with the options used for
-creating the ext4 file system:
+Optimizing for Size
+-------------------
+I've tried to optimize the ext4 file system with these options:
 
 ```
 m0 -N10000 -J size=32
@@ -118,5 +111,7 @@ nor does it need extra space reserved for root.  I've been using
 "-N2000 -J size-16" for years without a problem.  I increased them by
 factors of five and two for a greater margin of safety.  A user will
 be limited to roughly 10,000 files on these LiveUSBs.  This seems like
-a reasonable limit and yet provides significant savings in space
-consumed by the file system.
+a reasonable limit and yet provides significant savings in the
+space overhead of the file system.
+
+The partitioning is aligned on 1 MiB boundaries.
