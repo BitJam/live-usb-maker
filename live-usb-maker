@@ -5,7 +5,9 @@
      MBR_GPT="msdos"
         SIZE=100
     FAT_SIZE=50
-    ALL_CMDS="all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
+  MIB_MARGIN=10
+
+    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
 
  EXT_OPTIONS="-m0 -N10000 -J size=32"
    EXT_LABEL="LiveUSB"
@@ -26,6 +28,7 @@ At least one command must be given.  If "all" is not given then only the
 commands given will be run.
 
 Commands:
+    sizes            Only show sizes
     all              Do all commands
     partition        Partition the live usb
     makefs-ext       Create the ext file system
@@ -137,9 +140,6 @@ main() {
     test -e "$ISO_FILE" || fatal "Could not find iso file $ISO_FILE"
     test -r "$ISO_FILE" || fatal "Could not read iso file $ISO_FILE"
 
-    #: ${CMDS:=all}
-    [ ${#CMDS} -gt 0 ] || fatal "Please specify a command such as \"all\"."
-
     # Test for valid commands
     local cmd
     for cmd in $CMDS; do
@@ -177,6 +177,15 @@ main() {
     msg "$mem_fmt" "fat size"       $FAT_SIZE
     msg "$mem_fmt" "fat needed"     $fat_needed
     msg "$mem_fmt" "fat extra"      $fat_extra
+
+    if [ ${#CMDS} -le 0 ]; then
+        echo -e "\nNo command(s) given"
+        exit 0
+    fi
+
+    echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && exit 0
+
+    #fatal "Please specify a command such as \"all\"."
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
 
