@@ -196,7 +196,6 @@ my_mount() {
     mountpoint -q $dir  || fatal "Failed to mount $dev at $dir"
 }
 
-
 do_partition() {
     local drive=$1  type=${2:-msdos}  fat_size=$3 size=${4:-100}
 
@@ -415,7 +414,7 @@ read_params() {
 }
 
 cmd() {
-    [ "$VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|...|"
+    [ "$VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|/tmp/...|"
     [ "$PRETEND" ] && return 0
     "$@"
     return $?
