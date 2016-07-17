@@ -140,6 +140,9 @@ main() {
     test -e $usb_dev || fatal "Device $usb_dev does not exist"
     test -b $usb_dev || fatal "Device $usb_dev is not a block device"
 
+    is_mounted $usb_dev && umount -l $usb_dev
+    is_mounted $usb_dev && fatal "Device $usb_dev is in use"
+
     [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
         || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
 
@@ -421,6 +424,11 @@ expand_device() {
             /*)  [ -b "/dev$1"  ] && echo "/dev$1";;
              *)  [ -b "/dev/$1" ] && echo "/dev/$1";;
     esac
+}
+
+is_mounted() {
+    mount | grep -q "^$1 "
+    return $?
 }
 
 get_partition() {
