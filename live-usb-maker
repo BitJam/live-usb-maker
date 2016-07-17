@@ -113,6 +113,11 @@ main() {
 
     [ "$PRETEND" ] && msg "PRETEND MODE ENABLED"
 
+    case $SIZE in
+        [1-9]|[0-9][0-9]|100) ;;
+        *) fatal "Bad size format \"%s\".  Should be between 1 and 100 inclusive." "$(pqh $SIZE)"
+    esac
+
     local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
 
     test -e $usb_dev || fatal "Device $usb_dev does not exist"
