@@ -13,19 +13,22 @@ At least one command must be given.  If "all" is not given then only the
 commands given will be run.
 
 Commands:
+    sizes            Only show sizes
     all              Do all commands
     partition        Partition the live usb
     makefs-ext       Create the ext file system
-    makefs-efi       Create the efi file system
-    makefs           Both makefs-ext and makefs-efi
+    makefs-fat       Create the fat file system
+    makefs           Both makefs-ext and makefs-fat
     copy-ext         Copy files to live usb ext partition
-    copy-efi         Copy files to ESP partition
-    copy             Both copy-ext and copy-efi
+    copy-fat         Copy files to fat partition
+    copy             Both copy-ext and copy-fat
     uuids            Write UUIDs linking file systems
     install
 
 Options:
   -c --clean        Delete files from each partition before copying
+  -d --debug        Pause before cleaning up
+  -e --esp-size     Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
   -F --force-ext    Force creation of ext4 filesystem even if one exists
   -g --gpt          Use gpt partitioning instead of msdos
@@ -34,7 +37,7 @@ Options:
   -p --pretend      Don't run most commands, just show them
   -P --Pretend      Pretend witout verbose
   -q --quiet        Print less
-  -s --size=XX      Percent of usb-device to use (default 100%)
+  -s --size=XX      Percent of usb-device to use in (default 100)
   -v --verbose      Print more, show commands when run
 
 Note: short options stack. Example: -Ff instead of -F -f
