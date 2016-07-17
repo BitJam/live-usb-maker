@@ -66,7 +66,8 @@ eval_argument() {
               -help|h)  usage                           ;;
              -label|L)  EXT_LABEL=$val                  ;;
          -label=*|L=*)  EXT_LABEL=$val                  ;;
-           -pretend|p)  PRETEND=true  ; VERBOSE=true    ;;
+           -pretend|p)  PRETEND=true ; VERBOSE=true     ;;
+           -Pretend|P)  PRETEND=true ; VERBOSE=         ;;
              -quiet|q)  QUIET=true                      ;;
               -size|s)  SIZE=${val%\%}                  ;;
           -size=*|s=*)  SIZE=${val%\%}                  ;;
