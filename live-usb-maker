@@ -13,6 +13,10 @@
  EXT_OPTIONS="-m0 -N10000 -J size=32"
    EXT_LABEL="LiveUSB"
 
+    LIVE_MP="/live/boot-dev"
+ LIVE_FILES="cdrom.ico version antiX/{vmlinuz,initrd.gz,linuxfs}{,.md5}"
+  LIVE_DIRS="boot EFI efi"
+
 usage() {
     local ret=${1:-0}
 
@@ -139,9 +143,6 @@ main() {
     [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
         || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
 
-    test -e "$ISO_FILE" || fatal "Could not find iso file $ISO_FILE"
-    test -r "$ISO_FILE" || fatal "Could not read iso file $ISO_FILE"
-
     # Test for valid commands
     local cmd
     for cmd in $CMDS; do
@@ -218,11 +219,49 @@ main() {
 mount_iso() {
     local file=$1  dir=$2
     mkdir -p $dir
+
+    case $file in
+        live) mount_live $dir              ; return ;;
+      live=*) mount_live $dir "${file#*=}" ; return ;;
+    esac
+
+    test -e "$file" || fatal "Could not find iso file $file"
+    test -r "$file" || fatal "Could not read iso file $file"
+
     local type
     for type in iso9660 udf; do
         mount -t $type -o loop,ro "$file" $dir && return 0
     done
     fatal "Could not mount iso file $file"
+}
+
+mount_live() {
+    local targ_dir=$1  live_dir=${2:-$LIVE_MP}
+
+    test -d "$live_dir"       || fatal "Live directory \"$live_dir\" is not a directory"
+    mountpoint -q "$live_dir" || fatal "Live directory \"$live_dir\" is not a mountpoint"
+
+    mount --bind $targ_dir $targ_dir
+
+    local dir from dest
+    for dir in $LIVE_DIRS; do
+        from="$live_dir/$dir"
+        dest="$targ_dir/$dir"
+        test -d "$from" || continue
+        mkdir -p $dest || fatal "Could not create directory $dest"
+        mount --bind "$from" "$dest"
+    done
+
+    local file
+    for file in $LIVE_FILES; do
+        from="$live_dir/$file"
+        dest="$targ_dir/$file"
+        test -f "$from" || continue
+        mkdir -p $(dirname "$dest") || fatal "Could not mkdir $(dirname "$dest")"
+        touch "$dest"               || fatal "Could not touch file $dest"
+        touch "$dest"
+        mount --bind "$from" "$dest"
+    done
 }
 
 my_mount() {
@@ -514,8 +553,8 @@ clean_up() {
 
     sync; sync
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
-        mountpoint -q $mp && umount -l $mp
-        rmdir $mp
+        mountpoint -q $mp && umount -r -l $mp
+        rm -rf $mp
     done
     rmdir $WORK_DIR
 }
