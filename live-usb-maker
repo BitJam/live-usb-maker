@@ -269,7 +269,7 @@ do_copy_ext() {
 
     if [ -z "$FORCE" -a -d $ext_dir/antiX ]; then
         warn "Not over-writing antiX/ directory"
-        warn "Use --clean or --force to over-ride"
+        warn "Use --clean or --force to over-write"
         return
     fi
     msg "Copying files ..."
@@ -447,10 +447,16 @@ read_params() {
 }
 
 cmd() {
-    [ "$VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|/tmp/...|"
+    [ "$VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|.|g"
     [ "$PRETEND" ] && return 0
     "$@"
     return $?
+}
+
+check_size() {
+    local type=$1  extra=$2  margin=$3
+    [ $extra -lt 0 ] && fatal "Not enough space on $type partition"
+    [ $extra -lt $margin ] && fatal "Less than $margin MiB would remain on $type partition"
 }
 
 du_size() {
