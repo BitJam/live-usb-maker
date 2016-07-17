@@ -504,8 +504,9 @@ warn() {
 }
 
 clean_up() {
-    msg "cleaning up"
+    #msg "cleaning up"
 
+    # Note: waiting for user input inside extt routine is bad
     if [ "$DEBUG" ]; then
         echo -n "${green}Press <Enter>$nc_co "
         read x
