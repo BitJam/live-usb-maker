@@ -167,8 +167,8 @@ main() {
     need makefs-ext && do_makefs_ext $ext_dev
     need makefs-fat && do_makefs_fat $fat_dev
 
-    cmd mount $ext_dev $EXT_DIR || fatal "Could not mount $ext_dev at $EXT_DIR"
-    cmd mount $fat_dev $FAT_DIR || fatal "Could not mount $fat_dev at $FAT_DIR"
+    my_mount $ext_dev $EXT_DIR
+    my_mount $fat_dev $FAT_DIR
 
     need copy-ext && do_copy_ext $ISO_DIR $EXT_DIR
     need copy-fat && do_copy_fat $ISO_DIR $FAT_DIR
@@ -189,6 +189,13 @@ mount_iso() {
     done
     fatal "Could not mount iso file $file"
 }
+
+my_mount() {
+    local dev=$1  dir=$2
+    cmd mount $dev $dir || fatal "Could not mount $dev at $dir"
+    mountpoint -q $dir  || fatal "Failed to mount $dev at $dir"
+}
+
 
 do_partition() {
     local drive=$1  type=${2:-msdos}  fat_size=$3 size=${4:-100}
