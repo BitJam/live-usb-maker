@@ -33,12 +33,23 @@ Options:
   -v --verbose      Print more, show commands when run
 ```
 
+The Script
+----------
+The --verbose and --pretend (which implies --verbose) options were
+meant to make it very clear what the script is doing.  They also
+helped in debugging.  You can control which steps are done with
+the commands.  The command "all" does everything.  There are a
+few failsafes built in but you can disable the with --force and
+--force-ext.
+
 Theory
 ------
 We want to use ext4 for our LiveUSBs due to its ruggedness and
 features.  But we need a fat32 partition in order to boot via UEFI.
 So we use ext4 for the main LiveUSB partition and add a 2nd small
-fat32 partition for booting via UEFI. 
+fat32 partition for booting via UEFI.  Legacy booting is done
+normally with the ext4 partition.  The fat32 partition is only
+used for UEFI booting.
 
 Each partition needs to know about the other one.  We communicate
 this with the UUIDs of the partitions.  The fat32 partition needs
@@ -59,9 +70,18 @@ fat32 ESP partition.
 Practice
 --------
 This program started out as proof-of-concept for passing along
-instructions for creating ext4 LiveUSBs with a small fat32
-partition for UEFI booting.  One complication is the format
-of the grub.cfg file changed between MX-15 and antiX-16.
+instructions for creating ext4 LiveUSBs with a small fat32 partition
+for UEFI booting.
+
+Legacy booting is done via the ext4 partition so it has the "boot"
+flag set.  UEFI booting is done via the fat32 partition so it has the
+"esp" flag set.  The fat32 partition only needs the contents of the
+boot/ directory and the efi/ (or EFI/) directory.  Some of the
+contents of boot/ is not needed but this only wastes a few Meg at
+most.
+
+One complication is the format of the grub.cfg file changed between
+MX-15 and antiX-16.
 
 For antiX-16, to specify the ext4 UUID you should uncomment the
 following line and replace %UUID% with the UUID of the ext4
@@ -69,12 +89,12 @@ partition:
 ```
 # search --no-floppy --set=root --fs-uuid %UUID%
 ```
-
 For MX-15, you need to add the line.  This script adds it under the
 "set menu_color_highlight" line which is not robust.  But starting
 with MX-16 (or earlier) we will use a grub.cfg that is similar to the
 one in antiX-16 so this non-robust approach is only for backward
 compatibility.
+
 
 Alignment and Size
 ------------------
@@ -84,11 +104,13 @@ on the device since the fat32 partition only needs about 10 Meg or so,
 not 320 Meg.  I may improve this in the future.  Using percentages was
 fast and easy for now.
 
-OTOH, I more than make up for this with the options used for creating
-the ext4 file system:
+OTOH, I more than make up for this loss with the options used for
+creating the ext4 file system:
+
 ```
 m0 -N10000 -J size=32
 ```
+
 This limits the number of inodes, the size of the journal and sets
 aside no extra space reserved for root.  The idea is that our LiveUSB
 does not normally contain many files (compared to an installed system)
