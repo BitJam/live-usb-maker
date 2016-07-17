@@ -45,10 +45,13 @@ Options:
   -h --help         Show this usage
   -L --label=Name   Label ext partition with Name
   -p --pretend      Don't run most commands, just show them
+  -P --Pretend      Pretend witout verbose
   -q --quiet        Print less
   -s --size=XX      Percent of usb-device to use (default 100%)
   -v --verbose      Print more, show commands when run
 
+Note: short options stack. Example: -Ff instead of -F -f
+Note: options can be intermingled with commands and parameters
 Usage
     exit $ret
 }
