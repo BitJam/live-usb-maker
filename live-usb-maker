@@ -1,0 +1,451 @@
+#!/bin/bash
+
+          ME=${0##*/}
+
+     MBR_GPT="msdos"
+        SIZE=100
+    ALL_CMDS="all partition make-ext make-efi copy-ext copy-efi uuids install"
+
+ EXT_OPTIONS="-m0 -N10000 -J size=32"
+   EXT_LABEL="LiveUSB"
+
+usage() {
+    local ret=${1:-0}
+
+cat<<Usage
+Usage: $ME [options] <iso-file> <usb-device> [commands]
+
+Create a live-usb on <usb-device> from <iso-file>.  This will destroy
+any existing information on <usb-device>.
+
+Use ext4 as the filesystem for the live-usb and add a small fat32 file
+system for booting via UEFI.
+
+If one or more commands are given then only perform those commands
+Commands:
+    all              Do all commands
+    partition        Partition the live usb
+    make-ext         Create the ext file system
+    make-efi         Create the efi file system
+    copy-ext         Copy files to live usb ext partition
+    copy-efi         Copy files to ESP partition
+    uuids            Write UUIDs linking file systems
+    install
+
+Options:
+  -c --clean        Delete files from each partition before copying
+  -f --force        Ignore usb/removeable check (dangerous!)
+  -F --force-ext    Force creation of ext4 filesystem even if one exists
+  -g --gpt          Use gpt partitioning instead of msdos
+  -h --help         Show this usage
+  -L --label=Name   Label ext partition with Name
+  -p --pretend      Don't run most commands, just show them
+  -q --quiet        Print less
+  -s --size=XX      Percent of usb-device to use (default 100%)
+  -v --verbose      Print more, show commands when run
+
+Usage
+    exit $ret
+}
+
+eval_argument() {
+    local arg=$1 val=$2
+        case $arg in
+             -clean|c)  CLEAN=true                      ;;
+             -force|f)  FORCE=true                      ;;
+         -force-ext|F)  FORCE_EXT="-F"                  ;;
+               -gpt|g)  MBR_GPT="gpt"                   ;;
+              -help|h)  usage                           ;;
+             -label|L)  EXT_LABEL=$val                  ;;
+         -label=*|L=*)  EXT_LABEL=$val                  ;;
+           -pretend|p)  PRETEND=true  ; VERBOSE=true    ;;
+             -quiet|q)  QUIET=true                      ;;
+              -size|s)  SIZE=${val%\%}                  ;;
+          -size=*|s=*)  SIZE=${val%\%}                  ;;
+           -verbose|v)  VERBOSE=true                    ;;
+                    *)  fatal "Unknown parameter -$arg" ;;
+    esac
+}
+
+takes_param() {
+    case $1 in
+        -size|s) return 0 ;;
+       -label|L) return 0 ;;
+    esac
+    return 1
+}
+
+main() {
+    local SHIFT SHORT_STACK="cfFghLqsv"
+    local VERBOSE ISO_FILE DEVICE
+
+    [ $# -eq 0 ] && usage
+
+    # This loop allows complete intermingling of filenames and options
+    local opt_cnt=0
+    while [ $# -gt 0 ]; do
+        read_params "$@"
+        shift $SHIFT
+
+        while [ $# -gt 0 -a ${#1} -gt 0 -a -n "${1##-*}" ]; do
+            case $opt_cnt in
+                0) ISO_FILE=$1     ;;
+                1) DEVICE=$1       ;;
+                *) CMDS="$CMDS $1" ;;
+            esac
+            shift
+            opt_cnt=$((opt_cnt + 1))
+        done
+    done
+
+    [ $opt_cnt -lt 2 ] && fatal "Expected at least two command line arguments"
+
+    [ $UID -eq 0 ] || fatal "This script must be run as root"
+
+    [ "$PRETEND" ] && msg "PRETEND MODE ENABLED"
+
+    local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
+
+    test -e $usb_dev || fatal "Device $usb_dev does not exist"
+    test -b $usb_dev || fatal "Device $usb_dev is not a block device"
+
+    [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
+        || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
+
+    test -e "$ISO_FILE" || fatal "Could not find iso file $ISO_FILE"
+    test -r "$ISO_FILE" || fatal "Could not read iso file $ISO_FILE"
+
+    trap clean_up EXIT
+    WORK_DIR=$(mktemp -d /tmp/$ME-XXXX) \
+        || fatal "Could not make temporary work directory under /tmp"
+
+    chmod 755 $WORK_DIR
+
+    ISO_DIR=$WORK_DIR/iso
+    EXT_DIR=$WORK_DIR/ext
+    EFI_DIR=$WORK_DIR/efi
+
+    mkdir $ISO_DIR $EXT_DIR $EFI_DIR || fatal "Could not make $WORK_DIR subdirectories"
+
+    mount_iso "$ISO_FILE" $ISO_DIR || fatal "Could not mount iso file $ISO_FILE"
+
+    #: ${CMDS:=all}
+    [ ${#CMDS} -gt 0 ] || fatal "Please specify a command such as \"all\"."
+
+    # Test for valid commands
+    local cmd
+    for cmd in $CMDS; do
+        echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
+    done
+
+    need partition && do_partition "$usb_dev" "$MBR_GPT" $SIZE 
+
+    # FIXME for mmcblk
+    local ext_dev=$(get_partition $usb_dev 1)
+    local efi_dev=$(get_partition $usb_dev 2)
+
+    need make-ext && do_makefs_ext $ext_dev
+    need make-efi && do_makefs_efi $efi_dev
+
+    cmd mount $ext_dev $EXT_DIR || fatal "Could not mount $ext_dev at $EXT_DIR"
+    cmd mount $efi_dev $EFI_DIR || fatal "Could not mount $efi_dev at $EFI_DIR"
+
+    need copy-ext && do_copy_ext $ISO_DIR $EXT_DIR
+    need copy-efi && do_copy_efi $ISO_DIR $EFI_DIR
+
+    local ext_uuid=$(lsblk -no uuid $ext_dev)
+    local efi_uuid=$(lsblk -no uuid $efi_dev)
+
+    need uuids   && do_uuids $EXT_DIR "$ext_uuid" $EFI_DIR "$efi_uuid"
+    need install && do_install $usb_dev $EXT_DIR $MBR_GPT
+}
+
+mount_iso() {
+    local file=$1  dir=$2
+    mkdir -p $dir
+    local type
+    for type in iso9660 udf; do
+        mount -t $type -o loop,ro "$file" $dir && return 0
+    done
+    fatal "Could not mount iso file $file"
+}
+
+do_partition() {
+    local drive=$1  type=${2:-msdos}  size=${3:-100}
+
+    local total_size=$(parted $drive unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    msg "total size: %s MiB" $(pq $total_size)
+
+    local end_1=$((size - 1))
+    parted --script --align optimal $usb_dev \
+        unit %                               \
+        mklabel $type                        \
+        mkpart primary ext4  0      $end_1   \
+        mkpart primary fat32 $end_1 $size    \
+        set 1 boot on                        \
+        set 2 esp  on
+}
+
+do_makefs_ext() {
+    local ext_dev=$1
+    cmd mkfs.ext4 $FORCE_EXT $EXT_OPTIONS -L "$EXT_LABEL" $ext_dev \
+        || fatal "Could not make ext4 file system on $ext_dev"
+}
+
+do_makefs_efi() {
+    local efi_dev=$1
+    cmd mkfs.fat -n "LIVE-ESP" $efi_dev \
+        || fatal "Could not make fat32 file system on $efi_dev"
+}
+
+do_makefs() {
+    local ext_dev=$1  efi_dev=$2
+    cmd mkfs.ext4 -m0 -N10000 -J size=16 -L LiveUSB $ext_dev \
+        || fatal "Could not make ext4 file system on $ext_dev"
+
+    cmd mkfs.fat -n "LIVE-ESP" $efi_dev \
+        || fatal "Could not make fat32 file system on $efi_dev"
+}
+
+
+do_copy_ext() {
+    local iso_dir=$1  ext_dir=$2
+
+    [ "$CLEAN" ] && cmd rm -rf $ext_dir/*
+
+    if [ -z "$FORCE" -a -d $ext_dir/antiX ]; then
+        warn "Not over-writing antiX/ directory"
+        warn "Use --clean or --force to over-ride"
+        return
+    fi
+    msg "Copying files ..."
+    cmd cp -a $iso_dir/* $ext_dir/ \
+        || fatal "Error when copying files to live usb"
+}
+
+do_copy_efi() {
+    local iso_dir=$1  efi_dir=$2
+
+    [ "$CLEAN" ] && cmd rm -rf $efi_dir/*
+
+    local top
+    for top in $iso_dir/{efi,EFI,boot}; do
+        test -e $top || continue
+        cmd cp -r $top $efi_dir/ \
+            || warn "Error when copying %s files to efi partition"  $(pqw $(basename $top))
+    done
+}
+
+do_uuids() {
+    local ext_dir=$1  ext_uuid=$2  efi_dir=$3  efi_uuid=$4
+    if [ ${#efi_uuid} -gt 0 ]; then
+        local efi_file=$ext_dir/antiX/esp-uuid
+        cmd mkdir -p $(dirname $efi_file)
+        cmd write_file $efi_file $efi_uuid
+    else
+        warn "No UUID given for EFI partition"
+    fi
+
+    if [ ${#ext_uuid} -eq 0 ]; then
+        warn "No UUID give for ext4 partition"
+        return
+    fi
+
+    local grub_cfg=$efi_dir/boot/grub/grub.cfg
+    if ! test -e $grub_cfg; then
+        warn "Could not find $(basename $grub_cfg) file"
+        return
+    fi
+
+    if grep -q -- --set=root $grub_cfg; then
+        cmd sed -i -e "/%UUID%/  s/^\s*#\s*//" -e "s/%UUID%/$ext_uuid/"  $grub_cfg
+    else
+        # This is lame but only needed until MX-16
+        local search_line="search --no-floppy --set=root --fs-uuid $ext_uuid"
+        cmd sed -i "/set menu_color_highlight/a$search_line" $grub_cfg
+    fi
+}
+
+do_install() {
+    local usb_dev=$1  ext_dir=$2  type=$3
+
+    local fname
+    case $type in
+          gpt) fname=gptmbr.bin ;;
+        msdos) fname=mbr.bin    ;;
+            *) fatal "Unknown partitioning scheme: $type.  Expected msdos or gpt" ;;
+    esac
+
+    local dir file d
+    for dir in /usr/share/syslinux /usr/lib/syslinux/mbr; do
+        test -e $dir/$fname || continue
+        file=$dir/$fname
+        break
+    done
+
+    [ "$file" ] || fatal "Could not find file $fname"
+    cmd dd bs=440 conv=notrunc count=1 if=$file of=$usb_dev
+
+    cmd extlinux -i $ext_dir/boot/syslinux
+}
+
+need() {
+    local cmd=$1
+    echo "$CMDS" | egrep -q "(^| )($cmd|all)( |$)" || return 1
+    msg "=> $cmd"
+    return 0
+}
+
+write_file() {
+    file=$1 
+    shift
+    echo "$*" > $file
+}
+
+is_usb_or_removeable() {
+    local drive=$(get_drive $1)
+    local dir=/sys/block/$drive flag
+    read flag 2>/dev/null < $dir/removable
+    [ "$flag" = 1 ] && return 0
+    local devpath=$(readlink -f $dir/device)
+    [ "$devpath" ] || return 1
+    echo $devpath | grep -q /usb
+    return $?
+}
+
+get_drive() {
+    local drive part=${1##*/}
+    case $part in
+        mmcblk*) echo ${part%p[0-9]}                        ;;
+              *) drive=${part%[0-9]}  ; echo ${drive%[0-9]} ;;
+    esac
+}
+
+expand_device() {
+    case $1 in
+        /dev/*)  [ -b "$1"      ] && echo "$1";;
+         dev/*)  [ -b "/$1"     ] && echo "/$1";;
+            /*)  [ -b "/dev$1"  ] && echo "/dev$1";;
+             *)  [ -b "/dev/$1" ] && echo "/dev/$1";;
+    esac
+}
+
+get_partition() {
+    local dev=$1  num=$2
+
+    case $dev in
+        *mmcbk*) echo  ${dev}p$num  ;;
+              *) echo  ${dev}$num   ;;
+    esac
+}
+#-------------------------------------------------------------------------------
+# Send "$@".  Expects
+#
+#   SHORT_STACK               variable, list of single chars that stack
+#   fatal(msg)                routine,  fatal("error message")
+#   takes_param(arg)          routine,  true if arg takes a value
+#   eval_argument(arg, [val]) routine,  do whatever you want with $arg and $val
+#
+# Sets "global" variable SHIFT to the number of arguments that have been read.
+#-------------------------------------------------------------------------------
+read_params() {
+    # Most of this code is boiler-plate for parsing cmdline args
+    SHIFT=0
+    # These are the single-char options that can stack
+
+    local arg val
+
+    # Loop through the cmdline args
+    while [ $# -gt 0 -a ${#1} -gt 0 -a -z "${1##-*}" ]; do
+        arg=${1#-}
+        shift
+        SHIFT=$((SHIFT + 1))
+
+        # Expand stacked single-char arguments
+        case $arg in
+            [$SHORT_STACK][$SHORT_STACK]*)
+                if echo "$arg" | grep -q "^[$SHORT_STACK]\+$"; then
+                    local old_cnt=$#
+                    set -- $(echo $arg | sed -r 's/([a-zA-Z])/ -\1 /g') "$@"
+                    SHIFT=$((SHIFT - $# + old_cnt))
+                    continue
+                fi;;
+        esac
+
+        # Deal with all options that take a parameter
+        if takes_param "$arg"; then
+            [ $# -lt 1 ] && fatal "Expected a parameter after: -$arg"
+            val=$1
+            [ -n "$val" -a -z "${val##-*}" ] \
+                && fatal "Suspicious argument after -$arg: $val"
+            SHIFT=$((SHIFT + 1))
+            shift
+        else
+            case $arg in
+                *=*)  val=${arg#*=} ;;
+                  *)  val="???"     ;;
+            esac
+        fi
+
+        eval_argument "$arg" "$val"
+    done
+}
+
+cmd() {
+    [ "$VERBOSE" ] && echo " >" "$@"
+    [ "$PRETEND" ] && return 0
+    "$@"
+    return $?
+}
+
+set_colors() {
+    local noco=$1  loco=$2
+
+    local e=$(printf "\e")
+     black="$e[0;30m";    blue="$e[0;34m";    green="$e[0;32m";    cyan="$e[0;36m";
+       red="$e[0;31m";  purple="$e[0;35m";    brown="$e[0;33m"; lt_gray="$e[0;37m";
+   dk_gray="$e[1;30m"; lt_blue="$e[1;34m"; lt_green="$e[1;32m"; lt_cyan="$e[1;36m";
+    lt_red="$e[1;31m"; magenta="$e[1;35m";   yellow="$e[1;33m";   white="$e[1;37m";
+     nc_co="$e[0m";
+
+    cheat_co=$white;      err_co=$red;       hi_co=$white;
+      cmd_co=$white;     from_co=$lt_green;  mp_co=$magenta;   num_co=$magenta;
+      dev_co=$magenta;   head_co=$yellow;     m_co=$lt_cyan;    ok_co=$lt_green;
+       to_co=$lt_green;  warn_co=$yellow;  bold_co=$yellow;
+}
+
+pq()     { echo "$hi_co$*$m_co"           ;}
+pqw()    { echo "$hi_co$*$warn_co"        ;}
+
+msg() {
+    fmt=$1
+    shift
+    [ -z "$QUIET" ] && printf "$m_co$fmt$nc_co\n" "$@"
+}
+
+fatal() {
+    local fmt=$1
+    shift
+    printf "$err_co$ME fatal error:$nc_co $fmt\n" "$@" >&2
+    exit 2
+}
+
+warn() {
+    local fmt=$1
+    shift
+    printf "$warn_co$ME warning: $fmt$nc_co\n" "$@" >&2
+}
+
+clean_up() {
+    msg "cleaning up"
+    for mp in $ISO_DIR $EXT_DIR $EFI_DIR; do
+        mountpoint -q $mp && umount -l $mp
+        rmdir $mp
+    done
+    rmdir $WORK_DIR
+}
+
+set_colors
+
+main "$@"
+
