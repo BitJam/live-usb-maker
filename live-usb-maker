@@ -170,7 +170,7 @@ main() {
     msg "$mem_fmt" "fat size"       $FAT_SIZE
     msg "$mem_fmt" "ext size"       $ext_size
 
-    need partition && do_partition "$usb_dev" "$MBR_GPT" "$FAT_SIZE" $mib_size
+    need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
 
     # FIXME for mmcblk
     local ext_dev=$(get_partition $usb_dev 1)
@@ -209,7 +209,7 @@ my_mount() {
 }
 
 do_partition() {
-    local drive=$1  type=${2:-msdos}  fat_size=$3 mib_size=${4:-100}
+    local drive=$1  type=${2:-msdos}  ext_size=$3  mib_size=$4
 
     local boot_flag
     case $type in
@@ -218,18 +218,12 @@ do_partition() {
             *) fatal "Unknown partitioning scheme: $type.  Expected msdos or gpt" ;;
     esac
 
-    local ext_1=1
-    local ext_2=$((mib_size - $fat_size))
-    local fat_1=$((mib_size - $fat_size))
-    local fat_2=$mib_size
-
-    local end_1=$((size - 1))
-    cmd parted --script --align optimal $usb_dev \
-        unit MiB                             \
-        mklabel $type                        \
-        mkpart primary ext4  $ext_1 $ext_2   \
-        mkpart primary fat32 $fat_1 $fat_2   \
-        set 1 $boot_flag on                  \
+    cmd parted --script --align optimal $usb_dev   \
+        unit MiB                                   \
+        mklabel $type                              \
+        mkpart primary ext4  1         $ext_size   \
+        mkpart primary fat32 $ext_size $mib_size   \
+        set 1 $boot_flag on                        \
         set 2 esp  on
 }
 
