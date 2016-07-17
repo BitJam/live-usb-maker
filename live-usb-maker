@@ -469,6 +469,7 @@ warn() {
 
 clean_up() {
     msg "cleaning up"
+    sync; sync
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
         mountpoint -q $mp && umount -l $mp
         rmdir $mp
