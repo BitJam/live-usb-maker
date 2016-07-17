@@ -86,6 +86,7 @@ eval_argument() {
 
 takes_param() {
     case $1 in
+    -esp-size|e) return 0 ;;
         -size|s) return 0 ;;
        -label|L) return 0 ;;
     esac
