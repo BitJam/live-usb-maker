@@ -4,11 +4,11 @@
 
      MBR_GPT="msdos"
         SIZE=100
-    ALL_CMDS="all partition makefs makefs-ext makefs-efi copy copy-ext copy-efi uuids install"
+    FAT_SIZE=50
+    ALL_CMDS="all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
 
  EXT_OPTIONS="-m0 -N10000 -J size=32"
    EXT_LABEL="LiveUSB"
-    EFI_SIZE=100
 
 usage() {
     local ret=${1:-0}
@@ -29,16 +29,17 @@ Commands:
     all              Do all commands
     partition        Partition the live usb
     makefs-ext       Create the ext file system
-    makefs-efi       Create the efi file system
-    makefs           Both makefs-ext and makefs-efi
+    makefs-fat       Create the fat file system
+    makefs           Both makefs-ext and makefs-fat
     copy-ext         Copy files to live usb ext partition
-    copy-efi         Copy files to ESP partition
-    copy             Both copy-ext and copy-efi
+    copy-fat         Copy files to fat partition
+    copy             Both copy-ext and copy-fat
     uuids            Write UUIDs linking file systems
     install
 
 Options:
   -c --clean        Delete files from each partition before copying
+  -e --esp-size     Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
   -F --force-ext    Force creation of ext4 filesystem even if one exists
   -g --gpt          Use gpt partitioning instead of msdos
@@ -47,7 +48,7 @@ Options:
   -p --pretend      Don't run most commands, just show them
   -P --Pretend      Pretend witout verbose
   -q --quiet        Print less
-  -s --size=XX      Percent of usb-device to use (default 100%)
+  -s --size=XX      Percent of usb-device to use in (default 100)
   -v --verbose      Print more, show commands when run
 
 Note: short options stack. Example: -Ff instead of -F -f
@@ -60,6 +61,8 @@ eval_argument() {
     local arg=$1 val=$2
         case $arg in
              -clean|c)  CLEAN=true                      ;;
+          -esp-size|e)  FAT_SIZE=$val                   ;;
+      -esp-size=*|e=*)  FAT_SIZE=$val                   ;;
              -force|f)  FORCE=true                      ;;
          -force-ext|F)  FORCE_EXT="-F"                  ;;
                -gpt|g)  MBR_GPT="gpt"                   ;;
@@ -118,6 +121,9 @@ main() {
         *) fatal "Bad size format \"%s\".  Should be between 1 and 100 inclusive." "$(pqh $SIZE)"
     esac
 
+    [ -z "${FAT_SIZE##[0-9]}" ] && fatal "esp-size must be larger than 9"
+    echo $FAT_SIZE | grep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than 9"
+
     local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
 
     test -e $usb_dev || fatal "Device $usb_dev does not exist"
@@ -137,9 +143,9 @@ main() {
 
     ISO_DIR=$WORK_DIR/iso
     EXT_DIR=$WORK_DIR/ext
-    EFI_DIR=$WORK_DIR/efi
+    FAT_DIR=$WORK_DIR/fat
 
-    mkdir $ISO_DIR $EXT_DIR $EFI_DIR || fatal "Could not make $WORK_DIR subdirectories"
+    mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal "Could not make $WORK_DIR subdirectories"
 
     mount_iso "$ISO_FILE" $ISO_DIR || fatal "Could not mount iso file $ISO_FILE"
 
@@ -152,25 +158,25 @@ main() {
         echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
     done
 
-    need partition && do_partition "$usb_dev" "$MBR_GPT" $EFI_SIZE $SIZE
+    need partition && do_partition "$usb_dev" "$MBR_GPT" "$FAT_SIZE" $SIZE
 
     # FIXME for mmcblk
     local ext_dev=$(get_partition $usb_dev 1)
-    local efi_dev=$(get_partition $usb_dev 2)
+    local fat_dev=$(get_partition $usb_dev 2)
 
     need makefs-ext && do_makefs_ext $ext_dev
-    need makefs-efi && do_makefs_efi $efi_dev
+    need makefs-fat && do_makefs_fat $fat_dev
 
     cmd mount $ext_dev $EXT_DIR || fatal "Could not mount $ext_dev at $EXT_DIR"
-    cmd mount $efi_dev $EFI_DIR || fatal "Could not mount $efi_dev at $EFI_DIR"
+    cmd mount $fat_dev $FAT_DIR || fatal "Could not mount $fat_dev at $FAT_DIR"
 
     need copy-ext && do_copy_ext $ISO_DIR $EXT_DIR
-    need copy-efi && do_copy_efi $ISO_DIR $EFI_DIR
+    need copy-fat && do_copy_fat $ISO_DIR $FAT_DIR
 
     local ext_uuid=$(lsblk -no uuid $ext_dev)
-    local efi_uuid=$(lsblk -no uuid $efi_dev)
+    local fat_uuid=$(lsblk -no uuid $fat_dev)
 
-    need uuids   && do_uuids $EXT_DIR "$ext_uuid" $EFI_DIR "$efi_uuid"
+    need uuids   && do_uuids $EXT_DIR "$ext_uuid" $FAT_DIR "$fat_uuid"
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 }
 
@@ -185,22 +191,22 @@ mount_iso() {
 }
 
 do_partition() {
-    local drive=$1  type=${2:-msdos}  efi_size=$3 size=${4:-100}
+    local drive=$1  type=${2:-msdos}  fat_size=$3 size=${4:-100}
 
     local total_size=$(parted $drive unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     msg "total size: %s MiB" $(pq $total_size)
     local max_size=$((total_size * size / 100 - 1))
     local ext_1=1
-    local ext_2=$((max_size - $efi_size))
-    local efi_1=$((max_size - $efi_size))
-    local efi_2=$max_size
+    local ext_2=$((max_size - $fat_size))
+    local fat_1=$((max_size - $fat_size))
+    local fat_2=$max_size
 
     local end_1=$((size - 1))
     cmd parted --script --align optimal $usb_dev \
         unit MiB                             \
         mklabel $type                        \
         mkpart primary ext4  $ext_1 $ext_2   \
-        mkpart primary fat32 $efi_1 $efi_2   \
+        mkpart primary fat32 $fat_1 $fat_2   \
         set 1 boot on                        \
         set 2 esp  on
 }
@@ -211,19 +217,10 @@ do_makefs_ext() {
         || fatal "Could not make ext4 file system on $ext_dev"
 }
 
-do_makefs_efi() {
-    local efi_dev=$1
-    cmd mkfs.fat -n "LIVE-ESP" $efi_dev \
-        || fatal "Could not make fat32 file system on $efi_dev"
-}
-
-do_makefs() {
-    local ext_dev=$1  efi_dev=$2
-    cmd mkfs.ext4 -m0 -N10000 -J size=16 -L LiveUSB $ext_dev \
-        || fatal "Could not make ext4 file system on $ext_dev"
-
-    cmd mkfs.fat -n "LIVE-ESP" $efi_dev \
-        || fatal "Could not make fat32 file system on $efi_dev"
+do_makefs_fat() {
+    local fat_dev=$1
+    cmd mkfs.fat -n "LIVE-ESP" $fat_dev \
+        || fatal "Could not make fat32 file system on $fat_dev"
 }
 
 do_copy_ext() {
@@ -241,27 +238,27 @@ do_copy_ext() {
         || fatal "Error when copying files to live usb"
 }
 
-do_copy_efi() {
-    local iso_dir=$1  efi_dir=$2
+do_copy_fat() {
+    local iso_dir=$1  fat_dir=$2
 
-    [ "$CLEAN" ] && cmd rm -rf $efi_dir/*
+    [ "$CLEAN" ] && cmd rm -rf $fat_dir/*
 
     local top
     for top in $iso_dir/{efi,EFI,boot}; do
         test -e $top || continue
-        cmd cp -r $top $efi_dir/ \
-            || warn "Error when copying %s files to efi partition" $(basename $top)
+        cmd cp -r $top $fat_dir/ \
+            || warn "Error when copying %s files to fat partition" $(basename $top)
     done
 }
 
 do_uuids() {
-    local ext_dir=$1  ext_uuid=$2  efi_dir=$3  efi_uuid=$4
-    if [ ${#efi_uuid} -gt 0 ]; then
-        local efi_file=$ext_dir/antiX/esp-uuid
-        cmd mkdir -p $(dirname $efi_file)
-        cmd write_file $efi_file $efi_uuid
+    local ext_dir=$1  ext_uuid=$2  fat_dir=$3  fat_uuid=$4
+    if [ ${#fat_uuid} -gt 0 ]; then
+        local fat_file=$ext_dir/antiX/esp-uuid
+        cmd mkdir -p $(dirname $fat_file)
+        cmd write_file $fat_file $fat_uuid
     else
-        warn "No UUID given for EFI partition"
+        warn "No UUID given for fat partition"
     fi
 
     if [ ${#ext_uuid} -eq 0 ]; then
@@ -269,7 +266,7 @@ do_uuids() {
         return
     fi
 
-    local grub_cfg=$efi_dir/boot/grub/grub.cfg
+    local grub_cfg=$fat_dir/boot/grub/grub.cfg
     if ! test -e $grub_cfg; then
         warn "Could not find $(basename $grub_cfg) file"
         return
@@ -459,7 +456,7 @@ warn() {
 
 clean_up() {
     msg "cleaning up"
-    for mp in $ISO_DIR $EXT_DIR $EFI_DIR; do
+    for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
         mountpoint -q $mp && umount -l $mp
         rmdir $mp
     done
