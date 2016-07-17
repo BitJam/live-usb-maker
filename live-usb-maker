@@ -195,12 +195,7 @@ main() {
 
     echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && exit 0
 
-    # Note: these tests add about 300 milliseconds
-    test_umount $usb_dev
-    local p
-    for p in $(seq 1 20); do
-        test_umount $(get_partition $usb_dev $p)
-    done
+    umount_all $usb_dev
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
 
@@ -427,24 +422,24 @@ expand_device() {
     esac
 }
 
-test_umount() {
+umount_all() {
     local dev=$1
+    local i part
 
-    is_mounted $dev && umount $dev 2>/dev/null
+    for part in $(mount | egrep -o "^$dev[^ ]*"); do
+        umount $part 2>/dev/null
+    done
+    mount | egrep -q "^$dev[^ ]*" || return
 
-    local i
     for i in $(seq 1 10); do
-        is_mounted $dev || return
-        umount $dev 2>/dev/null
+        mount | egrep -q "^$dev[^ ]*" || return
+        for part in $(mount | egrep -o "^$dev[^ ]*"); do
+            umount $part 2>/dev/null
+        done
         sleep .1
     done
-
-    is_mounted $dev && fatal "Device $dev is in use"
-}
-
-is_mounted() {
-    mount | grep -q "^$1 "
-    return $?
+    mount | egrep -q "^$dev[^ ]*" || return
+    fatal "One or more partitions on device $dev are in use"
 }
 
 get_partition() {
