@@ -438,8 +438,8 @@ umount_all() {
         done
         sleep .1
     done
-    mount | egrep -q "^$dev[^ ]*" || return
-    fatal "One or more partitions on device $dev are in use"
+    local mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3) || return
+    fatal "One or more partitions on device $dev are in use at: $(echo $mounted)"
 }
 
 get_partition() {
