@@ -135,6 +135,15 @@ main() {
     test -e "$ISO_FILE" || fatal "Could not find iso file $ISO_FILE"
     test -r "$ISO_FILE" || fatal "Could not read iso file $ISO_FILE"
 
+    #: ${CMDS:=all}
+    [ ${#CMDS} -gt 0 ] || fatal "Please specify a command such as \"all\"."
+
+    # Test for valid commands
+    local cmd
+    for cmd in $CMDS; do
+        echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
+    done
+
     trap clean_up EXIT
     WORK_DIR=$(mktemp -d /tmp/$ME-XXXX) \
         || fatal "Could not make temporary work directory under /tmp"
@@ -152,15 +161,6 @@ main() {
     local total_size=$(parted $drive unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     msg "total size: %s MiB" $(pq $total_size)
     local mib_size=$((total_size * size / 100 - 1))
-
-    #: ${CMDS:=all}
-    [ ${#CMDS} -gt 0 ] || fatal "Please specify a command such as \"all\"."
-
-    # Test for valid commands
-    local cmd
-    for cmd in $CMDS; do
-        echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
-    done
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" "$FAT_SIZE" $mib_size
 
