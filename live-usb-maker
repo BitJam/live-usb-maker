@@ -135,22 +135,25 @@ main() {
     [ -z "${FAT_SIZE##[0-9]}" ] && fatal "esp-size must be larger than 9"
     echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than 9"
 
-    local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
-
-    test -e $usb_dev || fatal "Device $usb_dev does not exist"
-    test -b $usb_dev || fatal "Device $usb_dev is not a block device"
-
-    is_mounted $usb_dev && umount -l $usb_dev
-    is_mounted $usb_dev && fatal "Device $usb_dev is in use"
-
-    [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
-        || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
-
     # Test for valid commands
     local cmd
     for cmd in $CMDS; do
         echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
     done
+
+    local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
+
+    test -e $usb_dev || fatal "Device $usb_dev does not exist"
+    test -b $usb_dev || fatal "Device $usb_dev is not a block device"
+
+    local ext_dev=$(get_partition $usb_dev 1)
+    local fat_dev=$(get_partition $usb_dev 2)
+
+    test_umount $ext_dev
+    test_umount $fat_dev
+
+    [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
+        || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
 
     trap clean_up EXIT
     WORK_DIR=$(mktemp -d /tmp/$ME-XXXX) \
@@ -198,10 +201,6 @@ main() {
     #fatal "Please specify a command such as \"all\"."
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
-
-    # FIXME for mmcblk
-    local ext_dev=$(get_partition $usb_dev 1)
-    local fat_dev=$(get_partition $usb_dev 2)
 
     need makefs-ext && do_makefs_ext $ext_dev
     need makefs-fat && do_makefs_fat $fat_dev
@@ -424,6 +423,21 @@ expand_device() {
             /*)  [ -b "/dev$1"  ] && echo "/dev$1";;
              *)  [ -b "/dev/$1" ] && echo "/dev/$1";;
     esac
+}
+
+test_umount() {
+    local dev=$1
+
+    is_mounted $dev && umount $dev 2>/dev/null
+
+    local i
+    for i in $(seq 1 10); do
+        is_mounted $dev || return
+        umount $dev 2>/dev/null
+        sleep .1
+    done
+
+    is_mounted $dev && fatal "Device $dev is in use"
 }
 
 is_mounted() {
