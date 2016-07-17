@@ -14,7 +14,7 @@ usage() {
     local ret=${1:-0}
 
 cat<<Usage
-Usage: $ME [options] <iso-file> <usb-device> [commands]
+Usage: $ME [options] <iso-file> <usb-device> <commands>
 
 Create a live-usb on <usb-device> from <iso-file>.  This will destroy
 any existing information on <usb-device>.
@@ -22,7 +22,9 @@ any existing information on <usb-device>.
 Use ext4 as the filesystem for the live-usb and add a small fat32 file
 system for booting via UEFI.
 
-If one or more commands are given then only perform those commands
+At least one command must be given.  If "all" is not given then only the
+commands given will be run.
+
 Commands:
     all              Do all commands
     partition        Partition the live usb
