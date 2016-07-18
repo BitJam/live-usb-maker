@@ -17,7 +17,8 @@ ME=${0##*/}
    GRUB_CONF="boot/grub/grub.cfg"
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
-    LOG_FILE="/var/log/$ME.log"
+THE_LOG_FILE="/var/log/$ME.log"
+    LOG_FILE=/dev/null
 
     ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
 
@@ -633,6 +634,8 @@ is_mounted() {
 
 start_log() {
     local args=$1 cmds=${2# } iso=$3 dev=$4
+
+    LOG_FILE=$THE_LOG_FILE
 
     cat <<Start_Log >> $LOG_FILE
 ---------------------------------------------------------------------
