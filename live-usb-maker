@@ -8,17 +8,17 @@ ME=${0##*/}
   EXT_MARGIN=20
   FAT_MARGIN=5
 
-    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
-
  EXT_OPTIONS="-m0 -N10000 -J size=32"
    EXT_LABEL="LiveUSB"
 
-    LIVE_MP="/live/boot-dev"
- LIVE_FILES="cdrom.ico version antiX/{vmlinuz,initrd.gz,linuxfs}{,.md5}"
-  LIVE_DIRS="boot EFI efi"
-  GRUB_CONF="boot/grub/grub.cfg"
+     LIVE_MP="/live/boot-dev"
+  LIVE_FILES="cdrom.ico version antiX/{vmlinuz,initrd.gz,linuxfs}{,.md5}"
+   LIVE_DIRS="boot EFI efi"
+   GRUB_CONF="boot/grub/grub.cfg"
 
-  CONF_FILE="/root/.config/$ME/$ME.conf"
+   CONF_FILE="/root/.config/$ME/$ME.conf"
+
+    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
 
 usage() {
     local ret=${1:-0}
@@ -591,7 +591,6 @@ write_conf() {
 #
 # This file will be sourced by the live-usb-maker script if it is found
 # at $file
-
 
      MBR_GPT="$MBR_GPT"
         SIZE=$SIZE
