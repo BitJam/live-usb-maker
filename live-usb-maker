@@ -700,7 +700,8 @@ start_log() {
 
     cat <<Start_Log >> $LOG_FILE
 ---------------------------------------------------------------------
-$ME started $(date)
+$ME
+    started: $(date)
 comand line: $args
    commands: $cmds
    iso file: $iso
