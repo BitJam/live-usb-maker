@@ -346,7 +346,7 @@ do_copy_fat() {
 }
 
 do_uuids() {
-    local ext_dir=$1  ext_uuid=$2  grub_conf=$3  fat_uuid=$4
+    local ext_dir=$1  ext_uuid=$2  grub_cfg=$3  fat_uuid=$4
     if [ ${#fat_uuid} -gt 0 ]; then
         local fat_file=$ext_dir/antiX/esp-uuid
         cmd mkdir -p $(dirname $fat_file)
@@ -365,13 +365,13 @@ do_uuids() {
         return
     fi
 
-    # Uncomment and fill in the %UUID% if that line exists
-    if grep -q -- "search.*--set=root.*%UUID%" $grub_cfg; then
-        cmd sed -i -e "/%UUID%/  s/^\s*#\s*//" -e "s/%UUID%/$ext_uuid/"  $grub_cfg
+    local new_line="search --no-floppy --set=root --fs-uuid $ext_uuid"
+    if grep -q "search.*--set=root.*" $grub_cfg; then
+        # Replace the line(s) if it/they exists
+        cmd sed -i "/search.*--set=root.*/  s/.*/$new_line/" $grub_cfg
     else
-        # Add the search line before the first menuentry
-        local search_line="search --no-floppy --set=root --fs-uuid $ext_uuid"
-        cmd sed -ri "1,/menuentry/s/(menuentry)/$search_line\n\n\1/" $grub_cfg
+        # Add the new line before the first menuentry line if not
+        cmd sed -ri "1,/^\s*menuentry/s/(^\s*menuentry)/$new_line\n\n\1/" $grub_cfg
     fi
 }
 
