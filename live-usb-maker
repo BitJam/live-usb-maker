@@ -114,7 +114,7 @@ main() {
     local SHIFT SHORT_STACK="cdefFghLpPqsv"
     local VERBOSE ISO_FILE DEVICE
 
-    local start_t=$(date +%s)
+    local START_T=$(date +%s)
 
     local orig_args="$*"
 
@@ -238,10 +238,7 @@ main() {
     need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 
-    local dt=$(($(date +%s) - start_t))
-     [ $dt -gt 10 ] && msg "\n$ME took $(elapsed $start_t)."
-    msg "=> cleaning up"
-    echo >> $LOG_FILE
+    show_elapsed
 }
 
 mount_iso() {
@@ -581,6 +578,13 @@ pqw()    { echo "$hi_co$*$warn_co"        ;}
 pqe()    { echo "$hi_co$*$err_co"         ;}
 pqh()    { echo "$m_co$*$hi_co"           ;}
 
+show_elapsed() {
+    local dt=$(($(date +%s) - START_T))
+    [ $dt -gt 10 ] && msg "\n$ME took $(elapsed $START_T)."
+    msg "=> cleaning up"
+    echo >> $LOG_FILE
+}
+
 elapsed() {
     local sec min hour ans
 
@@ -643,6 +647,9 @@ fatal() {
     printf "$fmt\n" "$@" >> $ERR_FILE
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
+
+    show_elapsed
+
     exit 2
 }
 
