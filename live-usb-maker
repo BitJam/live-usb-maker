@@ -52,7 +52,7 @@ Commands:
 Options:
   -c --clean        Delete files from each partition before copying
   -d --debug        Pause before cleaning up
-  -e --esp-size     Size of ESP (fat) partition in MiB (default 50)
+  -e --esp-size=XX  Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
   -F --force-ext    Force creation of ext4 filesystem even if one exists
   -g --gpt          Use gpt partitioning instead of msdos
