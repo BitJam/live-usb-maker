@@ -50,7 +50,7 @@ Commands:
     install
 
 Options:
-  -c --clean        Delete files from each partition before copying
+  -c --clear        Delete files from each partition before copying
   -d --debug        Pause before cleaning up
   -e --esp-size=XX  Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
@@ -77,7 +77,7 @@ Usage
 eval_argument() {
     local arg=$1 val=$2
         case $arg in
-             -clean|c)  CLEAN=true                      ;;
+             -clear|c)  CLEAR=true                      ;;
              -debug|d)  DEBUG=true                      ;;
           -esp-size|e)  FAT_SIZE=$val                   ;;
       -esp-size=*|e=*)  FAT_SIZE=$val                   ;;
@@ -320,11 +320,11 @@ do_makefs_fat() {
 do_copy_ext() {
     local iso_dir=$1  ext_dir=$2
 
-    [ "$CLEAN" ] && cmd rm -rf $ext_dir/*
+    [ "$CLEAR" ] && cmd rm -rf $ext_dir/*
 
     if [ -z "$FORCE" -a -d $ext_dir/antiX ]; then
-        warn "Not over-writing antiX/ directory"
-        warn "Use --clean or --force to over-write"
+        warn "Not over-writing ext partition due to existing antiX/ directory"
+        warn "Use --clear or --force to over-write"
         return
     fi
     msg "Copying files ..."
@@ -335,7 +335,7 @@ do_copy_ext() {
 do_copy_fat() {
     local iso_dir=$1  fat_dir=$2
 
-    [ "$CLEAN" ] && cmd rm -rf $fat_dir/*
+    [ "$CLEAR" ] && cmd rm -rf $fat_dir/*
 
     local top
     for top in $iso_dir/{efi,EFI,boot}; do
