@@ -74,12 +74,12 @@ with a line like:
 ```
 search --no-floppy --set=root --fs-uuid $EXT4_UUID
 ```
-in the grub.cfg file.
+in the `grub.cfg` file.
 
-The Live system (on the ext4 partition needs to know about where
+The Live system (on the ext4 partition) needs to know about where
 the Grub2 UEFI bootloader grub.cfg file is in order to be able
 to save boot parameters selected by the user.  This is accomplished
-with the antiX/esp-uuid file which contains the UUID of the
+with the `antiX/esp-uuid` file which contains the UUID of the
 fat32 ESP partition.
 
 
@@ -87,14 +87,14 @@ Practice
 --------
 This program started out as proof-of-concept for passing along
 instructions for creating ext4 LiveUSBs with a small fat32 partition
-for UEFI booting.  In a nutshell: copy the efi/ and boot/ directories
-to the fat32 partition and then record UUIDs so the two partitons know
-about each other.
+for UEFI booting.  In a nutshell: copy the `efi/` and `boot/`
+directories to the fat32 partition and then record UUIDs so the two
+partitons know about each other.
 
-Legacy booting is done via the ext4 partition so it has the "boot"
+Legacy booting is done via the ext4 partition so it has the `boot`
 flag set.  UEFI booting is done via the fat32 partition so it has the
-"esp" flag set.  The fat32 partition only needs the contents of the
-boot/ directory and the efi/ (or EFI/) directory.  Some of the
+`esp` flag set.  The fat32 partition only needs the contents of the
+`boot/` directory and the `efi/` (or `EFI/`) directory.  Some of the
 contents of boot/ is not needed but this only wastes a few Meg at
 most.
 
@@ -102,13 +102,13 @@ One complication is the format of the grub.cfg file changed between
 MX-15 and antiX-16.
 
 For antiX-16, to specify the ext4 UUID you should uncomment the
-following line and replace %UUID% with the UUID of the ext4
+following line and replace `%UUID%` with the UUID of the ext4
 partition:
 ```
 # search --no-floppy --set=root --fs-uuid %UUID%
 ```
 For MX-15, you need to add the line.  This script adds it before
-the first "menuentry" line.
+the first `menuentry` line.
 
 Optimizing for Size
 -------------------
@@ -122,7 +122,7 @@ This limits the number of inodes, the size of the journal and sets
 aside no extra space reserved for root.  The idea is that our LiveUSB
 does not normally contain many files (compared to an installed system)
 nor does it need extra space reserved for root.  I've been using
-"-N2000 -J size-16" for years without a problem.  I increased them by
+`-N2000 -J size-16` for years without a problem.  I increased them by
 factors of five and two for a greater margin of safety.  A user will
 be limited to roughly 10,000 files on these LiveUSBs.  This seems like
 a reasonable limit and yet provides significant savings in the
