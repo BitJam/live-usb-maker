@@ -609,6 +609,12 @@ write_conf() {
 Conf_File
 }
 
+is_mounted() {
+    local file=$1
+    cut -d" " -f2 /proc/mounts | grep -q "^$(readlink -f $file)$"
+    return $?
+}
+
 clean_up() {
     #msg "cleaning up"
 
@@ -620,8 +626,13 @@ clean_up() {
 
     sync; sync
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
-        mountpoint -q $mp && umount -r -l $mp
-        rm -rf $mp
+        is_mounted $mp && umount -r -l $mp
+        if ! is_mounted $mp; then
+            rm -rf $mp
+        else
+            warn "$mp remains mounted"
+            continue
+        fi
     done
     rmdir $WORK_DIR
 }
