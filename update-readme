@@ -1,0 +1,23 @@
+#!/bin/bash
+
+target=README.md
+state=0
+
+IFS=""
+while read line; do
+    case $line in
+        \`\`\`) state=$((state+ 1)) ;;
+    esac
+
+    case $state in
+        1) echo "$line" 
+           state=$((state + 1)) 
+           ./live-usb-maker --help ;;
+        2)              ;;
+        *) echo "$line" ;;
+    esac
+done < $target > $target.tmp
+
+mv $target.tmp $target
+
+
