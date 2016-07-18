@@ -26,17 +26,18 @@ cat<<Usage
 Usage: $ME [options] <iso-file> <usb-device> <commands>
 
 Create a live-usb on <usb-device> from <iso-file>.  This will destroy
-any existing information on <usb-device>.
+any existing information on <usb-device>.  Uses ext4 as the filesystem
+for the live-usb and add a small fat32 file system for booting via UEFI.
 
-Use ext4 as the filesystem for the live-usb and add a small fat32 file
-system for booting via UEFI.
+  - Use "live" as the iso-file to clone a running live system.
+  - Use "live=<dir>" to clone from a mounted live-usb or iso-file.
 
 At least one command must be given.  If "all" is not given then only the
 commands given will be run.
 
 Commands:
     sizes            Only show and check sizes, don't do anything
-    all              Do all commands
+    all              Do all commands below
     partition        Partition the live usb
     makefs-ext       Create the ext file system
     makefs-fat       Create the fat file system
@@ -62,8 +63,12 @@ Options:
   -s --size=XX      Percent of usb-device to use in (default 100)
   -v --verbose      Print more, show commands when run
 
-Note: short options stack. Example: -Ff instead of -F -f
-Note: options can be intermingled with commands and parameters
+Notes:
+  - short options stack. Example: -Ff instead of -F -f
+  - options can be intermingled with commands and parameters
+  - config file: $CONF_FILE
+  - the config file will be sourced if it exists
+  - it will be created if it doesn't exist
 Usage
     exit $ret
 }
