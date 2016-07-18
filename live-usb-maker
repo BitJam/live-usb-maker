@@ -226,6 +226,8 @@ main() {
 
     need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
+
+    msg "=> cleaning up"
 }
 
 mount_iso() {
