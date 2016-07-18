@@ -1,6 +1,6 @@
 #!/bin/bash
 
-          ME=${0##*/}
+ME=${0##*/}
 
      MBR_GPT="msdos"
         SIZE=100
