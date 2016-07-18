@@ -18,7 +18,9 @@ ME=${0##*/}
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
+THE_ERR_FILE="/var/log/$ME.errors"
     LOG_FILE=/dev/null
+    ERR_FILE=/dev/null
 
     ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
 
@@ -585,6 +587,7 @@ msg() {
 fatal() {
     local fmt=$1
     shift
+    printf "$fmt\n" "$@" >> $ERR_FILE
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
     exit 2
@@ -638,6 +641,9 @@ start_log() {
     local args=$1 cmds=${2# } iso=$3 dev=$4
 
     LOG_FILE=$THE_LOG_FILE
+    ERR_FILE=$THE_ERR_FILE
+
+    rm -f $ERR_FILE
 
     cat <<Start_Log >> $LOG_FILE
 ---------------------------------------------------------------------
