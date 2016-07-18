@@ -188,6 +188,7 @@ main() {
     local fat_extra=$((FAT_SIZE - fat_needed))
 
     local mem_fmt="%20s:$white %7s$msg_co MiB"
+
     msg "$mem_fmt" "total size"     $total_size
     msg "$mem_fmt" "requested size" $mib_size
     msg "$mem_fmt" "ext avaiable"   $ext_size
@@ -199,7 +200,7 @@ main() {
     msg
 
     if [ ${#CMDS} -le 0 ]; then
-        echo -e "No command(s) given.  Try \"all\""
+        echo -e "No command(s) given.  Try \"all\"."
         exit 0
     fi
 
