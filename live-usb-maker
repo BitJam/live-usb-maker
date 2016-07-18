@@ -440,7 +440,7 @@ umount_all() {
     local i part
 
     for part in $(mount | egrep -o "^$dev[^ ]*"); do
-        umount $part 2>/dev/null
+        umount --all-targets $part 2>/dev/null
     done
     mount | egrep -q "^$dev[^ ]*" || return
 
