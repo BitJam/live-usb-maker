@@ -16,6 +16,7 @@ ME=${0##*/}
     LIVE_MP="/live/boot-dev"
  LIVE_FILES="cdrom.ico version antiX/{vmlinuz,initrd.gz,linuxfs}{,.md5}"
   LIVE_DIRS="boot EFI efi"
+  GRUB_CONF="boot/grub/grub.cfg"
 
   CONF_FILE="/root/.config/$ME/$ME.conf"
 
@@ -223,7 +224,7 @@ main() {
     local ext_uuid=$(lsblk -no uuid $ext_dev)
     local fat_uuid=$(lsblk -no uuid $fat_dev)
 
-    need uuids   && do_uuids $EXT_DIR "$ext_uuid" $FAT_DIR "$fat_uuid"
+    need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 }
 
@@ -341,7 +342,7 @@ do_copy_fat() {
 }
 
 do_uuids() {
-    local ext_dir=$1  ext_uuid=$2  fat_dir=$3  fat_uuid=$4
+    local ext_dir=$1  ext_uuid=$2  grub_conf=$3  fat_uuid=$4
     if [ ${#fat_uuid} -gt 0 ]; then
         local fat_file=$ext_dir/antiX/esp-uuid
         cmd mkdir -p $(dirname $fat_file)
@@ -355,18 +356,18 @@ do_uuids() {
         return
     fi
 
-    local grub_cfg=$fat_dir/boot/grub/grub.cfg
     if ! test -e $grub_cfg; then
         warn "Could not find $(basename $grub_cfg) file"
         return
     fi
 
-    if grep -q -- --set=root $grub_cfg; then
+    # Uncomment and fill in the %UUID% if that line exists
+    if grep -q -- "search.*--set=root.*%UUID%" $grub_cfg; then
         cmd sed -i -e "/%UUID%/  s/^\s*#\s*//" -e "s/%UUID%/$ext_uuid/"  $grub_cfg
     else
-        # This is lame but only needed until MX-16
+        # Add the search line before the first menuentry
         local search_line="search --no-floppy --set=root --fs-uuid $ext_uuid"
-        cmd sed -i "/set menu_color_highlight/a$search_line" $grub_cfg
+        cmd sed -ri "1,/menuentry/s/(menuentry)/$search_line\n\n\1/" $grub_cfg
     fi
 }
 
