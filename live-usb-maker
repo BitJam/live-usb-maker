@@ -576,9 +576,9 @@ pqe()    { echo "$hi_co$*$err_co"         ;}
 pqh()    { echo "$m_co$*$hi_co"           ;}
 
 msg() {
-    fmt=$1
+    local fmt=$1  e=$(printf "\e")
     shift
-    printf "$fmt\n" "$@" >> $LOG_FILE
+    printf "$fmt\n" "$@" | sed -r "s/$e\[[0-9;]+[mK]//g" >> $LOG_FILE
     [ -z "$QUIET" ] && printf "$m_co$fmt$nc_co\n" "$@"
 }
 
