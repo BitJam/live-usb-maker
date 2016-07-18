@@ -114,6 +114,8 @@ main() {
     local SHIFT SHORT_STACK="cdefFghLpPqsv"
     local VERBOSE ISO_FILE DEVICE
 
+    local start_t=$(date +%s)
+
     local orig_args="$*"
 
     test -r "$CONF_FILE" && . "$CONF_FILE"
@@ -236,6 +238,8 @@ main() {
     need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 
+    local dt=$(($(date +%s) - start_t))
+     [ $dt -gt 10 ] && msg "\n$ME took $(elapsed $start_t)."
     msg "=> cleaning up"
     echo >> $LOG_FILE
 }
@@ -576,6 +580,55 @@ pq()     { echo "$hi_co$*$m_co"           ;}
 pqw()    { echo "$hi_co$*$warn_co"        ;}
 pqe()    { echo "$hi_co$*$err_co"         ;}
 pqh()    { echo "$m_co$*$hi_co"           ;}
+
+elapsed() {
+    local sec min hour ans
+
+    sec=$((-$1 + $(date +%s)))
+
+    if [ $sec -lt 60 ]; then
+        plural $sec "%n second%s"
+        return
+    fi
+
+    min=$((sec / 60))
+    sec=$((sec - 60 * min))
+    if [ $min -lt 60 ]; then
+        ans=$(plural $min "%n minute%s")
+        [ $sec -gt 0 ] && ans="$ans and $(plural $sec "%n second%s")"
+        echo -n "$ans"
+        return
+    fi
+
+    hour=$((min / 60))
+    min=$((min - 60 * hour))
+
+    plural $hour "%n hour%s"
+    if [ $min -gt 0 ]; then
+        local min_str=$(plural $min "%n minute%s")
+        if [ $sec -gt 0 ]; then
+            echo -n ", $min_str,"
+        else
+            echo -n " and $min_str"
+        fi
+    fi
+    [ $sec -gt 0 ] && plural $sec " and %n second%s"
+}
+
+plural() {
+    local n=$1 str=$2
+    case $n in
+        1) local s=  ies=y   are=is   were=was  es= num=one;;
+        *) local s=s ies=ies are=are  were=were es=es num=$n;;
+    esac
+    case $n in
+        0) num=no
+    esac
+    echo -n "$str" | sed -e "s/%s\>/$s/g" -e "s/%ies\>/$ies/g" \
+        -e "s/%are\>/$are/g" -e "s/%n\>/$num/g" -e "s/%were\>/$were/g" \
+        -e "s/%es\>/$es/g" -e "s/%3d\>/$(printf "%3d" $n)/g"
+}
+
 
 msg() {
     local fmt=$1  e=$(printf "\e")
