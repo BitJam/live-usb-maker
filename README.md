@@ -51,12 +51,12 @@ Notes:
 
 The Script
 ----------
-The --verbose and --pretend (which implies --verbose) options were
-meant to make it very clear what the script is doing.  They also
-helped in debugging.  You can control which steps are done with
-the commands.  The command "all" does everything.  There are a
-few failsafes built in but they can be disabled with --force and
---force-ext.
+The `--verbose` and `--pretend` (which implies `--verbose`) options
+were meant to make it very clear what the script is doing.  They also
+helped in debugging.  You can control which steps are done with the
+commands.  The command `all` does everything.  There are a few
+failsafes built in but they can be disabled with `--force` and
+`--force-ext`.
 
 Theory
 ------
