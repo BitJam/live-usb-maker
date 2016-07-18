@@ -27,7 +27,7 @@ Commands:
     install
 
 Options:
-  -c --clean        Delete files from each partition before copying
+  -c --clear        Delete files from each partition before copying
   -d --debug        Pause before cleaning up
   -e --esp-size=XX  Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
