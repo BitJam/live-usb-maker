@@ -258,26 +258,31 @@ mount_live() {
     mount --bind $targ_dir $targ_dir
 
     local dir from dest
-    # the cd && eval "echo ..." allows us to use globbing expansions (sigh)
-    for dir in $(cd $live_dir && eval "echo $LIVE_DIRS"); do
+    # the cd && eval "ls ..." allows us to use globbing expansions (sigh)
+    while read dir; do
         from="$live_dir/$dir"
         dest="$targ_dir/$dir"
         test -d "$from" || continue
-        mkdir -p $dest || fatal "Could not create directory $dest"
+        mkdir -p "$dest" || fatal "Could not create directory $dest"
         mount --bind "$from" "$dest"
-    done
+    done <<Live_Dirs
+$(cd "$live_dir" && eval "ls -d $LIVE_DIRS" 2>/dev/null)
+Live_Dirs
 
     local file
-    # the cd && eval "echo ..." allows us to use globbing expansions (sigh)
-    for file in $(cd $live_dir && eval "echo $LIVE_FILES"); do
-        from=$live_dir/$file
-        dest=$targ_dir/$file
-        test -f $from || continue
-        mkdir -p $(dirname "$dest") || fatal "Could not mkdir $(dirname "$dest")"
-        touch "$dest"               || fatal "Could not touch file $dest"
-        touch "$dest"
+    # the cd && eval "ls ..." allows us to use globbing expansions (sigh)
+    while read file; do
+        from="$live_dir/$file"
+        dest="$targ_dir/$file"
+        test -f "$from" || continue
+        mkdir -p "$(dirname "$dest")" || fatal "Could not mkdir $(dirname "$dest")"
+        touch "$dest"                 || fatal "Could not touch file $dest"
         mount --bind "$from" "$dest"
-    done
+    done <<Live_Files
+$(cd "$live_dir" && eval "ls -d $LIVE_FILES" 2>/dev/null)
+Live_Files
+
+exit
 }
 
 my_mount() {
