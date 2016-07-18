@@ -17,6 +17,8 @@ ME=${0##*/}
  LIVE_FILES="cdrom.ico version antiX/{vmlinuz,initrd.gz,linuxfs}{,.md5}"
   LIVE_DIRS="boot EFI efi"
 
+  CONF_FILE="/root/.config/$ME/$ME.conf"
+
 usage() {
     local ret=${1:-0}
 
@@ -102,6 +104,8 @@ main() {
     local SHIFT SHORT_STACK="cdefFghLpPqsv"
     local VERBOSE ISO_FILE DEVICE
 
+    test -r "$CONF_FILE" && . "$CONF_FILE"
+
     [ $# -eq 0 ] && usage
 
     # This loop allows complete intermingling of filenames and options
@@ -134,6 +138,9 @@ main() {
 
     [ -z "${FAT_SIZE##[0-9]}" ] && fatal "esp-size must be larger than 9"
     echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than 9"
+
+    # Write config file if one does not already exist
+    test -e "$CONF_FILE" || write_conf "$CONF_FILE"
 
     # Test for valid commands
     local cmd
@@ -559,6 +566,38 @@ warn() {
     local fmt=$1
     shift
     printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >&2
+}
+
+write_conf() {
+    local file=$1
+
+    mkdir -p $(dirname $file)
+    msg
+    msg "Writing config file at $file"
+    msg
+
+    cat<<Conf_File > $file
+# $(basename $file)
+#
+# This file will be sourced by the live-usb-maker script if it is found
+# at $file
+
+
+     MBR_GPT="$MBR_GPT"
+        SIZE=$SIZE
+    FAT_SIZE=$FAT_SIZE
+  EXT_MARGIN=$EXT_MARGIN
+  FAT_MARGIN=$FAT_MARGIN
+
+ EXT_OPTIONS="$EXT_OPTIONS"
+   EXT_LABEL="$EXT_LABEL"
+
+     LIVE_MP="$LIVE_MP"
+  LIVE_FILES="$LIVE_FILES"
+   LIVE_DIRS="$LIVE_DIRS"
+
+   GRUB_CONF="$GRUB_CONF"
+Conf_File
 }
 
 clean_up() {
