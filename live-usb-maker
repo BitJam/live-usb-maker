@@ -257,8 +257,10 @@ mount_live() {
 
     mount --bind $targ_dir $targ_dir
 
+    # NOTE:
+    # the cd && eval "ls ..." allows us to use globbing expansions with spaces in paths
+
     local dir from dest
-    # the cd && eval "ls ..." allows us to use globbing expansions (sigh)
     while read dir; do
         from="$live_dir/$dir"
         dest="$targ_dir/$dir"
@@ -270,7 +272,6 @@ $(cd "$live_dir" && eval "ls -d $LIVE_DIRS" 2>/dev/null)
 Live_Dirs
 
     local file
-    # the cd && eval "ls ..." allows us to use globbing expansions (sigh)
     while read file; do
         from="$live_dir/$file"
         dest="$targ_dir/$file"
@@ -281,8 +282,6 @@ Live_Dirs
     done <<Live_Files
 $(cd "$live_dir" && eval "ls -d $LIVE_FILES" 2>/dev/null)
 Live_Files
-
-exit
 }
 
 my_mount() {
