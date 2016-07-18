@@ -4,17 +4,18 @@ Create an antiX/MX LiveUSB
 Usage: live-usb-maker [options] <iso-file> <usb-device> <commands>
 
 Create a live-usb on <usb-device> from <iso-file>.  This will destroy
-any existing information on <usb-device>.
+any existing information on <usb-device>.  Uses ext4 as the filesystem
+for the live-usb and add a small fat32 file system for booting via UEFI.
 
-Use ext4 as the filesystem for the live-usb and add a small fat32 file
-system for booting via UEFI.
+Use "live" as the iso-file to clone a running live system.
+Use "live=<dir>" to clone from a mounted LiveUSB or iso-file.
 
 At least one command must be given.  If "all" is not given then only the
 commands given will be run.
 
 Commands:
-    sizes            Only show sizes
-    all              Do all commands
+    sizes            Only show and check sizes, don't do anything
+    all              Do all commands below
     partition        Partition the live usb
     makefs-ext       Create the ext file system
     makefs-fat       Create the fat file system
@@ -40,9 +41,13 @@ Options:
   -s --size=XX      Percent of usb-device to use in (default 100)
   -v --verbose      Print more, show commands when run
 
-Note: short options stack. Example: -Ff instead of -F -f
-Note: options can be intermingled with commands and parameters
-```
+Notes:
+  - short options stack. Example: -Ff instead of -F -f
+  - options can be intermingled with commands and parameters
+  - config file: /root/.config/live-usb-maker/live-usb-maker.conf
+  - the config file will be sourced if it exists
+  - it will be created if it doesn't exist
+````
 
 The Script
 ----------
@@ -102,12 +107,8 @@ partition:
 ```
 # search --no-floppy --set=root --fs-uuid %UUID%
 ```
-For MX-15, you need to add the line.  This script adds it under the
-"set menu_color_highlight" line which is not robust.  But starting
-with MX-16 (or earlier) we will use a grub.cfg that is similar to the
-one in antiX-16 so this non-robust approach is only for backward
-compatibility with MX-15 and antiX-15.
-
+For MX-15, you need to add the line.  This script adds it before
+the first "menuentry" line.
 
 Optimizing for Size
 -------------------
