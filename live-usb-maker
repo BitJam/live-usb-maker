@@ -340,8 +340,8 @@ do_copy_ext() {
         return
     fi
     msg "Copying files ..."
-    cmd cp -a $iso_dir/* $ext_dir/ \
-        || fatal "Error when copying files to live usb"
+    cmd cp -a $iso_dir/* $ext_dir/ || fatal "Error when copying files to live usb"
+    sync
 }
 
 do_copy_fat() {
@@ -361,7 +361,7 @@ do_uuids() {
     local ext_dir=$1  ext_uuid=$2  grub_cfg=$3  fat_uuid=$4
     if [ ${#fat_uuid} -gt 0 ]; then
         local fat_file=$ext_dir/antiX/esp-uuid
-        cmd mkdir -p $(dirname $fat_file)
+        cmd mkdir -p $(dirname $fat_file) || fatal "Making directory $(dirname $fat_file) failed"
         cmd write_file $fat_file $fat_uuid
     else
         warn "No UUID given for fat partition"
@@ -380,10 +380,12 @@ do_uuids() {
     local new_line="search --no-floppy --set=root --fs-uuid $ext_uuid"
     if grep -q "search.*--set=root.*" $grub_cfg; then
         # Replace the line(s) if it/they exists
-        cmd sed -i "/search.*--set=root.*/  s/.*/$new_line/" $grub_cfg
+        cmd sed -i "/search.*--set=root.*/  s/.*/$new_line/" $grub_cfg \
+            || fatal "sed on $(basename $grub_cfg) failed"
     else
         # Add the new line before the first menuentry line if not
-        cmd sed -ri "1,/^\s*menuentry/s/(^\s*menuentry)/$new_line\n\n\1/" $grub_cfg
+        cmd sed -ri "1,/^\s*menuentry/s/(^\s*menuentry)/$new_line\n\n\1/" $grub_cfg \
+            || fatal "sed on $(basename $grub_cfg) failed"
     fi
 }
 
@@ -405,9 +407,9 @@ do_install() {
     done
 
     [ "$file" ] || fatal "Could not find file $fname"
-    cmd dd bs=440 conv=notrunc count=1 if=$file of=$usb_dev
+    cmd dd bs=440 conv=notrunc count=1 if=$file of=$usb_dev || fatal "dd command failed"
 
-    cmd extlinux -i $ext_dir/boot/syslinux
+    cmd extlinux -i $ext_dir/boot/syslinux || fatal "extlinux command failed"
 }
 
 need() {
