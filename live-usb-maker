@@ -17,6 +17,7 @@ ME=${0##*/}
    GRUB_CONF="boot/grub/grub.cfg"
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
+    LOG_FILE="/var/log/$ME.log"
 
     ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
 
@@ -110,6 +111,8 @@ main() {
     local SHIFT SHORT_STACK="cdefFghLpPqsv"
     local VERBOSE ISO_FILE DEVICE
 
+    local orig_args="$*"
+
     test -r "$CONF_FILE" && . "$CONF_FILE"
 
     [ $# -eq 0 ] && usage
@@ -164,6 +167,8 @@ main() {
 
     [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
         || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
+
+    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
     trap clean_up EXIT
     WORK_DIR=$(mktemp -d /tmp/$ME-XXXX) \
@@ -229,6 +234,7 @@ main() {
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 
     msg "=> cleaning up"
+    echo >> $LOG_FILE
 }
 
 mount_iso() {
@@ -527,10 +533,12 @@ read_params() {
 }
 
 cmd() {
+    echo " > $*" >> $LOG_FILE
     [ "$VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|.|g"
     [ "$PRETEND" ] && return 0
-    "$@"
-    return $?
+    "$@" 2>&1 | tee -a $LOG_FILE
+    # Warning: Bashism
+    return ${PIPESTATUS[0]}
 }
 
 check_size() {
@@ -567,6 +575,7 @@ pqh()    { echo "$m_co$*$hi_co"           ;}
 msg() {
     fmt=$1
     shift
+    printf "$fmt\n" "$@" >> $LOG_FILE
     [ -z "$QUIET" ] && printf "$m_co$fmt$nc_co\n" "$@"
 }
 
@@ -574,6 +583,7 @@ fatal() {
     local fmt=$1
     shift
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
+    printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
     exit 2
 }
 
@@ -581,6 +591,7 @@ warn() {
     local fmt=$1
     shift
     printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >&2
+    printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
 }
 
 write_conf() {
@@ -618,6 +629,20 @@ is_mounted() {
     local file=$1
     cut -d" " -f2 /proc/mounts | grep -q "^$(readlink -f $file)$"
     return $?
+}
+
+start_log() {
+    local args=$1 cmds=${2# } iso=$3 dev=$4
+
+    cat <<Start_Log >> $LOG_FILE
+---------------------------------------------------------------------
+$ME started $(date)
+comand line: $args
+   commands: $cmds
+   iso file: $iso
+     device: $dev
+
+Start_Log
 }
 
 clean_up() {
