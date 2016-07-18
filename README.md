@@ -7,8 +7,8 @@ Create a live-usb on <usb-device> from <iso-file>.  This will destroy
 any existing information on <usb-device>.  Uses ext4 as the filesystem
 for the live-usb and add a small fat32 file system for booting via UEFI.
 
-Use "live" as the iso-file to clone a running live system.
-Use "live=<dir>" to clone from a mounted LiveUSB or iso-file.
+  - Use "live" as the iso-file to clone a running live system.
+  - Use "live=<dir>" to clone from a mounted live-usb or iso-file.
 
 At least one command must be given.  If "all" is not given then only the
 commands given will be run.
@@ -47,7 +47,7 @@ Notes:
   - config file: /root/.config/live-usb-maker/live-usb-maker.conf
   - the config file will be sourced if it exists
   - it will be created if it doesn't exist
-````
+```
 
 The Script
 ----------
