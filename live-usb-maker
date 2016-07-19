@@ -100,12 +100,12 @@ eval_argument() {
               -help|h)  usage                           ;;
              -label|L)  EXT_LABEL=$val                  ;;
          -label=*|L=*)  EXT_LABEL=$val                  ;;
-           -pretend|p)  PRETEND=true ; VERBOSE=true     ;;
-           -Pretend|P)  PRETEND=true ; VERBOSE=         ;;
+           -pretend|p)  PRETEND=true ; BE_VERBOSE=true  ;;
+           -Pretend|P)  PRETEND=true ; BE_VERBOSE=      ;;
              -quiet|q)  QUIET=true                      ;;
               -size|s)  SIZE=${val%\%}                  ;;
           -size=*|s=*)  SIZE=${val%\%}                  ;;
-           -verbose|v)  VERBOSE=true                    ;;
+           -verbose|v)  BE_VERBOSE=true                 ;;
                     *)  fatal "Unknown parameter -$arg" ;;
     esac
 }
@@ -122,7 +122,7 @@ takes_param() {
 
 main() {
     local SHIFT SHORT_STACK="cdefFghLpPqsv"
-    local VERBOSE ISO_FILE DEVICE
+    local BE_VERBOSE ISO_FILE DEVICE
 
     local START_T=$(date +%s)
 
@@ -606,8 +606,8 @@ read_params() {
 
 cmd() {
     echo " > $*" >> $LOG_FILE
-    [ "$VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|.|g"
-    [ "$PRETEND" ] && return 0
+    [ "$BE_VERBOSE" ] && echo " >" "$@" | sed "s|$WORK_DIR|.|g"
+    [ "$PRETEND"    ] && return 0
     "$@" 2>&1 | tee -a $LOG_FILE
     # Warning: Bashism
     return ${PIPESTATUS[0]}
