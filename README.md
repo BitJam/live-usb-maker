@@ -20,12 +20,14 @@ Commands:
     makefs-ext       Create the ext file system
     makefs-fat       Create the fat file system
     makefs           Both makefs-ext and makefs-fat
+    pre              All commands before copy
     copy-ext         Copy files to live usb ext partition
     copy-fat         Copy files to fat partition
     copy             Both copy-ext and copy-fat
+    post             All commands after copy
     uuids            Write UUIDs linking file systems
     cheats           Copy cheat codes to live-usb
-    install
+    install          Install the legacy bootloader
 
 Options:
   -c --cheat=xxx    Add these cheatcodes to the live-usb
