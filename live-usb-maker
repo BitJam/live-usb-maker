@@ -168,7 +168,13 @@ main() {
         echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
     done
 
+    trap clean_up EXIT
+    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
+
     local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
+
+    local dev_type=$(lsblk -no type --nodeps $usb_dev)
+    [ "$dev_type" = "disk" ] || fatal "Device $usb_dev is not a disk device"
 
     test -e $usb_dev || fatal "Device $usb_dev does not exist"
     test -b $usb_dev || fatal "Device $usb_dev is not a block device"
@@ -179,9 +185,6 @@ main() {
     [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
         || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
 
-    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
-
-    trap clean_up EXIT
     WORK_DIR=$(mktemp -d /tmp/$ME-XXXX) \
         || fatal "Could not make temporary work directory under /tmp"
 
