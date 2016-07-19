@@ -378,8 +378,20 @@ do_copy_fat() {
 }
 
 do_cheats() {
-    ext_dir=$1  fat_dir=$2  $cheats=$3
+    local ext_dir=$1  fat_dir=$2  $cheats=$3
+    local syslinux_cfg=$ext_dir/boot/syslinux/syslinux.cfg
+    local isolinux_cfg=$ext_dir/boot/isolinux/isolinux.cfg
+    local grub_cfg=$fat_dir/boot/grub/grub.cfg
 
+    local syslinux_files
+
+    # FIXME!  Use existing update scripts or use their logic.  Don't keep
+    # appending the same cheats over and over.
+    test -w $syslinux_cfg && syslinux_files=$syslinux_cfg
+    test -w $isolinux_cfg && syslinux_files="$syslinux_files $isolinux_cfg"
+    [ "$syslinux_files" ] && cmd sed -i "s/APPEND.*/& $cheats/" $syslinux_files
+
+    test -w $grub_cfg && cmd sed -i "s/linux.*vmlinuz.*/& $cheats/" $grub_cfg
 }
 
 do_uuids() {
