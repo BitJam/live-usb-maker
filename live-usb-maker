@@ -247,7 +247,7 @@ main() {
 
     need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
 
-    [ ${$CHEATS} -gt 0 ] && need cheats && do_cheats $EXT_DIR $FAT_DIR "$CHEATS"
+    [ ${#CHEATS} -gt 0 ] && need cheats && do_cheats $EXT_DIR $FAT_DIR "$CHEATS"
 
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 
