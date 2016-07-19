@@ -335,6 +335,8 @@ do_partition() {
             *) fatal "Unknown partitioning scheme: $type.  Expected msdos or gpt" ;;
     esac
 
+    msg "Using %s partitioning" $(pq $type)
+
     cmd parted --script --align optimal $usb_dev   \
         unit MiB                                   \
         mklabel $type                              \
