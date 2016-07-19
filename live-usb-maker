@@ -275,7 +275,7 @@ mount_iso() {
     is_mountpoint $dir && fatal "Directory \"$dir\" is already a mountpoint"
     local type
     for type in iso9660 udf; do
-        mount -t $type -o loop,ro "$file" $dir
+        mount -t $type -o loop,ro "$file" $dir 2>/dev/null
         is_mountpoint $dir && return 0
     done
     fatal "Could not mount iso file $file"
