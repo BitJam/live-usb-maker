@@ -394,6 +394,8 @@ do_copy_fat() {
 }
 
 do_cheats() {
+    warn "Cheats are still being worked on"
+    return
     local ext_dir=$1  fat_dir=$2  cheats=$3
     local syslinux_cfg=$ext_dir/boot/syslinux/syslinux.cfg
     local isolinux_cfg=$ext_dir/boot/isolinux/isolinux.cfg
