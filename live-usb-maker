@@ -15,6 +15,7 @@ ME=${0##*/}
   LIVE_FILES="cdrom.ico version antiX/{vmlinuz,initrd.gz,linuxfs}{,.md5}"
    LIVE_DIRS="boot EFI efi"
    GRUB_CONF="boot/grub/grub.cfg"
+      CHEATS=""
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
@@ -22,7 +23,7 @@ THE_ERR_FILE="/var/log/$ME.errors"
     LOG_FILE=/dev/null
     ERR_FILE=/dev/null
 
-    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids install"
+    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids cheats install"
 
 usage() {
     local ret=${1:-0}
@@ -51,10 +52,12 @@ Commands:
     copy-fat         Copy files to fat partition
     copy             Both copy-ext and copy-fat
     uuids            Write UUIDs linking file systems
+    cheats           Copy cheat codes to live-usb
     install
 
 Options:
-  -c --clear        Delete files from each partition before copying
+  -c --cheat=xxx    Add these cheatcodes to the live-usb
+  -C --clear        Delete files from each partition before copying
   -d --debug        Pause before cleaning up
   -e --esp-size=XX  Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
@@ -81,7 +84,9 @@ Usage
 eval_argument() {
     local arg=$1 val=$2
         case $arg in
-             -clear|c)  CLEAR=true                      ;;
+             -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val";;
+         -cheat=*|c=*)  CHEATS="$CHEATS${CHEATS:+ }$val";;
+             -clear|C)  CLEAR=true                      ;;
              -debug|d)  DEBUG=true                      ;;
           -esp-size|e)  FAT_SIZE=$val                   ;;
       -esp-size=*|e=*)  FAT_SIZE=$val                   ;;
@@ -103,6 +108,7 @@ eval_argument() {
 
 takes_param() {
     case $1 in
+       -cheat|c) return 0 ;;
     -esp-size|e) return 0 ;;
         -size|s) return 0 ;;
        -label|L) return 0 ;;
@@ -236,6 +242,9 @@ main() {
     local fat_uuid=$(lsblk -no uuid $fat_dev)
 
     need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
+
+    [ ${$CHEATS} -gt 0 ] && need cheats && do_cheats $EXT_DIR $FAT_DIR "$CHEATS"
+
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 
     show_elapsed
@@ -358,6 +367,11 @@ do_copy_fat() {
         cmd cp -r $top $fat_dir/ \
             || warn "Error when copying %s files to fat partition" $(basename $top)
     done
+}
+
+do_cheats() {
+    ext_dir=$1  fat_dir=$2  $cheats=$3
+
 }
 
 do_uuids() {
