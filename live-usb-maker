@@ -264,7 +264,7 @@ mount_live() {
     local targ_dir=$1  live_dir=${2:-$LIVE_MP}
 
     test -d "$live_dir"       || fatal "Live directory \"$live_dir\" is not a directory"
-    mountpoint -q "$live_dir" || fatal "Live directory \"$live_dir\" is not a mountpoint"
+    is_mountpoint "$live_dir" || fatal "Live directory \"$live_dir\" is not a mountpoint"
 
     mount --bind $targ_dir $targ_dir
 
@@ -298,7 +298,7 @@ Live_Files
 my_mount() {
     local dev=$1  dir=$2
     PRETEND= cmd mount $dev $dir || fatal "Could not mount $dev at $dir"
-    mountpoint -q $dir || fatal "Failed to mount $dev at $dir"
+    is_mountpoint $dir || fatal "Failed to mount $dev at $dir"
 }
 
 do_partition() {
@@ -688,10 +688,11 @@ write_conf() {
    LIVE_DIRS="$LIVE_DIRS"
 
    GRUB_CONF="$GRUB_CONF"
+      CHEATS=""
 Conf_File
 }
 
-is_mounted() {
+is_mountpoint() {
     local file=$1
     cut -d" " -f2 /proc/mounts | grep -q "^$(readlink -f $file)$"
     return $?
@@ -713,6 +714,7 @@ comand line: $args
    commands: $cmds
    iso file: $iso
      device: $dev
+     cheats: $CHEATS
 
 Start_Log
 }
@@ -728,8 +730,8 @@ clean_up() {
 
     sync; sync
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
-        is_mounted $mp && umount -r -l $mp
-        if ! is_mounted $mp; then
+        is_mountpoint $mp && umount -r -l $mp
+        if ! is_mountpoint $mp; then
             rm -rf $mp
         else
             warn "$mp remains mounted"
