@@ -23,7 +23,9 @@ THE_ERR_FILE="/var/log/$ME.errors"
     LOG_FILE=/dev/null
     ERR_FILE=/dev/null
 
-    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids cheats install"
+    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids cheats install pre post"
+    PRE_CMDS="partition makefs"
+   POST_CMDS="uuids cheats install"
 
 usage() {
     local ret=${1:-0}
@@ -48,12 +50,14 @@ Commands:
     makefs-ext       Create the ext file system
     makefs-fat       Create the fat file system
     makefs           Both makefs-ext and makefs-fat
+    pre              All commands before copy
     copy-ext         Copy files to live usb ext partition
     copy-fat         Copy files to fat partition
     copy             Both copy-ext and copy-fat
+    post             All commands after copy
     uuids            Write UUIDs linking file systems
     cheats           Copy cheat codes to live-usb
-    install
+    install          Install the legacy bootloader
 
 Options:
   -c --cheat=xxx    Add these cheatcodes to the live-usb
@@ -167,6 +171,9 @@ main() {
     for cmd in $CMDS; do
         echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
     done
+
+    echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
+    echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
 
     WORK_DIR=$(mktemp -d /tmp/$ME-XXXX) \
         || fatal "Could not make temporary work directory under /tmp"
