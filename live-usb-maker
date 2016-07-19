@@ -265,9 +265,11 @@ mount_iso() {
     test -e "$file" || fatal "Could not find iso file $file"
     test -r "$file" || fatal "Could not read iso file $file"
 
+    is_mountpoint $dir && fatal "Directory \"$dir\" is already a mountpoint"
     local type
     for type in iso9660 udf; do
-        mount -t $type -o loop,ro "$file" $dir && return 0
+        mount -t $type -o loop,ro "$file" $dir
+        is_mountpoint $dir && return 0
     done
     fatal "Could not mount iso file $file"
 }
@@ -275,6 +277,7 @@ mount_iso() {
 mount_live() {
     local targ_dir=$1  live_dir=${2:-$LIVE_MP}
 
+    is_mountpoint "$targ_dir" && fatal "Live directory \"$targ_dir\" is already a mountpoint"
     test -d "$live_dir"       || fatal "Live directory \"$live_dir\" is not a directory"
     is_mountpoint "$live_dir" || fatal "Live directory \"$live_dir\" is not a mountpoint"
 
@@ -309,8 +312,10 @@ Live_Files
 
 my_mount() {
     local dev=$1  dir=$2
+    is_mountpoint $dir           && fatal "Directory \"$dir\" is already a mountpoint"
+    PRETEND= cmd mkdir -p $dir   || fatal "Failed to create directory \"$dir\""
     PRETEND= cmd mount $dev $dir || fatal "Could not mount $dev at $dir"
-    is_mountpoint $dir || fatal "Failed to mount $dev at $dir"
+    is_mountpoint $dir           || fatal "Failed to mount $dev at $dir"
 }
 
 do_partition() {
