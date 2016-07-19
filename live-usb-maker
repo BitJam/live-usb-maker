@@ -737,7 +737,7 @@ my_exit() {
     show_elapsed
 
     if [ "$DEBUG" ]; then
-        echo -n "${green}Debug pause.  Press <Enter>$nc_co "
+        echo -n "${green}Press <Enter>$nc_co "
         read x
     fi
 
