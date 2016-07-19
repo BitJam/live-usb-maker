@@ -24,10 +24,12 @@ Commands:
     copy-fat         Copy files to fat partition
     copy             Both copy-ext and copy-fat
     uuids            Write UUIDs linking file systems
+    cheats           Copy cheat codes to live-usb
     install
 
 Options:
-  -c --clear        Delete files from each partition before copying
+  -c --cheat=xxx    Add these cheatcodes to the live-usb
+  -C --clear        Delete files from each partition before copying
   -d --debug        Pause before cleaning up
   -e --esp-size=XX  Size of ESP (fat) partition in MiB (default 50)
   -f --force        Ignore usb/removeable check (dangerous!)
