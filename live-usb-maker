@@ -235,7 +235,7 @@ main() {
 
     echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && my_exit 0
 
-    cmd umount_all $usb_dev
+    umount_all $usb_dev
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
 
