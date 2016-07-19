@@ -490,7 +490,7 @@ do_install() {
 need() {
     local cmd=$1  cmd2=${1%%-*}
     echo "$CMDS" | egrep -q "(^| )($cmd|$cmd2|all)( |$)" || return 1
-    msg "=> $cmd"
+    Msg "=> $cmd"
     return 0
 }
 
@@ -654,7 +654,7 @@ pqh()    { echo "$m_co$*$hi_co"           ;}
 show_elapsed() {
     local dt=$(($(date +%s) - START_T))
     [ $dt -gt 10 ] && msg "\n$ME took $(elapsed $START_T)."
-    msg "=> cleaning up"
+    Msg "=> cleaning up"
     echo >> $LOG_FILE
 }
 
@@ -706,6 +706,13 @@ plural() {
         -e "s/%es\>/$es/g" -e "s/%3d\>/$(printf "%3d" $n)/g"
 }
 
+Msg() {
+    local fmt=$1  e=$(printf "\e")
+    shift
+    printf "$fmt\n" "$@" | sed -r "s/$e\[[0-9;]+[mK]//g" >> $LOG_FILE
+    printf "$m_co$fmt$nc_co\n" "$@"
+}
+
 
 msg() {
     local fmt=$1  e=$(printf "\e")
@@ -748,9 +755,9 @@ write_conf() {
     local file=$1
 
     mkdir -p $(dirname $file)
-    msg
-    msg "Writing config file at $file"
-    msg
+    Msg
+    Msg "Writing config file at $file"
+    Msg
 
     cat<<Conf_File > $file
 # $(basename $file)
