@@ -205,6 +205,12 @@ main() {
 
     mount_iso "$ISO_FILE" $ISO_DIR || fatal "Could not mount iso file $ISO_FILE"
 
+    local iso_version
+    if test -r $ISO_DIR/version; then
+        read iso_version 2>/dev/null < $ISO_DIR/version
+        [ ${#iso_version} -gt 0 ] && msg "Distro: %s" "$(pq $iso_version)"
+    fi
+
     local total_size=$(parted $usb_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     local mib_size=$((total_size * SIZE / 100 - 1))
     local ext_size=$((mib_size - FAT_SIZE))
