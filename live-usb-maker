@@ -383,7 +383,7 @@ do_copy_ext() {
 do_copy_fat() {
     local iso_dir=$1  fat_dir=$2
 
-    [ "$CLEAR" ] && cmd rm -rf $fat_dir/*
+    [ "$CLEAR" ] && cmd rm -rf $fat_dir/* 2>/dev/null
 
     local top
     for top in $iso_dir/{efi,EFI,boot}; do
