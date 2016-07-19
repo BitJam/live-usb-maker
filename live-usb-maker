@@ -24,6 +24,7 @@ THE_ERR_FILE="/var/log/$ME.errors"
     ERR_FILE=/dev/null
 
     ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids cheats install pre post"
+    ALL_CMDS="$ALL_CMDS cheats-syslinux cheats-grub"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
 
@@ -260,7 +261,8 @@ main() {
 
     need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
 
-    [ ${#CHEATS} -gt 0 ] && need cheats && do_cheats $EXT_DIR $FAT_DIR "$CHEATS"
+    [ ${#CHEATS} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $EXT_DIR "$CHEATS"
+    [ ${#CHEATS} -gt 0 ] && need cheats-grub     && do_cheats_grub     $FAT_DIR "$CHEATS"
 
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 
@@ -392,36 +394,41 @@ do_copy_fat() {
             || warn "Error when copying %s files to fat partition" $(basename $top)
     done
 }
+do_cheats_syslinux() {
+    #warn "Cheats are still being worked on"; return
 
-do_cheats() {
-    warn "Cheats are still being worked on"
-    return
-    local ext_dir=$1  fat_dir=$2  cheats=$3
+    local ext_dir=$1  cheats=$2
     local syslinux_cfg=$ext_dir/boot/syslinux/syslinux.cfg
-    local isolinux_cfg=$ext_dir/boot/isolinux/isolinux.cfg
+
+    local PATH=".:$PATH"
+
+    local file params
+
+    if test -w $syslinux_cfg; then
+        params=$(sed -nr "1,/^\s*APPEND\s/s/^\s*APPEND\s+//p" $syslinux_cfg)
+        Msg "syslinux params: %s" "$(pq $params $cheats)"
+        VERBOSE=4 CMDLINE="$params $cheats" cmd gfxsave $ext_dir/boot both
+    else
+        warn "Could not find %s file to update" $(basename $syslinux_cfg)
+    fi
+}
+
+do_cheats_grub() {
+    #warn "Cheats are still being worked on"; return
+
+    local fat_dir=$1  cheats=$2
     local grub_cfg=$fat_dir/boot/grub/grub.cfg
 
-    local file params syslinux_files
+    local PATH=".:$PATH"
 
-    for file in $syslinux_cfg $isolinux_cfg; do
-        if test -w $file; then
-            : ${params:=$(sed -nr "1,/^\s*APPEND\s/s/^\s*APPEND\s+//p" $file)}
-            syslinux_files="$syslinux_files $file"
-        else
-            warn "Could not find %s file to update" $(basename $file)
-        fi
-    done
-
-    if [ "$syslinux_files" ]; then
-        cmd ./gfxsave $ext_dir "$params $cheats"
-    fi
+    local params
 
     if test -w $grub_cfg; then
         params=$(sed -nr "1,/^\s*linux\s/s/^\s*linux\s+[^ ]+//p" $grub_cfg)
-        msg "grub params: %s" "$(pq $params)"
-        cmd ./grub2-save $fat_dir --cheats="${params% } $cheats"
+        Msg "grub params: %s" "$(pq $params $cheats)"
+        cmd grub2-save $fat_dir --cheats="${params% } $cheats"
     else
-        warn "Did not find %s file to update" $(basename $grub_cfg)
+        warn "Could not find %s file to update" $(basename $grub_cfg)
     fi
 }
 
