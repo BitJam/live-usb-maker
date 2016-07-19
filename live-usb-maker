@@ -226,7 +226,7 @@ main() {
     check_size ext $ext_extra $EXT_MARGIN
     check_size fat $fat_extra $FAT_MARGIN
 
-    echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && exit 0
+    echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && my_exit 0
 
     cmd umount_all $usb_dev
 
@@ -250,7 +250,7 @@ main() {
 
     need install && do_install $usb_dev $EXT_DIR $MBR_GPT
 
-    show_elapsed
+    my_exit 0
 }
 
 mount_iso() {
@@ -682,9 +682,20 @@ fatal() {
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
 
+    my_exit 2
+}
+
+my_exit() {
+    local ret=${1:-0}
+
     show_elapsed
 
-    exit 2
+    if [ "$DEBUG" ]; then
+        echo -n "${green}Debug pause.  Press <Enter>$nc_co "
+        read x
+    fi
+
+    exit $ret
 }
 
 warn() {
@@ -755,12 +766,6 @@ Start_Log
 
 clean_up() {
     #msg "cleaning up"
-
-    # Note: waiting for user input inside extt routine is bad
-    if [ "$DEBUG" ]; then
-        echo -n "${green}Press <Enter>$nc_co "
-        read x
-    fi
 
     sync; sync
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
