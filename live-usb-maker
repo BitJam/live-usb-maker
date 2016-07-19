@@ -197,7 +197,6 @@ main() {
     [ "$FORCE" ] || is_usb_or_removeable $usb_dev \
         || fatal "$usb_dev does not seem to be usb or removeable.  Use --force"
 
-
     ISO_DIR=$WORK_DIR/iso
     EXT_DIR=$WORK_DIR/ext
     FAT_DIR=$WORK_DIR/fat
