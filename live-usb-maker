@@ -567,18 +567,19 @@ expand_device() {
 
 umount_all() {
     local dev=$1
+
+    local mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .)  || return 0
+
+    force umount || yes_NO_fatal "umount" \
+        "Do you want those partitions unmounted" \
+        "Use --force=umount to have us try to unmount them" \
+        "One or more partitions on device %s are mounted at:\n  %s" "$dev" "$(echo $mounted)"
+
     local i part
-
-    local mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3) || return 0
-
-    warn "One or more partitions on device $dev are mounted: $(echo $mounted)"
-
-    force umount || yes_NO "Shall I try to unmounted them" \
-        || fatal "umount" "Not unmounting partitions on the target drive"
-
     for part in $(mount | egrep -o "^$dev[^ ]*"); do
         umount --all-targets $part 2>/dev/null
     done
+
     mount | egrep -q "^$dev[^ ]*" || return 0
 
     for i in $(seq 1 10); do
@@ -589,8 +590,8 @@ umount_all() {
         sleep .1
     done
 
-    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3) || return 0
-    fatal "" "One or more partitions on device $dev are in use at: $(echo $mounted)"
+    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
+    fatal "" "One or more partitions on device $dev are in use at:\n  $(echo $mounted)"
     return 1
 }
 
