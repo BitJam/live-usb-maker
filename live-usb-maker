@@ -28,6 +28,8 @@ THE_ERR_FILE="/var/log/$ME.errors"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
 
+   PATH="$(dirname $(readlink -f $0)):/usr/local/share/live-usb-maker/bin:$PATH"
+
 usage() {
     local ret=${1:-0}
 
@@ -394,13 +396,14 @@ do_copy_fat() {
             || warn "Error when copying %s files to fat partition" $(basename $top)
     done
 }
+
 do_cheats_syslinux() {
     #warn "Cheats are still being worked on"; return
 
     local ext_dir=$1  cheats=$2
     local syslinux_cfg=$ext_dir/boot/syslinux/syslinux.cfg
 
-    local PATH=".:$PATH"
+    require cheats-syslinux gfxsave || return
 
     local file params
 
@@ -415,11 +418,10 @@ do_cheats_syslinux() {
 
 do_cheats_grub() {
     #warn "Cheats are still being worked on"; return
-
     local fat_dir=$1  cheats=$2
     local grub_cfg=$fat_dir/boot/grub/grub.cfg
 
-    local PATH=".:$PATH"
+    require cheats-grub vmlinuz-version grub2-save || return
 
     local params
 
@@ -808,6 +810,17 @@ comand line: $args
      cheats: $CHEATS
 
 Start_Log
+}
+
+require() {
+    local stage=$1  prog ret=0
+    shift;
+    for prog; do
+        which $prog &>/dev/null && continue
+        warn "Could not find program %s.  Skipping %s." "$(pqh $prog)" "$(pqh $stage)"
+        ret=2
+    done
+    return $ret
 }
 
 clean_up() {
