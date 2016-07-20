@@ -656,7 +656,7 @@ set_colors() {
 }
 
 pq()     { echo "$hi_co$*$m_co"           ;}
-pqw()    { echo "$hi_co$*$warn_co"        ;}
+pqw()    { echo "$warn_co$*$hi_co"        ;}
 pqe()    { echo "$hi_co$*$err_co"         ;}
 pqh()    { echo "$m_co$*$hi_co"           ;}
 
