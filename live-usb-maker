@@ -47,7 +47,8 @@ for the live-usb and add a small fat32 file system for booting via UEFI.
   - Use "live=<dir>" to clone from a mounted live-usb or iso-file.
 
 At least one command must be given.  If "all" is not given then only the
-commands given will be run.
+commands given will be run.  Use a trailing "+" to run a command and all
+commands after it.
 
 Commands:
     sizes            Only show and check sizes, don't do anything
