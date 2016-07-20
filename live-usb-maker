@@ -917,8 +917,6 @@ require() {
 }
 
 clean_up() {
-    #msg "cleaning up"
-
     sync; sync
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
         is_mountpoint $mp && umount -r -l $mp
