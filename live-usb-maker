@@ -211,8 +211,7 @@ main() {
     local ext_dev=$(get_partition $usb_dev 1)
     local fat_dev=$(get_partition $usb_dev 2)
 
-    #force usb || is_usb_or_removeable $usb_dev || yes_NO_fatal "usb" \
-    force usb || false $usb_dev || yes_NO_fatal "usb" \
+    force usb || is_usb_or_removeable $usb_dev || yes_NO_fatal "usb" \
         "Do you want to use it anyway (dangerous!)" \
         "Use --force=usb to continue" \
         "The device %s does not seem to be usb or removeable."  "$usb_dev"
