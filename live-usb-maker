@@ -212,8 +212,11 @@ main() {
     local ext_dev=$(get_partition $usb_dev 1)
     local fat_dev=$(get_partition $usb_dev 2)
 
-    force usb || is_usb_or_removeable $usb_dev \
-        || fatal "usb" "$usb_dev does not seem to be usb or removeable.  Use --force=usb to continue"
+    #force usb || is_usb_or_removeable $usb_dev || yes_NO_fatal "usb" \
+    force usb || false $usb_dev || yes_NO_fatal "usb" \
+        "Do you want to use it anyway (dangerous!)" \
+        "Use --force=usb to continue" \
+        "The device %s does not seem to be usb or removeable."  "$usb_dev"
 
     ISO_DIR=$WORK_DIR/iso
     EXT_DIR=$WORK_DIR/ext
@@ -687,6 +690,24 @@ pqh()    { echo "$m_co$*$hi_co"           ;}
 bq()     { echo "$yellow$*$m_co"          ;}
 cq()     { echo "$cheat_co$*$m_co"        ;}
 
+# The order is weird but it allows the *error* message to work like printf
+# The purpose is to make it easy to put questions into the error log.
+yes_NO_fatal() {
+    local code=$1  question=$2  continuation=$3  fmt=$4
+    shift 4
+    local msg=$(printf "$fmt" "$@")
+
+    if [ "$AUTO_MODE" ]; then
+        fmt="$fmt\nQ:$question"
+        fatal "$code" "$fmt" "$@"
+    fi
+    warn "$fmt" "$@"
+    yes_NO "$question" && return 0
+    [ ${#continuation} -gt 0 ] && fmt="$fmt  \n$continuation"
+    fatal "$code" "$fmt" "$@"
+}
+
+
 YES_no() {  _yes_no 0 "yes" "$@" ;}
 yes_NO() {  _yes_no 1 "no"  "$@" ;}
 
@@ -789,7 +810,7 @@ msg() {
 fatal() {
     local code=$1 fmt=$2
     shift 2
-    printf "$code: $fmt\n" "$@" >> $ERR_FILE
+    printf "$code:$fmt\n" "$@" >> $ERR_FILE
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
 
