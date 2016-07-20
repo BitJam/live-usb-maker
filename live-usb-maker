@@ -24,8 +24,8 @@ THE_ERR_FILE="/var/log/$ME.errors"
     LOG_FILE=/dev/null
     ERR_FILE=/dev/null
 
-    ALL_CMDS="sizes all partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids cheats install pre post"
-    ALL_CMDS="$ALL_CMDS cheats-syslinux cheats-grub"
+ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids cheats cheats-syslinux cheats-grub install"
+    ALL_CMDS="sizes all $ORDERED_CMDS"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
 
@@ -56,11 +56,9 @@ Commands:
     makefs-ext       Create the ext file system
     makefs-fat       Create the fat file system
     makefs           Both makefs-ext and makefs-fat
-    pre              All commands before copy
     copy-ext         Copy files to live usb ext partition
     copy-fat         Copy files to fat partition
     copy             Both copy-ext and copy-fat
-    post             All commands after copy
     uuids            Write UUIDs linking file systems
     cheats           Copy cheat codes to live-usb
     install          Install the legacy bootloader
@@ -179,10 +177,15 @@ main() {
     #echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
     #echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
 
-    # Test for valid commands
-    local cmd
+    # Test for valid commands and process cmd+ commands
+    local cmd plus_cnt=0
     for cmd in $CMDS; do
-        echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal 015 "Unknown command: $cmd"
+        echo "$ALL_CMDS" | egrep -q "(^| )$cmd+?( |$)" || fatal 015 "Unknown command: $cmd"
+        [ -z "${cmd%%*+}" ] || continue
+        cmd=${cmd%+}
+        CMDS="$CMDS $(echo "$ORDERED_CMDS" | sed -rn "s/.*($cmd )/\1/p")"
+        plus_cnt=$((plus_cnt + 1))
+        [ $plus_cnt -gt 1 ] && fatal 019 "Only one + command allowed"
     done
 
     local force
