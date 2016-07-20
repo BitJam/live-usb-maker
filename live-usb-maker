@@ -534,6 +534,12 @@ umount_all() {
     local dev=$1
     local i part
 
+    local mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3) || return 0
+
+    wwarn "One or more partitions on device $dev are in use at: $(echo $mounted)"
+
+    # FIXME: ask if they want to continue but allow that asking to be disabled
+
     for part in $(mount | egrep -o "^$dev[^ ]*"); do
         umount --all-targets $part 2>/dev/null
     done
@@ -546,7 +552,8 @@ umount_all() {
         done
         sleep .1
     done
-    local mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3) || return 0
+
+    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3) || return 0
     fatal "One or more partitions on device $dev are in use at: $(echo $mounted)"
     return 1
 }
