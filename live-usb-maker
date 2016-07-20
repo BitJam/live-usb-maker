@@ -291,20 +291,30 @@ mount_iso() {
     local file=$1  dir=$2
     mkdir -p $dir
 
+    is_mountpoint $dir && fatal "" "Directory \"$dir\" is already a mountpoint"
+
     case $file in
         live) mount_live $dir              ; return ;;
       live=*) mount_live $dir "${file#*=}" ; return ;;
     esac
 
-    test -e "$file" || fatal "" "Could not find iso file $file"
-    test -r "$file" || fatal "" "Could not read iso file $file"
+    local block_dev=$(expand_device $file)
+    file=${block_dev:-$file}
 
-    is_mountpoint $dir && fatal "" "Directory \"$dir\" is already a mountpoint"
-    local type
-    for type in iso9660 udf; do
-        mount -t $type -o loop,ro "$file" $dir 2>/dev/null
+    if test -b $file; then
+        mount -o ro "$file" $dir
         is_mountpoint $dir && return 0
-    done
+    else
+        test -e "$file" || fatal "" "Could not find iso file $file"
+        test -r "$file" || fatal "" "Could not read iso file $file"
+
+        local type
+        for type in iso9660 udf; do
+            mount -t $type -o loop,ro "$file" $dir 2>/dev/null
+            is_mountpoint $dir && return 0
+        done
+    fi
+
     fatal "" "Could not mount iso file $file"
 }
 
