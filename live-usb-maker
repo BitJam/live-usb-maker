@@ -584,9 +584,9 @@ expand_device() {
 }
 
 umount_all() {
-    local dev=$1
+    local dev=$1  mounted
 
-    local mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .)  || return 0
+    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
 
     force umount || EXIT_NUM=201 yes_NO_fatal "umount" \
         "Do you want those partitions unmounted" \
