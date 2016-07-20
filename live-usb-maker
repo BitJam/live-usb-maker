@@ -146,6 +146,7 @@ main() {
 
     [ $# -eq 0 ] && usage
 
+    EXIT_NUM=33  # Reading cmdline parameters
     # This loop allows complete intermingling of filenames and options
     local opt_cnt=0
     while [ $# -gt 0 ]; do
@@ -163,50 +164,51 @@ main() {
         done
     done
 
-    [ $opt_cnt -lt 2 ] && fatal "Expected at least two command line arguments"
-
-    [ $UID -eq 0 ] || fatal "This script must be run as root"
+    [ $opt_cnt -lt 2 ] && fatal 011 "Expected at least two command line arguments"
 
     [ "$PRETEND" ] && msg "PRETEND MODE ENABLED"
 
     case $SIZE in
         [1-9]|[0-9][0-9]|100) ;;
-        *) fatal "Bad size format \"%s\".  Should be between 1 and 100 inclusive." "$(pqh $SIZE)"
+        *) fatal 012 "Bad size format \"%s\".  Should be between 1 and 100 inclusive." "$(pqh $SIZE)"
     esac
 
-    [ -z "${FAT_SIZE##[0-9]}" ] && fatal "esp-size must be larger than 9"
-    echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than 9"
+    [ -z "${FAT_SIZE##[0-9]}" ] && fatal 013 "esp-size must be larger than 9"
+    echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal 014 "esp-size must be an integer larger than 9"
 
-    # Write config file if one does not already exist
-    test -e "$CONF_FILE" || write_conf "$CONF_FILE"
-
-    echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
-    echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
+    #echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
+    #echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
 
     # Test for valid commands
     local cmd
     for cmd in $CMDS; do
-        echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal "Unknown command: $cmd"
+        echo "$ALL_CMDS" | egrep -q "(^| )$cmd( |$)" || fatal 015 "Unknown command: $cmd"
     done
 
     local force
     for force in ${FORCE//,/ }; do
-        echo ",$ALL_FORCE," | egrep -q ",$force," || fatal "Unknown force option: $force"
+        echo ",$ALL_FORCE," | egrep -q ",$force," || fatal 016 "Unknown force option: $force"
     done
 
-    mkdir -p $WORK_DIR || fatal "Could not make temporary work directory under /tmp"
-    chmod 755 $WORK_DIR
+    EXIT_NUM=100
+    [ $UID -eq 0 ] || fatal 101 "This script must be run as root"
 
-    local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device $DEVICE"
+    # Write config file if one does not already exist
+    test -e "$CONF_FILE" || write_conf "$CONF_FILE"
+
+    local usb_dev=$(expand_device $DEVICE) || fatal 110 "Could not find device $DEVICE"
+
+    mkdir -p $WORK_DIR || fatal 120 "Could not make temporary work directory under /tmp"
+    chmod 755 $WORK_DIR
 
     trap clean_up EXIT
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
     local dev_type=$(lsblk -no type --nodeps $usb_dev)
-    [ "$dev_type" = "disk" ] || fatal "Device $usb_dev is not a disk device"
+    [ "$dev_type" = "disk" ] || fatal 130 "Device $usb_dev is not a disk device"
 
-    test -e $usb_dev || fatal "Device $usb_dev does not exist"
-    test -b $usb_dev || fatal "Device $usb_dev is not a block device"
+    test -e $usb_dev || fatal 140 "Device $usb_dev does not exist"
+    test -b $usb_dev || fatal 150 "Device $usb_dev is not a block device"
 
     local ext_dev=$(get_partition $usb_dev 1)
     local fat_dev=$(get_partition $usb_dev 2)
@@ -221,9 +223,9 @@ main() {
     FAT_DIR=$WORK_DIR/fat
     MNT_DIR=$WORK_DIR/live-dev
 
-    mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal "Could not make $WORK_DIR subdirectories"
+    mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal 160 "Could not make $WORK_DIR subdirectories"
 
-    mount_iso "$ISO_FILE" $ISO_DIR || fatal "Could not mount iso file $ISO_FILE"
+    mount_iso "$ISO_FILE" $ISO_DIR || fatal 170 "Could not mount iso file $ISO_FILE"
 
     local iso_version version_file=$ISO_DIR/version
     if test -r $version_file && iso_version=$(cat $version_file 2>/dev/null) \
@@ -292,7 +294,7 @@ mount_iso() {
     local file=$1  dir=$2
     mkdir -p $dir
 
-    is_mountpoint $dir && fatal "Directory \"$dir\" is already a mountpoint"
+    is_mountpoint $dir && fatal 171 "Directory \"$dir\" is already a mountpoint"
 
     case $file in
         live) mount_live $dir              ; return ;;
@@ -306,8 +308,8 @@ mount_iso() {
         mount -o ro "$file" $dir
         is_mountpoint $dir && return 0
     else
-        test -e "$file" || fatal "Could not find iso file $file"
-        test -r "$file" || fatal "Could not read iso file $file"
+        test -e "$file" || fatal 172 "Could not find iso file $file"
+        test -r "$file" || fatal 173 "Could not read iso file $file"
 
         local type
         for type in iso9660 udf; do
@@ -316,25 +318,25 @@ mount_iso() {
         done
     fi
 
-    fatal "Could not mount iso file $file"
+    fatal 175 "Could not mount iso file $file"
 }
 
 mount_live() {
     local targ_dir=$1  live_dir=${2:-$LIVE_MP}
 
-    is_mountpoint "$targ_dir" && fatal "Live directory \"$targ_dir\" is already a mountpoint"
+    is_mountpoint "$targ_dir" && fatal 181 "Live directory \"$targ_dir\" is already a mountpoint"
 
     # Allow live "directory" to be a device that we mount
     local block_dev=$(expand_device $live_dir)
     if [ ${#block_dev} -gt 0 ];  then
         my_mkdir $MNT_DIR
         mount -o ro $block_dev $MNT_DIR
-        is_mountpoint $MNT_DIR || fatal "Could not mount device $block_dev"
+        is_mountpoint $MNT_DIR || fatal 182 "Could not mount device $block_dev"
         live_dir=$MNT_DIR
     fi
 
-    test -d "$live_dir"       || fatal "Live directory \"$live_dir\" is not a directory"
-    is_mountpoint "$live_dir" || fatal "Live directory \"$live_dir\" is not a mountpoint"
+    test -d "$live_dir"       || fatal 183 "Live directory \"$live_dir\" is not a directory"
+    is_mountpoint "$live_dir" || fatal 184 "Live directory \"$live_dir\" is not a mountpoint"
 
     mount --bind $targ_dir $targ_dir
 
@@ -346,7 +348,7 @@ mount_live() {
         from="$live_dir/$dir"
         dest="$targ_dir/$dir"
         test -d "$from" || continue
-        mkdir -p "$dest" || fatal "Could not create directory $dest"
+        mkdir -p "$dest" || fatal 186 "Could not create directory $dest"
         mount --bind "$from" "$dest"
     done <<Live_Dirs
 $(cd "$live_dir" && eval "ls -d $LIVE_DIRS" 2>/dev/null)
@@ -357,8 +359,8 @@ Live_Dirs
         from="$live_dir/$file"
         dest="$targ_dir/$file"
         test -f "$from" || continue
-        mkdir -p "$(dirname "$dest")" || fatal "Could not mkdir $(dirname "$dest")"
-        touch "$dest"                 || fatal "Could not touch file $dest"
+        mkdir -p "$(dirname "$dest")" || fatal 187 "Could not mkdir $(dirname "$dest")"
+        touch "$dest"                 || fatal 188 "Could not touch file $dest"
         mount --bind "$from" "$dest"
     done <<Live_Files
 $(cd "$live_dir" && eval "ls -d $LIVE_FILES" 2>/dev/null)
@@ -367,10 +369,10 @@ Live_Files
 
 my_mount() {
     local dev=$1  dir=$2
-    is_mountpoint $dir           && fatal "Directory \"$dir\" is already a mountpoint"
-    PRETEND= cmd mkdir -p $dir   || fatal "Failed to create directory \"$dir\""
-    PRETEND= cmd mount $dev $dir || fatal "Could not mount $dev at $dir"
-    is_mountpoint $dir           || fatal "Failed to mount $dev at $dir"
+    is_mountpoint $dir           && fatal 190 "Directory \"$dir\" is already a mountpoint"
+    PRETEND= cmd mkdir -p $dir   || fatal 191 "Failed to create directory \"$dir\""
+    PRETEND= cmd mount $dev $dir || fatal 192 "Could not mount $dev at $dir"
+    is_mountpoint $dir           || fatal 193 "Failed to mount $dev at $dir"
 }
 
 do_partition() {
@@ -380,7 +382,8 @@ do_partition() {
     case $type in
           gpt) boot_flag=legacy_boot ;;
         msdos) boot_flag=boot        ;;
-            *) fatal "Unknown partitioning scheme: $type.  Expected msdos or gpt" ;;
+            *) fatal 017 "Unknown partitioning scheme: $type.  Expected msdos or gpt"
+               ;;
     esac
 
     msg "Using %s partitioning" $(pq $type)
@@ -391,20 +394,20 @@ do_partition() {
         mkpart primary ext4  1         $ext_size   \
         mkpart primary fat32 $ext_size $mib_size   \
         set 1 $boot_flag on                        \
-        set 2 esp  on
+        set 2 esp  on || fatal 201 "Partitioning failed"
 }
 
 do_makefs_ext() {
     local ext_dev=$1 local force_ext
     force makefs && force_ext="-F"
     cmd mkfs.ext4 $force_ext $EXT_OPTIONS -L "$EXT_LABEL" $ext_dev \
-        || fatal "makefs" "Could not make ext4 file system on $ext_dev.  Perhaps try --force=makefs"
+        || fatal 210 "makefs" "Could not make ext4 file system on $ext_dev.  Perhaps try --force=makefs"
 }
 
 do_makefs_fat() {
     local fat_dev=$1
     cmd mkfs.fat -n "LIVE-ESP" $fat_dev \
-        || fatal "Could not make fat32 file system on $fat_dev"
+        || fatal 211 "Could not make fat32 file system on $fat_dev"
 }
 
 do_copy_ext() {
@@ -418,7 +421,7 @@ do_copy_ext() {
         return
     fi
     msg "Copying files ..."
-    cmd cp -a $iso_dir/* $ext_dir/ || fatal "Error when copying files to live usb"
+    cmd cp -a $iso_dir/* $ext_dir/ || fatal 212 "Error when copying files to live usb"
     sync
 }
 
@@ -476,7 +479,7 @@ do_uuids() {
     local ext_dir=$1  ext_uuid=$2  grub_cfg=$3  fat_uuid=$4
     if [ ${#fat_uuid} -gt 0 ]; then
         local fat_file=$ext_dir/antiX/esp-uuid
-        cmd mkdir -p $(dirname $fat_file) || fatal "Making directory $(dirname $fat_file) failed"
+        cmd mkdir -p $(dirname $fat_file) || fatal 220 "Making directory $(dirname $fat_file) failed"
         cmd write_file $fat_file $fat_uuid
     else
         warn "No UUID given for fat partition"
@@ -496,11 +499,11 @@ do_uuids() {
     if grep -q "search.*--set=root.*" $grub_cfg; then
         # Replace the line(s) if it/they exists
         cmd sed -i "/search.*--set=root.*/  s/.*/$new_line/" $grub_cfg \
-            || fatal "sed on $(basename $grub_cfg) failed"
+            || fatal 221 "sed on $(basename $grub_cfg) failed"
     else
         # Add the new line before the first menuentry line if not
         cmd sed -ri "1,/^\s*menuentry/s/(^\s*menuentry)/$new_line\n\n\1/" $grub_cfg \
-            || fatal "sed on $(basename $grub_cfg) failed"
+            || fatal 222 "sed on $(basename $grub_cfg) failed"
     fi
 }
 
@@ -511,7 +514,8 @@ do_install() {
     case $type in
           gpt) fname=gptmbr.bin ;;
         msdos) fname=mbr.bin    ;;
-            *) fatal "Unknown partitioning scheme: $type.  Expected msdos or gpt" ;;
+            *) fatal 017 "Unknown partitioning scheme: $type.  Expected msdos or gpt"
+               ;;
     esac
 
     local dir file d
@@ -521,10 +525,10 @@ do_install() {
         break
     done
 
-    [ "$file" ] || fatal "Could not find file $fname"
+    [ "$file" ] || fatal 230 "Could not find file $fname"
     cmd dd bs=440 conv=notrunc count=1 if=$file of=$usb_dev || fatal "dd command failed"
 
-    cmd extlinux -i $ext_dir/boot/syslinux || fatal "extlinux command failed"
+    cmd extlinux -i $ext_dir/boot/syslinux || fatal 231 "extlinux command failed"
 }
 
 need() {
@@ -581,7 +585,7 @@ umount_all() {
 
     local mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .)  || return 0
 
-    force umount || yes_NO_fatal "umount" \
+    force umount || EXIT_NUM=201 yes_NO_fatal "umount" \
         "Do you want those partitions unmounted" \
         "Use --force=umount to have us try to unmount them" \
         "One or more partitions on device %s are mounted at:\n  %s" "$dev" "$(echo $mounted)"
@@ -602,7 +606,7 @@ umount_all() {
     done
 
     mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
-    fatal "One or more partitions on device $dev are in use at:\n  $(echo $mounted)"
+    fatal 202 "One or more partitions on device $dev are in use at:\n  $(echo $mounted)"
     return 1
 }
 
@@ -834,17 +838,24 @@ msg() {
 
 fatal() {
     local code
+
+    if echo "$1" | grep -q "^[0-9]\+$"; then
+        EXIT_NUM=$1
+        shift
+    fi
+
     if echo "$1" | grep -q "^[a-z-]*$"; then
         code=$1
         shift
     fi
+
     local fmt=$1
     shift 2
     printf "$code:$fmt\n" "$@" >> $ERR_FILE
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
 
-    my_exit 2
+    my_exit ${EXIT_NUM:-333}
 }
 
 my_exit() {
