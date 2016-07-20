@@ -219,7 +219,7 @@ main() {
     ISO_DIR=$WORK_DIR/iso
     EXT_DIR=$WORK_DIR/ext
     FAT_DIR=$WORK_DIR/fat
-    MNT_DIR=$WORK_DIR/mnt
+    MNT_DIR=$WORK_DIR/live-dev
 
     mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal "Could not make $WORK_DIR subdirectories"
 
@@ -316,15 +316,25 @@ mount_iso() {
         done
     fi
 
-    fatal "" "Could not mount iso file $file"
+    fatal "Could not mount iso file $file"
 }
 
 mount_live() {
     local targ_dir=$1  live_dir=${2:-$LIVE_MP}
 
-    is_mountpoint "$targ_dir" && fatal "" "Live directory \"$targ_dir\" is already a mountpoint"
-    test -d "$live_dir"       || fatal "" "Live directory \"$live_dir\" is not a directory"
-    is_mountpoint "$live_dir" || fatal "" "Live directory \"$live_dir\" is not a mountpoint"
+    is_mountpoint "$targ_dir" && fatal "Live directory \"$targ_dir\" is already a mountpoint"
+
+    # Allow live "directory" to be a device that we mount
+    local block_dev=$(expand_device $live_dir)
+    if [ ${#block_dev} -gt 0 ];  then
+        my_mkdir $MNT_DIR
+        mount -o ro $block_dev $MNT_DIR
+        is_mountpoint $MNT_DIR || fatal "Could not mount device $block_dev"
+        live_dir=$MNT_DIR
+    fi
+
+    test -d "$live_dir"       || fatal "Live directory \"$live_dir\" is not a directory"
+    is_mountpoint "$live_dir" || fatal "Live directory \"$live_dir\" is not a mountpoint"
 
     mount --bind $targ_dir $targ_dir
 
@@ -673,6 +683,11 @@ check_size() {
     [ $extra -lt $margin ] && fatal "Less than $margin MiB would remain on $type partition"
 }
 
+my_mkdir() {
+    dir=$1
+    mkdir -p "$dir" || fatal "Could not make directory \"$dir\""
+}
+
 du_size() {
     du --apparent-size -scm "$@" 2>/dev/null | tail -n 1 | cut -f1
 }
@@ -924,7 +939,7 @@ require() {
 
 clean_up() {
     sync; sync
-    for mp in $ISO_DIR $EXT_DIR $FAT_DIR; do
+    for mp in $ISO_DIR $EXT_DIR $FAT_DIR $MNT_DIR; do
         is_mountpoint $mp && umount -r -l $mp
         if ! is_mountpoint $mp; then
             rm -rf $mp
