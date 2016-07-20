@@ -660,6 +660,32 @@ pqw()    { echo "$warn_co$*$hi_co"        ;}
 pqe()    { echo "$hi_co$*$err_co"         ;}
 pqh()    { echo "$m_co$*$hi_co"           ;}
 
+YES_no() {  _yes_no 0 "yes" "$@" ;}
+yes_NO() {  _yes_no 1 "no"  "$@" ;}
+
+_yes_no() {
+    local def_ret=$1  def_lab=$(cq $2)
+    shift 2
+    local ans title=$(printf "$m_co$@")
+    local yes=$(cq "yes")  no=$(cq "no")  y_lett=$(bq y) n_lett=$(bq n)
+
+    local err_msg=$(printf "You must answer %s or %s. Please try again" $(pqe y) $(pqe n))
+    while true; do
+        echo -e "$title?"
+        printf "${m_co}$y_lett=$yes. $n_lett=$no. %s $def_lab\n" "The default is"
+        echo -n "$green>$nc_co "
+
+        read ans
+        case x$ans in
+            x[Yy]*) return 0;;
+            x[Nn]*) return 1;;
+        esac
+
+        [ -z "$ans" ] && return $def_ret
+        printf "$err_co%s$nc_co\n" "$err_msg"
+    done
+}
+
 show_elapsed() {
     local dt=$(($(date +%s) - START_T))
     [ $dt -gt 10 ] && msg "\n$ME took $(elapsed $START_T)."
