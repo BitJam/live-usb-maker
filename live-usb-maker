@@ -16,6 +16,7 @@ ME=${0##*/}
    LIVE_DIRS="boot EFI efi"
    GRUB_CONF="boot/grub/grub.cfg"
       CHEATS=""
+    WORK_DIR="/tmp/$ME"
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
@@ -193,15 +194,13 @@ main() {
         echo ",$ALL_FORCE," | egrep -q ",$force," || fatal "" "Unknown force option: $force"
     done
 
-    WORK_DIR=$(mktemp -d /tmp/$ME-XXXX) \
-        || fatal "" "Could not make temporary work directory under /tmp"
-
+    mkdir -p $WORK_DIR || fatal "" "Could not make temporary work directory under /tmp"
     chmod 755 $WORK_DIR
+
+    local usb_dev=$(expand_device $DEVICE) || fatal "" "Could not find device $DEVICE"
 
     trap clean_up EXIT
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
-
-    local usb_dev=$(expand_device $DEVICE) || fatal "" "Could not find device $DEVICE"
 
     local dev_type=$(lsblk -no type --nodeps $usb_dev)
     [ "$dev_type" = "disk" ] || fatal "" "Device $usb_dev is not a disk device"
