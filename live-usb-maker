@@ -795,7 +795,6 @@ _yes_no() {
 show_elapsed() {
     local dt=$(($(date +%s) - START_T))
     [ $dt -gt 10 ] && msg "\n$ME took $(elapsed $START_T)."
-    Msg "=> cleaning up"
     echo >> $LOG_FILE
 }
 
@@ -894,6 +893,7 @@ my_exit() {
         read x
     fi
 
+    Msg "=> cleaning up"
     exit $ret
 }
 
