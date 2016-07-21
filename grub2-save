@@ -7,6 +7,7 @@ PATH=$PATH:bin:/live/bin
 CUSTOM_COMMENT="#--custom"
 DEFAULT_RESOLUTION="1024x768"
 DEFAULT_KERNEL="/antiX/vmlinuz"
+DEFAULT_GRUB_CFG="/boot/grub/grub.cfg"
 MENUS="menus"
 
 usage() {
@@ -32,6 +33,12 @@ Exceptions: only add the "menus" option to entries that already have it.
 "menu".  Ignore any BOOT_IMAGE boot parameters and the "bootsave" and
 "gfxsave" parameters.  If there isa BOOT_IMAGE boot parameter then it
 is used in as the kernel in the custom entry we created/modify.
+
+Options:
+     --cheats="cheats"   Use "cheats" instead of /proc/cmdline
+  -h --help              Show this usage
+  -n --no-kernel         Use the default kernel
+  -q --quiet             Print less
 Usage
 
     exit $ret
@@ -46,6 +53,7 @@ main() {
         case $param in
            --cheats=*) cheats=${param#--cheats=}        ;;
             -h|--help) usage                            ;;
+       -n|--no-kernel) kernel=$DEFAULT_KERNEL           ;;
            -q|--quiet) QUIET=true                       ;;
                    -*) fatal "Unknown argument: $param" ;;
                     *) fcnt=$((fcnt + 1)); file=$param  ;;
@@ -58,7 +66,7 @@ main() {
         *) fatal "Expected one filename. Got $fcnt" ;;
     esac
 
-    test -d "$file" && file=${file%/}/boot/grub/grub.cfg
+    test -d "$file" && file=${file%/}$DEFAULT_GRUB_CFG
     test -e "$file" || fatal "File $file does not exist"
 
     : ${cheats:=$(gather_params)}
@@ -176,7 +184,7 @@ gather_params() {
               automount|mount=*)  ;;
                       hwclock=*)  ;;
                       desktop=*)  ;;
-                              *)out=$out${out:+ }$p
+                              *) out=$out${out:+ }$p
         esac
     done
     echo $out
