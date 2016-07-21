@@ -21,8 +21,9 @@ ME=${0##*/}
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
+THE_ERR_FILE="/var/log/$ME.errors"
     LOG_FILE=/dev/null
-    ERR_FILE="/var/log/$ME.errors"
+    ERR_FILE=/dev/null
 
 ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
@@ -141,11 +142,25 @@ main() {
 
     local START_T=$(date +%s)
 
-    EXIT_NUM=100
     [ $UID -eq 0 ] || fatal 099 "This script must be run as root"
-    rm -f $ERR_FILE
+
+    ERR_FILE=$THE_ERR_FILE
 
     trap clean_up EXIT
+
+    if which flock &> /dev/null; then
+        exec 18> $LOCK_FILE
+        flock -n 18 || fatal 101 "A %s process is running.  If you think this is an error, remove %s" "$ME" "$LOCK_FILE"
+        echo $$ >&18
+    else
+        # fatal "The %s program was not found."
+        yes_NO_fatal "flock" \
+            "Do you want to continue without locking?" \
+            "Use --force=flock to disable locking." \
+            "The %s program was not found." "flock"
+    fi
+
+    rm -f $ERR_FILE
 
     local orig_args="$*"
 
@@ -204,18 +219,6 @@ main() {
     local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device %s" "$DEVICE"
 
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
-
-    if which flock &> /dev/null; then
-        exec 18> $LOCK_FILE
-        flock -n 18 || fatal "A %s process is running.  If you think this is an error, remove %s" "$ME" "$LOCK_FILE"
-        echo $$ >&18
-    else
-        # fatal "The %s program was not found."
-        yes_NO_fatal "flock" \
-            "Do you want to continue without locking?" \
-            "Use --force=flock to disable locking." \
-            "The %s program was not found." "flock"
-    fi
 
     # Write config file if one does not already exist
     #test -e "$CONF_FILE" || write_conf "$CONF_FILE"
@@ -901,7 +904,7 @@ fatal() {
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
 
     printf "$code:$(echo "$fmt" | sed 's/\\n//g')\n" "$@" >> $ERR_FILE
-    my_exit ${EXIT_NUM:-200}
+    my_exit ${EXIT_NUM:-100}
 }
 
 my_exit() {
