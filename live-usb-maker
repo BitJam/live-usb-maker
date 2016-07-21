@@ -438,7 +438,7 @@ do_copy_fat() {
     for top in $iso_dir/{efi,EFI,boot}; do
         test -e $top || continue
         cmd cp -r $top $fat_dir/ \
-            || warn "Error when copying %s files to fat partition" $(basename $top)
+            || warn "Error when copying %s files to fat partition" "$(basename $top)"
     done
 }
 
@@ -457,7 +457,7 @@ do_cheats_syslinux() {
         Msg "syslinux params: %s" "$(pq $params $cheats)"
         VERBOSE=4 CMDLINE="$params $cheats" cmd gfxsave $ext_dir/boot both
     else
-        warn "Could not find %s file to update" $(basename $syslinux_cfg)
+        warn "Could not find %s file to update" "$(basename $syslinux_cfg)"
     fi
 }
 
@@ -495,7 +495,7 @@ do_uuids() {
     fi
 
     if ! test -e $grub_cfg; then
-        warn "Could not find $(basename $grub_cfg) file"
+        warn "Could not find %s file" "$(basename $grub_cfg)"
         return
     fi
 
@@ -982,7 +982,7 @@ clean_up() {
         if ! is_mountpoint $mp; then
             rm -rf $mp
         else
-            warn "$mp remains mounted"
+            warn "%s remains mounted" "$mp"
             continue
         fi
     done
