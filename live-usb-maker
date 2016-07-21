@@ -25,7 +25,8 @@ THE_ERR_FILE="/var/log/$ME.errors"
     LOG_FILE=/dev/null
     ERR_FILE=/dev/null
 
-ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat uuids cheats cheats-syslinux cheats-grub install"
+ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
+ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
