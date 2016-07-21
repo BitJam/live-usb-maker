@@ -8,3 +8,4 @@
 022 esp-size must be larger than 9
 023 esp-size must be an integer larger than 9
 024 Only one + command allowed
+101 This script must be run as root
