@@ -11,7 +11,8 @@ for the live-usb and add a small fat32 file system for booting via UEFI.
   - Use "live=<dir>" to clone from a mounted live-usb or iso-file.
 
 At least one command must be given.  If "all" is not given then only the
-commands given will be run.
+commands given will be run.  Use a trailing "+" to run a command and all
+commands after it.
 
 Commands:
     sizes            Only show and check sizes, don't do anything
@@ -20,22 +21,26 @@ Commands:
     makefs-ext       Create the ext file system
     makefs-fat       Create the fat file system
     makefs           Both makefs-ext and makefs-fat
-    pre              All commands before copy
     copy-ext         Copy files to live usb ext partition
     copy-fat         Copy files to fat partition
     copy             Both copy-ext and copy-fat
-    post             All commands after copy
     uuids            Write UUIDs linking file systems
     cheats           Copy cheat codes to live-usb
     install          Install the legacy bootloader
 
 Options:
+  -a --auto         Never ask questions.  Always assume the safe answer
   -c --cheat=xxx    Add these cheatcodes to the live-usb
   -C --clear        Delete files from each partition before copying
   -d --debug        Pause before cleaning up
   -e --esp-size=XX  Size of ESP (fat) partition in MiB (default 50)
-  -f --force        Ignore usb/removeable check (dangerous!)
-  -F --force-ext    Force creation of ext4 filesystem even if one exists
+  -f --force=XXXX   Force the options specfied:
+                        umount: Allows try to umount all partitions on drive
+                           usb: Ignore usb/removable check
+                        makefs: Make the ext4 filesystem even if one exists
+                          copy: Overwrite ext4 partition even if antiX/ exists
+                           all: All of the above (dangerous!)
+
   -g --gpt          Use gpt partitioning instead of msdos
   -h --help         Show this usage
   -L --label=Name   Label ext partition with Name
