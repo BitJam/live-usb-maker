@@ -93,6 +93,7 @@ Options:
 Notes:
   - short options stack. Example: -Ff instead of -F -f
   - options can be intermingled with commands and parameters
+  - config file: $CONF_FILE
   - the config file will be sourced if it exists
   - it will be created if it doesn't exist
 Usage
@@ -164,7 +165,7 @@ main() {
 
     local orig_args="$*"
 
-    #test -r "$CONF_FILE" && . "$CONF_FILE"
+    test -r "$CONF_FILE" && . "$CONF_FILE"
 
     [ $# -eq 0 ] && usage
 
@@ -221,7 +222,7 @@ main() {
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
     # Write config file if one does not already exist
-    #test -e "$CONF_FILE" || write_conf "$CONF_FILE"
+    test -e "$CONF_FILE" || write_conf "$CONF_FILE"
 
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
