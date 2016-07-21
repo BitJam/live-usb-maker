@@ -194,13 +194,16 @@ main() {
 
     local force
     for force in ${FORCE//,/ }; do
-        echo ",$ALL_FORCE," | egrep -q ",$force," || fatal 016 "Unknown force option: %s" "$force"
+        echo ",$ALL_FORCE," | egrep -q ",$force," || fatal 025 "Unknown force option: %s" "$force"
     done
 
-    EXIT_NUM=100
-    [ $UID -eq 0 ] || fatal 101 "This script must be run as root"
+    local usb_dev=$(expand_device $DEVICE) || fatal 026 "Could not find device %s" "$DEVICE"
+
+    [ $UID -eq 0 ] || fatal 099 "This script must be run as root"
 
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
+
+    EXIT_NUM=100
 
     trap clean_up EXIT
     if which flock &> /dev/null; then
@@ -218,7 +221,6 @@ main() {
     # Write config file if one does not already exist
     #test -e "$CONF_FILE" || write_conf "$CONF_FILE"
 
-    local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device %s" "$DEVICE"
 
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
@@ -403,7 +405,7 @@ do_partition() {
     case $type in
           gpt) boot_flag=legacy_boot ;;
         msdos) boot_flag=boot        ;;
-            *) fatal 017 "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
+            *) fatal "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
                ;;
     esac
 
@@ -535,7 +537,7 @@ do_install() {
     case $type in
           gpt) fname=gptmbr.bin ;;
         msdos) fname=mbr.bin    ;;
-            *) fatal 017 "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
+            *) fatal "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
                ;;
     esac
 

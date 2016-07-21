@@ -1,11 +1,11 @@
 011 Expected a parameter after: %s
 012 Suspicious argument after %s: %s
 015 Unknown command: %s
-016 Unknown force option: %s
-017 Unknown partitioning scheme: %s.  Expected msdos or gpt
 020 Expected at least two command line arguments
 021 Bad size format '%s'.  Should be between 1 and 100 inclusive.
 022 esp-size must be larger than 9
 023 esp-size must be an integer larger than 9
 024 Only one + command allowed
-101 This script must be run as root
+025 Unknown force option: %s
+026 Could not find device %s
+099 This script must be run as root
