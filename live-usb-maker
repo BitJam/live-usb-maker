@@ -197,8 +197,11 @@ main() {
         echo ",$ALL_FORCE," | egrep -q ",$force," || fatal 016 "Unknown force option: %s" "$force"
     done
 
+
     EXIT_NUM=100
-    [ $UID -eq 0 ] || fatal "This script must be run as root"
+    [ $UID -eq 0 ] || fatal 101 "This script must be run as root"
+
+    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
     trap clean_up EXIT
     if which flock &> /dev/null; then
@@ -220,8 +223,6 @@ main() {
 
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
-
-    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
     local dev_type=$(lsblk -no type --nodeps $usb_dev)
     [ "$dev_type" = "disk" ] || fatal "Device %s is not a disk device" $usb_dev
