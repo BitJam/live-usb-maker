@@ -126,7 +126,7 @@ Optimizing for Size
 I've tried to optimize the ext4 file system with these options:
 
 ```
-m0 -N10000 -J size=32
+-m0 -N10000 -J size=32
 ```
 
 This limits the number of inodes, the size of the journal and sets
