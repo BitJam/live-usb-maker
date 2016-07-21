@@ -217,10 +217,13 @@ main() {
     local ext_dev=$(get_partition $usb_dev 1)
     local fat_dev=$(get_partition $usb_dev 2)
 
+    # fatal 151 "The device %s does not seem to be usb or removeable."
+    EXIT_NUM=151
     force usb || is_usb_or_removeable $usb_dev || yes_NO_fatal "usb" \
         "Do you want to use it anyway (dangerous!)" \
         "Use --force=usb to continue" \
         "The device %s does not seem to be usb or removeable."  "$usb_dev"
+
 
     ISO_DIR=$WORK_DIR/iso
     EXT_DIR=$WORK_DIR/ext
@@ -398,7 +401,7 @@ do_partition() {
         mkpart primary ext4  1         $ext_size   \
         mkpart primary fat32 $ext_size $mib_size   \
         set 1 $boot_flag on                        \
-        set 2 esp  on || fatal 201 "Partitioning failed"
+        set 2 esp  on || fatal 205 "Partitioning failed"
 }
 
 do_makefs_ext() {
@@ -611,6 +614,7 @@ umount_all() {
 
     mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
 
+    # fatal 201 "One or more partitions on device %s are mounted at: %s"
     force umount || EXIT_NUM=201 yes_NO_fatal "umount" \
         "Do you want those partitions unmounted" \
         "Use --force=umount to have us try to unmount them" \
@@ -633,7 +637,7 @@ umount_all() {
 
     mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
     local newline=$(printf "\n  ")
-    fatal 202 "One or more partitions on device %s are in use at:%s"  "$dev" "$newline$(echo $mounted)"
+    fatal 202 "One or more partitions on device %s are in use at: %s"  "$dev" "$newline$(echo $mounted)"
     return 1
 }
 
