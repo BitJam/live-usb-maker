@@ -45,8 +45,10 @@ Create a live-usb on <usb-device> from <iso-file>.  This will destroy
 any existing information on <usb-device>.  Uses ext4 as the filesystem
 for the live-usb and add a small fat32 file system for booting via UEFI.
 
-  - Use "live" as the iso-file to clone a running live system.
-  - Use "live=<dir>" to clone from a mounted live-usb or iso-file.
+  - Use "clone" as the iso-file to clone a running live system.
+  - Use "clone=<dir>" to clone from a mounted live-usb or iso-file.
+  - You may specify a device as the iso-file.  That device will be
+    mounted and cloned.
 
 At least one command must be given.  If "all" is not given then only the
 commands given will be run.  Use a trailing "+" to run a command and all
@@ -318,8 +320,8 @@ mount_iso() {
     is_mountpoint $dir && fatal 171 "Directory '%s' is already a mountpoint" $dir
 
     case $file in
-        live) mount_live $dir              ; return ;;
-      live=*) mount_live $dir "${file#*=}" ; return ;;
+        clone) mount_live $dir              ; return ;;
+      clone=*) mount_live $dir "${file#*=}" ; return ;;
     esac
 
     local block_dev=$(expand_device $file)
