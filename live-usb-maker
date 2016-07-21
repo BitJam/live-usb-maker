@@ -219,7 +219,7 @@ main() {
 
     local usb_dev=$(expand_device $DEVICE) || fatal 110 "Could not find device %s" "$DEVICE"
 
-    mkdir -p $WORK_DIR || fatal 120 "Could not make temporary work directory under /tmp"
+    mkdir -p $WORK_DIR || fatal 120 "Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
 
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
