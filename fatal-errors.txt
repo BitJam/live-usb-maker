@@ -7,8 +7,10 @@
 017 Unknown partitioning scheme: %s.  Expected msdos or gpt
 019 Only one + command allowed
 101 This script must be run as root
+102 A %s process is running.  If you think this is an error, remove %s
+103 The %s program was not found.
 110 Could not find device %s
-120 Could not make temporary work directory under /tmp
+120 Could not make a work directory under /tmp
 130 Device %s is not a disk device
 140 Device %s does not exist
 150 Device %s is not a block device
@@ -31,7 +33,7 @@
 192 Could not mount %s at %s
 193 Failed to mount %s at %s
 201 One or more partitions on device %s are mounted at: %s
-202 One or more partitions on device %s are in use at: %s
+202 One or more partitions on device %s are in use at:\n  %s
 205 Partitioning failed
 210 makefs
 211 Could not make fat32 file system on %s
