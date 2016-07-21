@@ -144,6 +144,8 @@ main() {
     local START_T=$(date +%s)
 
     [ $# -eq 0 ] && usage
+    check_usage "$@"
+
     [ $UID -eq 0 ] || fatal 099 "This script must be run as root"
 
     ERR_FILE=$THE_ERR_FILE
@@ -667,6 +669,15 @@ get_partition() {
         *mmcbk*) echo  ${dev}p$num  ;;
               *) echo  ${dev}$num   ;;
     esac
+}
+
+check_usage() {
+    local arg
+    for arg; do
+        case $arg in
+            -h|--help) usage ;;
+        esac
+    done
 }
 
 #-------------------------------------------------------------------------------
