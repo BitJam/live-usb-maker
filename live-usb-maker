@@ -248,14 +248,14 @@ main() {
 
     local mem_fmt="%20s:$white %7s$msg_co MiB"
 
-    msg "$mem_fmt" "total size"     $total_size
-    msg "$mem_fmt" "requested size" $mib_size
-    msg "$mem_fmt" "ext available"  $ext_size
-    msg "$mem_fmt" "ext needed"     $ext_needed
-    msg "$mem_fmt" "ext extra"      $ext_extra
-    msg "$mem_fmt" "fat available"  $FAT_SIZE
-    msg "$mem_fmt" "fat needed"     $fat_needed
-    msg "$mem_fmt" "fat extra"      $fat_extra
+    msg "$mem_fmt" "total usb size"     $total_size
+    msg "$mem_fmt" "requested usb size" $mib_size
+    msg "$mem_fmt" "ext available"      $ext_size
+    msg "$mem_fmt" "ext needed"         $ext_needed
+    msg "$mem_fmt" "ext extra"          $ext_extra
+    msg "$mem_fmt" "fat available"      $FAT_SIZE
+    msg "$mem_fmt" "fat needed"         $fat_needed
+    msg "$mem_fmt" "fat extra"          $fat_extra
     msg
 
     if [ ${#CMDS} -le 0 ]; then
