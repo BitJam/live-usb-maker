@@ -1,48 +1,10 @@
-011 Expected at least two command line arguments
-012 Bad size format '%s'.  Should be between 1 and 100 inclusive.
-013 esp-size must be larger than 9
-014 esp-size must be an integer larger than 9
+011 Expected a parameter after: %s
+012 Suspicious argument after %s: %s
 015 Unknown command: %s
 016 Unknown force option: %s
 017 Unknown partitioning scheme: %s.  Expected msdos or gpt
-019 Only one + command allowed
-101 This script must be run as root
-102 A %s process is running.  If you think this is an error, remove %s
-103 The %s program was not found.
-110 Could not find device %s
-120 Could not make a work directory under /tmp
-130 Device %s is not a disk device
-140 Device %s does not exist
-150 Device %s is not a block device
-151 The device %s does not seem to be usb or removeable.
-160 Could not make %s subdirectories
-170 Could not mount iso file %s
-171 Directory '%s' is already a mountpoint
-172 Could not find iso file %s
-173 Could not read iso file %s
-175 Could not mount iso file %s
-181 Live directory '%s' is already a mountpoint
-182 Could not mount device %s
-183 Live directory '%s' is not a directory
-184 Live directory '%s' is not a mountpoint
-186 Could not create directory %s
-187 Could not mkdir %s
-188 Could not touch file %s
-190 Directory '%s' is already a mountpoint
-191 Failed to create directory '%s'
-192 Could not mount %s at %s
-193 Failed to mount %s at %s
-201 One or more partitions on device %s are mounted at: %s
-202 One or more partitions on device %s are in use at:\n  %s
-205 Partitioning failed
-210 makefs
-211 Could not make fat32 file system on %s
-212 Error when copying files to live usb
-220 Making directory %s failed
-221 sed on %s failed
-222 sed on %s failed
-230 Could not find file %s
-231 dd command failed
-232 Could not copy the isolinux directory
-233 Could not find a syslinux or isolinux directory
-234 extlinux command failed
+020 Expected at least two command line arguments
+021 Bad size format '%s'.  Should be between 1 and 100 inclusive.
+022 esp-size must be larger than 9
+023 esp-size must be an integer larger than 9
+024 Only one + command allowed
