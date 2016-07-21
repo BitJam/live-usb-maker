@@ -31,7 +31,7 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
 
-   ALL_FORCE="copy,makefs,umount,usb"
+   ALL_FORCE="copy,flock,makefs,umount,usb"
 
    PATH="$(dirname $(readlink -f $0)):/usr/local/share/live-usb-maker/bin:$PATH"
 

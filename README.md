@@ -140,3 +140,18 @@ a reasonable limit and yet provides significant savings in the
 space overhead of the file system.
 
 The partitioning is aligned on 1 MiB boundaries.
+
+Here are results from using various mkfs.ext4 options.  All sizes are
+in Megabytes.  The savings are compared to the default settings.
+These tests were all done on an 32-Gig Samsung Fit using the default
+50 Meg fat32 partition in addition to the ext4 partition.
+
+       mkfs.ext4 options        total  avail  savings
+       ----------------------   -----  -----  -------
+    A  -m0 -N2000  -J size=16   30522  30462     2116
+    B  -m0 -N10000 -J size=32   30504  30444     2098
+    C  -m1 -N10000 -J size=32   30504  30138     1792
+    D  -m0                      29933  29873     1527
+    E      -N10000 -J size=32   30504  28917      571
+    F              -J size=32   30029  28422       76
+    G                           29933  28346        0
