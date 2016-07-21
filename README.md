@@ -155,3 +155,57 @@ These tests were all done on an 32-Gig Samsung Fit using the default
     E      -N10000 -J size=32   30504  28917      571
     F              -J size=32   30029  28422       76
     G                           29933  28346        0
+
+Error Handling
+--------------
+Almost every system call is checked and if any fail it is a fatal
+error.  With one exception all fatal errors will result in an exit
+status of 100 and the error message being put into the file
+`/var/log/live-usb-maker.error`. The one exception is the check for
+root.  If that fails then we can't write to the error log anway so
+in that case we return an exit status of 99.  It's easy to make this
+more complicated (for example use a different status for problems with
+reading the command line parameters).
+
+### Error Codes
+Some errors also create and error code and a question in the error
+log file.  The format is:
+
+    <code>:<message>
+    Q:<question>
+
+If you are calling this code from a GUI then you can get around these
+errors by reporting the <message> as a warning/non-fatal error and
+then asking the user the <question>.  If the answer "no" then you must
+exit.  If they answer use then call the program again and add the
+parameter:
+
+    --force=<code>
+
+If this happens multiple times then the codes can accumulate:
+
+    --force=<code1>,<code2>,...
+
+The codes will always contain only lowercase letters and possible
+hyphens.   For most errors, there won't be a code and a question so
+the only thing in the error log will be:
+
+    :<message>
+
+You are, of course, free to ignore the code and the question and just
+treat the message like a fatal error.  Here are the 3 messages that
+use this mechanism:
+
+    flock:The flock program was not found.
+    Q:Do you want to continue without locking
+
+    umount:One or more partitions on device %s are mounted at:  %s
+    Q:Do you want these partitions umounted
+
+    usb:The device %s does not seem to be usb or removeable
+    Q:To you want to use it anyway (dangerous!)
+
+Of course, there is a possible race condition with the flock error
+message.  One way around this would the to use an exit status for the
+message instead of the error log but that would mean the error message
+and the question would need to be hard-coded into the GUI program.
