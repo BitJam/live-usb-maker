@@ -893,7 +893,8 @@ fatal() {
     fi
 
     local fmt=$1
-    shift 2
+    shift
+
     printf "$code:$fmt\n" "$@" >> $ERR_FILE
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
