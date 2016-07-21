@@ -21,9 +21,8 @@ ME=${0##*/}
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
-THE_ERR_FILE="/var/log/$ME.errors"
     LOG_FILE=/dev/null
-    ERR_FILE=/dev/null
+    ERR_FILE="/var/log/$ME.errors"
 
 ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
@@ -142,13 +141,18 @@ main() {
 
     local START_T=$(date +%s)
 
+    EXIT_NUM=100
+    [ $UID -eq 0 ] || fatal 099 "This script must be run as root"
+    rm -f $ERR_FILE
+
+    trap clean_up EXIT
+
     local orig_args="$*"
 
     #test -r "$CONF_FILE" && . "$CONF_FILE"
 
     [ $# -eq 0 ] && usage
 
-    EXIT_NUM=10  # Reading cmdline parameters
     # This loop allows complete intermingling of filenames and options
     local opt_cnt=0
     while [ $# -gt 0 ]; do
@@ -166,17 +170,17 @@ main() {
         done
     done
 
-    [ $opt_cnt -lt 2 ] && fatal 020 "Expected at least two command line arguments"
+    [ $opt_cnt -lt 2 ] && fatal "Expected at least two command line arguments"
 
     [ "$PRETEND" ] && msg "PRETEND MODE ENABLED"
 
     case $SIZE in
         [1-9]|[0-9][0-9]|100) ;;
-        *) fatal 021 "Bad size format '%s'.  Should be between 1 and 100 inclusive." "$(pqh $SIZE)"
+        *) fatal "Bad size format '%s'.  Should be between 1 and 100 inclusive." "$(pqh $SIZE)"
     esac
 
-    [ -z "${FAT_SIZE##[0-9]}" ] && fatal 022 "esp-size must be larger than 9"
-    echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal 023 "esp-size must be an integer larger than 9"
+    [ -z "${FAT_SIZE##[0-9]}" ] && fatal "esp-size must be larger than 9"
+    echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than 9"
 
     #echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
     #echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
@@ -184,28 +188,23 @@ main() {
     # Test for valid commands and process cmd+ commands
     local cmd plus_cnt=0
     for cmd in $CMDS; do
-        echo "$ALL_CMDS" | egrep -q "(^| )$cmd+?( |$)" || fatal 015 "Unknown command: %s" $cmd
+        echo "$ALL_CMDS" | egrep -q "(^| )$cmd+?( |$)" || fatal "Unknown command: %s" $cmd
         [ -z "${cmd%%*+}" ] || continue
         cmd=${cmd%+}
         CMDS="$CMDS $(echo "$ORDERED_CMDS" | sed -rn "s/.*($cmd )/\1/p")"
         plus_cnt=$((plus_cnt + 1))
-        [ $plus_cnt -gt 1 ] && fatal 024 "Only one + command allowed"
+        [ $plus_cnt -gt 1 ] && fatal "Only one + command allowed"
     done
 
     local force
     for force in ${FORCE//,/ }; do
-        echo ",$ALL_FORCE," | egrep -q ",$force," || fatal 025 "Unknown force option: %s" "$force"
+        echo ",$ALL_FORCE," | egrep -q ",$force," || fatal "Unknown force option: %s" "$force"
     done
 
-    local usb_dev=$(expand_device $DEVICE) || fatal 026 "Could not find device %s" "$DEVICE"
-
-    [ $UID -eq 0 ] || fatal 099 "This script must be run as root"
+    local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device %s" "$DEVICE"
 
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
-    EXIT_NUM=100
-
-    trap clean_up EXIT
     if which flock &> /dev/null; then
         exec 18> $LOCK_FILE
         flock -n 18 || fatal "A %s process is running.  If you think this is an error, remove %s" "$ME" "$LOCK_FILE"
@@ -220,7 +219,6 @@ main() {
 
     # Write config file if one does not already exist
     #test -e "$CONF_FILE" || write_conf "$CONF_FILE"
-
 
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
@@ -701,10 +699,10 @@ read_params() {
 
         # Deal with all options that take a parameter
         if takes_param "$arg"; then
-            [ $# -lt 1 ] && fatal 011 "Expected a parameter after: %s" "-$arg"
+            [ $# -lt 1 ] && fatal "Expected a parameter after: %s" "-$arg"
             val=$1
             [ -n "$val" -a -z "${val##-*}" ] \
-                && fatal 012 "Suspicious argument after %s: %s" "-$arg" "$val"
+                && fatal "Suspicious argument after %s: %s" "-$arg" "$val"
             SHIFT=$((SHIFT + 1))
             shift
         else
@@ -966,9 +964,6 @@ start_log() {
     local args=$1 cmds=${2# } iso=$3 dev=$4
 
     LOG_FILE=$THE_LOG_FILE
-    ERR_FILE=$THE_ERR_FILE
-
-    rm -f $ERR_FILE
 
     cat <<Start_Log >> $LOG_FILE
 ---------------------------------------------------------------------

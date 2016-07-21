@@ -1,4 +1,0 @@
-#!/bin/bash
-
-sed -nr 's/.*fatal ([0-9]+) "([^"]+)".*/\1 \2/p' live-usb-maker \
-    | sort -u > fatal-errors.txt
