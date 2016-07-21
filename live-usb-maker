@@ -197,7 +197,6 @@ main() {
         echo ",$ALL_FORCE," | egrep -q ",$force," || fatal 016 "Unknown force option: %s" "$force"
     done
 
-
     EXIT_NUM=100
     [ $UID -eq 0 ] || fatal 101 "This script must be run as root"
 
