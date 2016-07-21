@@ -17,6 +17,7 @@ ME=${0##*/}
    GRUB_CONF="boot/grub/grub.cfg"
       CHEATS=""
     WORK_DIR="/tmp/$ME"
+   LOCK_FILE="/run/lock/$ME"
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
@@ -196,6 +197,18 @@ main() {
 
     EXIT_NUM=100
     [ $UID -eq 0 ] || fatal 101 "This script must be run as root"
+
+    if which flock &> /dev/null; then
+        exec 18> $LOCK_FILE
+        flock -n 18 || fatal 102 "A %s process is running.  If you think this is an error, remove %s" "$ME" "$LOCK_FILE"
+        echo $$ >&18
+    else
+        # fatal 103 "The %s program was not found."
+        EXIT_NUM=103 yes_NO_fatal "flock" \
+            "Do you want to continue without locking?" \
+            "Use --force=flock to disable locking." \
+            "The %s program was not found." "flock"
+    fi
 
     # Write config file if one does not already exist
     test -e "$CONF_FILE" || write_conf "$CONF_FILE"
@@ -990,6 +1003,7 @@ clean_up() {
             continue
         fi
     done
+    rm -f $LOCK_FILE
     rmdir $WORK_DIR
 }
 
