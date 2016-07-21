@@ -12,7 +12,7 @@ while read line; do
     case $state in
         1) echo "$line" 
            state=$((state + 1)) 
-           sudo ./live-usb-maker --help ;;
+           ./live-usb-maker ;;
         2)              ;;
         *) echo "$line" ;;
     esac

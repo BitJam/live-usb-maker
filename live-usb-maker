@@ -143,6 +143,7 @@ main() {
 
     local START_T=$(date +%s)
 
+    [ $# -eq 0 ] && usage
     [ $UID -eq 0 ] || fatal 099 "This script must be run as root"
 
     ERR_FILE=$THE_ERR_FILE
@@ -166,8 +167,6 @@ main() {
     local orig_args="$*"
 
     test -r "$CONF_FILE" && . "$CONF_FILE"
-
-    [ $# -eq 0 ] && usage
 
     # This loop allows complete intermingling of filenames and options
     local opt_cnt=0
