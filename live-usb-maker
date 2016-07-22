@@ -202,16 +202,7 @@ main() {
     #echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
     #echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
 
-    # Test for valid commands and process cmd+ commands
-    local cmd plus_cnt=0
-    for cmd in $CMDS; do
-        echo "$ALL_CMDS" | egrep -q "(^| )$cmd+?( |$)" || fatal "Unknown command: %s" $cmd
-        [ -z "${cmd%%*+}" ] || continue
-        cmd=${cmd%+}
-        CMDS="$CMDS $(echo "$ORDERED_CMDS" | sed -rn "s/.*($cmd )/\1/p")"
-        plus_cnt=$((plus_cnt + 1))
-        [ $plus_cnt -gt 1 ] && fatal "Only one + command allowed"
-    done
+    check_cmds CMDS "$ALL_CMDS" "$ORDERED_CMDS"
 
     check_force "$FORCE" "$ALL_FORCE"
 
@@ -585,6 +576,28 @@ need() {
     Msg "=> $cmd"
     return 0
 }
+
+# Test for valid commands and process cmd+ commands
+check_cmds() {
+    local cmds_nam=$1  all=" $2 "  ordered=$3 cmds_in cmds_out
+    eval "local cmds_in=\$$cmds_nam"
+    local cmd plus_cnt=0
+    for cmd in $cmds_in; do
+        case $all in
+            *" ${cmd%+} "*) ;;
+            *) fatal "Unknown command: %s" $cmd ;;
+        esac
+
+        [ -z "${cmd%%*+}" ] || continue
+
+        cmd=${cmd%+}
+        cmds_out="$cmds_out $(echo "$ORDERED_CMDS" | sed -rn "s/.*($cmd )/\1/p")"
+        plus_cnt=$((plus_cnt + 1))
+        [ $plus_cnt -gt 1 ] && fatal "Only one + command allowed"
+        eval "$cmds_nam=\$cmds_out"
+    done
+}
+
 
 force() {
     local this=$1  option_list=${2:-$FORCE}
