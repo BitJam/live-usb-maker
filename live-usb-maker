@@ -213,10 +213,7 @@ main() {
         [ $plus_cnt -gt 1 ] && fatal "Only one + command allowed"
     done
 
-    local force
-    for force in ${FORCE//,/ }; do
-        echo ",$ALL_FORCE," | egrep -q ",$force," || fatal "Unknown force option: %s" "$force"
-    done
+    check_force "$FORCE" "$ALL_FORCE"
 
     local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device %s" "$DEVICE"
 
@@ -590,11 +587,19 @@ need() {
 }
 
 force() {
-    local this=$1
-    case ,$FORCE, in
+    local this=$1  option_list=${2:-$FORCE}
+    case ,$option_list, in
         *,$this,*|*,all,*) return 0 ;;
     esac
     return 1
+}
+
+check_force() {
+    local cmds=$1  all=$2  force_opt
+    for force_opt in ${cmds//,/ }; do
+        echo $force_opt
+        force $force_opt "$all" || fatal "Unknown force option: %s" "$force_opt"
+    done
 }
 
 write_file() {
