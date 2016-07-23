@@ -193,7 +193,10 @@ main() {
 
     local orig_args="$*"
 
-    [ -z "$IGNORE_CONF" ] && test -r "$CONF_FILE" && . "$CONF_FILE"
+    if [ -z "$IGNORE_CONF" ]; then
+        test -r "$CONF_FILE" && . "$CONF_FILE"
+        test -e "$CONF_FILE" || write_conf "$CONF_FILE"
+    fi
 
     # This loop allows complete intermingling of filenames and options
     local opt_cnt=0
@@ -212,12 +215,18 @@ main() {
         done
     done
 
+    # Always write a new config file and then exit if requested
+    if [ "$WRITE_CONF" ]; then
+        reset_conf
+        write_conf "$CONF_FILE"
+        exit 0
+    fi
+
     local usb_dev=$(expand_device $DEVICE)
     [ ${#usb_dev} -gt 0 ] || fatal "Could not find device %s" "$DEVICE"
 
     # We start logging right after we've expanded the target device
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
-
 
     [ $opt_cnt -lt 2 ] && fatal "Expected at least two command line arguments"
 
@@ -237,16 +246,6 @@ main() {
     check_cmds CMDS "$ALL_CMDS" "$ORDERED_CMDS"
 
     check_force "$FORCE" "$ALL_FORCE"
-
-    # Write config file if one does not already exist
-    if ! test -e "$CONF_FILE"; then
-        write_conf "$CONF_FILE"
-
-    elif [ "$WRITE_CONF" ]; then
-        reset_conf
-        write_conf "$CONF_FILE"
-        exit 0
-    fi
 
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
