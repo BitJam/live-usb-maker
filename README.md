@@ -31,26 +31,29 @@ Commands:
     install          Install the legacy bootloader
 
 Options:
-  -a --auto         Never ask questions.  Always assume the safe answer
-  -c --cheat=xxx    Add these cheatcodes to the live-usb
-  -C --clear        Delete files from each partition before copying
-  -d --debug        Pause before cleaning up
-  -e --esp-size=XX  Size of ESP (fat) partition in MiB (default 50)
-  -f --force=XXXX   Force the options specfied:
-                        umount: Allows try to umount all partitions on drive
-                           usb: Ignore usb/removable check
-                        makefs: Make the ext4 filesystem even if one exists
-                          copy: Overwrite ext4 partition even if antiX/ exists
-                           all: All of the above (dangerous!)
+  -a --auto            Never ask questions.  Always assume the safe answer
+  -c --cheat=xxx       Add these cheatcodes to the live-usb
+  -C --clear           Delete files from each partition before copying
+  -d --debug           Pause before cleaning up
+  -e --esp-size=XX     Size of ESP (fat) partition in MiB (default 50)
+  -E --ext-options=XX  Use these options when creating the ext4 filesystem
+  -f --force=XXXX      Force the options specfied:
+                           umount: Allows try to umount all partitions on drive
+                              usb: Ignore usb/removable check
+                           makefs: Make the ext4 filesystem even if one exists
+                             copy: Overwrite ext4 partition even if antiX/ exists
+                              all: All of the above (dangerous!)
 
-  -g --gpt          Use gpt partitioning instead of msdos
-  -h --help         Show this usage
-  -L --label=Name   Label ext partition with Name
-  -p --pretend      Don't run most commands, just show them
-  -P --Pretend      Pretend witout verbose
-  -q --quiet        Print less
-  -s --size=XX      Percent of usb-device to use in (default 100)
-  -v --verbose      Print more, show commands when run
+  -g --gpt             Use gpt partitioning instead of msdos
+  -h --help            Show this usage
+  -i --ignore-conf     Ignore the config file
+  -L --label=Name      Label ext partition with Name
+  -p --pretend         Don't run most commands, just show them
+  -P --Pretend         Pretend witout verbose
+  -q --quiet           Print less
+  -s --size=XX         Percent of usb-device to use in (default 100)
+  -v --verbose         Print more, show commands when run
+  -w --write-conf      Write an fresh config file
 
 Notes:
   - short options stack. Example: -Ff instead of -F -f
