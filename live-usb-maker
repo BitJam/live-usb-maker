@@ -59,18 +59,18 @@ commands given will be run.  Use a trailing "+" to run a command and all
 commands after it.
 
 Commands:
-    sizes            Only show and check sizes, don't do anything
-    all              Do all commands below
-    partition        Partition the live usb
-    makefs-ext       Create the ext file system
-    makefs-fat       Create the fat file system
-    makefs           Both makefs-ext and makefs-fat
-    copy-ext         Copy files to live usb ext partition
-    copy-fat         Copy files to fat partition
-    copy             Both copy-ext and copy-fat
-    uuids            Write UUIDs linking file systems
-    cheats           Copy cheat codes to live-usb
-    install          Install the legacy bootloader
+    sizes              Only show and check sizes, don't do anything
+    all                Do all commands below
+    partition          Partition the live usb
+    makefs-ext         Create the ext file system
+    makefs-fat         Create the fat file system
+    makefs             Both makefs-ext and makefs-fat
+    copy-ext           Copy files to live usb ext partition
+    copy-fat           Copy files to fat partition
+    copy               Both copy-ext and copy-fat
+    uuids              Write UUIDs linking file systems
+    cheats             Copy cheat codes to live-usb
+    install            Install the legacy bootloader
 
 Options:
   -a --auto            Never ask questions.  Always assume the safe answer
