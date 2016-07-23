@@ -420,14 +420,6 @@ $(cd "$live_dir" && eval "ls -d $LIVE_FILES" 2>/dev/null)
 Live_Files
 }
 
-my_mount() {
-    local dev=$1  dir=$2
-    is_mountpoint $dir           && fatal $"Directory '%s' is already a mountpoint" "$dir"
-    PRETEND= cmd mkdir -p $dir   || fatal $"Failed to create directory '%s'" "$dir"
-    PRETEND= cmd mount $dev $dir || fatal $"Could not mount %s at %s" "$dev" "$dir"
-    is_mountpoint $dir           || fatal $"Failed to mount %s at %s" "$dev" "$dir"
-}
-
 do_partition() {
     local drive=$1  type=${2:-msdos}  ext_size=$3  mib_size=$4
 
@@ -608,6 +600,134 @@ do_install() {
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
 
+check_size() {
+    local type=$1  extra=$2  margin=$3
+    [ $extra -lt 0 ] && fatal $"Not enough space on %s partition" "$type"
+    [ $extra -lt $margin ] && fatal $"Less than %s MiB would remain on %s partition" "$margin" "$type"
+}
+
+my_exit() {
+    local ret=${1:-0}
+
+    show_elapsed
+
+    if [ "$DEBUG" ]; then
+        echo -n "${green}Press <Enter>$nc_co "
+        read x
+    fi
+
+    Msg "=> cleaning up"
+    exit $ret
+}
+
+write_conf() {
+    local file=$1
+
+    mkdir -p $(dirname $file)
+    Msg
+    Msg $"Writing config file at %s" "$file"
+    Msg
+
+    cat<<Conf_File > $file
+# $(basename $file)
+#
+# This file will be sourced by the live-usb-maker script if it is found
+# at $file
+
+     MBR_GPT="$MBR_GPT"
+        SIZE=$SIZE
+    FAT_SIZE=$FAT_SIZE
+  EXT_MARGIN=$EXT_MARGIN
+  FAT_MARGIN=$FAT_MARGIN
+
+ EXT_OPTIONS="$EXT_OPTIONS"
+   EXT_LABEL="$EXT_LABEL"
+
+     LIVE_MP="$LIVE_MP"
+  LIVE_FILES="$LIVE_FILES"
+   LIVE_DIRS="$LIVE_DIRS"
+
+   GRUB_CONF="$GRUB_CONF"
+      CHEATS=""
+Conf_File
+}
+
+start_log() {
+    local args=$1 cmds=${2# } iso=$3 dev=$4
+
+    LOG_FILE=$THE_LOG_FILE
+
+    cat <<Start_Log >> $LOG_FILE
+---------------------------------------------------------------------
+$ME
+    started: $(date)
+comand line: $args
+   commands: $cmds
+   iso file: $iso
+     device: $dev
+     cheats: $CHEATS
+
+Start_Log
+}
+
+clean_up() {
+    sync; sync
+    for mp in $ISO_DIR $EXT_DIR $FAT_DIR $MNT_DIR; do
+        is_mountpoint $mp && umount -r -l $mp
+        if ! is_mountpoint $mp; then
+            rm -rf $mp
+        else
+            warn "%s remains mounted" "$mp"
+            continue
+        fi
+    done
+    rm -f $LOCK_FILE
+    test -d $WORK_DIR && rmdir $WORK_DIR
+}
+
+umount_all() {
+    local dev=$1  mounted
+
+    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
+
+    # fatal "One or more partitions on device %s are mounted at: %s"
+    # This makes it easier on the translators (and my validation)
+    local msg=$"One or more partitions on device %s are mounted at"
+    force umount || yes_NO_fatal "umount" \
+        $"Do you want those partitions unmounted?" \
+        "$(printf $"Use %s to always have us unmount mounted target partitions" "$(pq "--force=umount")" )" \
+        "$msg:\n  %s" "$dev" "$(echo $mounted)"
+
+    local i part
+    for part in $(mount | egrep -o "^$dev[^ ]*"); do
+        umount --all-targets $part 2>/dev/null
+    done
+
+    mount | egrep -q "^$dev[^ ]*" || return 0
+
+    for i in $(seq 1 10); do
+        mount | egrep -q "^$dev[^ ]*" || return 0
+        for part in $(mount | egrep -o "^$dev[^ ]*"); do
+            umount $part 2>/dev/null
+        done
+        sleep .1
+    done
+
+    # Make translation and validation easier
+    msg=$"One or more partitions on device %s are in use at"
+    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
+    fatal "$msg:\n  %s"  "$dev" "$(echo $mounted)"
+    return 1
+}
+
+my_mount() {
+    local dev=$1  dir=$2
+    is_mountpoint $dir           && fatal $"Directory '%s' is already a mountpoint" "$dir"
+    PRETEND= cmd mkdir -p $dir   || fatal $"Failed to create directory '%s'" "$dir"
+    PRETEND= cmd mount $dev $dir || fatal $"Could not mount %s at %s" "$dev" "$dir"
+    is_mountpoint $dir           || fatal $"Failed to mount %s at %s" "$dev" "$dir"
+}
+
 need() {
     local cmd=$1  cmd2=${1%%-*}
     echo "$CMDS" | egrep -q "(^| )($cmd|$cmd2|all)( |$)" || return 1
@@ -693,41 +813,6 @@ expand_device() {
             /*)  [ -b "/dev$1"  ] && echo "/dev$1"  ;;
              *)  [ -b "/dev/$1" ] && echo "/dev/$1" ;;
     esac
-}
-
-umount_all() {
-    local dev=$1  mounted
-
-    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
-
-    # fatal "One or more partitions on device %s are mounted at: %s"
-    # This makes it easier on the translators (and my validation)
-    local msg=$"One or more partitions on device %s are mounted at"
-    force umount || yes_NO_fatal "umount" \
-        $"Do you want those partitions unmounted?" \
-        "$(printf $"Use %s to always have us unmount mounted target partitions" "$(pq "--force=umount")" )" \
-        "$msg:\n  %s" "$dev" "$(echo $mounted)"
-
-    local i part
-    for part in $(mount | egrep -o "^$dev[^ ]*"); do
-        umount --all-targets $part 2>/dev/null
-    done
-
-    mount | egrep -q "^$dev[^ ]*" || return 0
-
-    for i in $(seq 1 10); do
-        mount | egrep -q "^$dev[^ ]*" || return 0
-        for part in $(mount | egrep -o "^$dev[^ ]*"); do
-            umount $part 2>/dev/null
-        done
-        sleep .1
-    done
-
-    # Make translation and validation easier
-    msg=$"One or more partitions on device %s are in use at"
-    mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
-    fatal "$msg:\n  %s"  "$dev" "$(echo $mounted)"
-    return 1
 }
 
 get_partition() {
@@ -822,12 +907,6 @@ cmd() {
     "$@" 2>&1 | tee -a $LOG_FILE
     # Warning: Bashism
     return ${PIPESTATUS[0]}
-}
-
-check_size() {
-    local type=$1  extra=$2  margin=$3
-    [ $extra -lt 0 ] && fatal $"Not enough space on %s partition" "$type"
-    [ $extra -lt $margin ] && fatal $"Less than %s MiB would remain on %s partition" "$margin" "$type"
 }
 
 my_mkdir() {
@@ -1067,20 +1146,6 @@ fatal() {
     my_exit ${EXIT_NUM:-100}
 }
 
-my_exit() {
-    local ret=${1:-0}
-
-    show_elapsed
-
-    if [ "$DEBUG" ]; then
-        echo -n "${green}Press <Enter>$nc_co "
-        read x
-    fi
-
-    Msg "=> cleaning up"
-    exit $ret
-}
-
 strip_color() {
     local e=$(printf "\e")
     sed -r -e "s/$e\[[0-9;]+[mK]//g"
@@ -1100,60 +1165,10 @@ reset_conf() {
     rm -f $temp_file || fatal $"Could not remove temporary file %s" "$temp_file"
 }
 
-write_conf() {
-    local file=$1
-
-    mkdir -p $(dirname $file)
-    Msg
-    Msg $"Writing config file at %s" "$file"
-    Msg
-
-    cat<<Conf_File > $file
-# $(basename $file)
-#
-# This file will be sourced by the live-usb-maker script if it is found
-# at $file
-
-     MBR_GPT="$MBR_GPT"
-        SIZE=$SIZE
-    FAT_SIZE=$FAT_SIZE
-  EXT_MARGIN=$EXT_MARGIN
-  FAT_MARGIN=$FAT_MARGIN
-
- EXT_OPTIONS="$EXT_OPTIONS"
-   EXT_LABEL="$EXT_LABEL"
-
-     LIVE_MP="$LIVE_MP"
-  LIVE_FILES="$LIVE_FILES"
-   LIVE_DIRS="$LIVE_DIRS"
-
-   GRUB_CONF="$GRUB_CONF"
-      CHEATS=""
-Conf_File
-}
-
 is_mountpoint() {
     local file=$1
     cut -d" " -f2 /proc/mounts | grep -q "^$(readlink -f $file)$"
     return $?
-}
-
-start_log() {
-    local args=$1 cmds=${2# } iso=$3 dev=$4
-
-    LOG_FILE=$THE_LOG_FILE
-
-    cat <<Start_Log >> $LOG_FILE
----------------------------------------------------------------------
-$ME
-    started: $(date)
-comand line: $args
-   commands: $cmds
-   iso file: $iso
-     device: $dev
-     cheats: $CHEATS
-
-Start_Log
 }
 
 require() {
@@ -1165,21 +1180,6 @@ require() {
         ret=2
     done
     return $ret
-}
-
-clean_up() {
-    sync; sync
-    for mp in $ISO_DIR $EXT_DIR $FAT_DIR $MNT_DIR; do
-        is_mountpoint $mp && umount -r -l $mp
-        if ! is_mountpoint $mp; then
-            rm -rf $mp
-        else
-            warn "%s remains mounted" "$mp"
-            continue
-        fi
-    done
-    rm -f $LOCK_FILE
-    test -d $WORK_DIR && rmdir $WORK_DIR
 }
 
 set_colors
