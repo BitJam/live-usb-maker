@@ -849,7 +849,7 @@ set_colors() {
     lt_red="$e[1;31m"; magenta="$e[1;35m";   yellow="$e[1;33m";   white="$e[1;37m";
      nc_co="$e[0m";
 
-    cheat_co=$white;      err_co=$red;       hi_co=$white;
+    cheat_co=$white;      err_co=$red;       hi_co=$white;   quest_co=$green;
       cmd_co=$white;     from_co=$lt_green;  mp_co=$magenta;   num_co=$magenta;
       dev_co=$magenta;   head_co=$yellow;     m_co=$lt_cyan;    ok_co=$lt_green;
        to_co=$lt_green;  warn_co=$yellow;  bold_co=$yellow;
@@ -870,42 +870,110 @@ yes_NO_fatal() {
     local msg=$(printf "$fmt" "$@")
 
     if [ "$AUTO_MODE" ]; then
-        fmt="$fmt\nQ:$question"
+        FATAL_QUESTION=$question
         fatal "$code" "$fmt" "$@"
     fi
     warn "$fmt" "$@"
+    [ ${#continuation} -gt 0 ] && question="$question\n($m_co$continuation$quest_co)"
     yes_NO "$question" && return 0
-    [ ${#continuation} -gt 0 ] && fmt="$fmt  \n$continuation"
     fatal "$code" "$fmt" "$@"
 }
 
-YES_no() {  _yes_no 0 "yes" "$@" ;}
-yes_NO() {  _yes_no 1 "no"  "$@" ;}
+yes_NO() { _yes_no 0 "$1" ;}
+YES_no() { _yes_no 0 "$1" ;}
 
 _yes_no() {
-    local def_ret=$1  def_lab=$(cq $2)
-    shift 2
+    local answer default=$1  question=$2
 
-    [ "$AUTO_MODE" ] && return $def_ret
+    [ "$AUTO_MODE" ] && return $default
+    local yes=$"yes"  no=$"no"  quit=$"quit"  default=$"default"
+    local menu def_entry
+    case default in
+        0) menu=$(printf "  1) $yes ($default)\n  2) $no\n  0) $quit") ; def_entry=1;;
+        *) menu=$(printf "  1) $yes\n  2) $no (default)\n  0) $quit")  ; def_entry=2;;
+    esac
+    local data=$(printf "1:1\n2:2\n0:0")
+    my_select_2 "$quest_co$question$nc_co" answer $def_entry "$data" "$menu"
+    case $answer in
+        1) return 0 ;;
+        2) return 1 ;;
+        0) exit 0   ;;
+        *) fatal "Should never get here 111" ;;
+    esac
+}
 
-    local ans title=$(printf "$m_co$@")
-    local yes=$(cq $"yes")  no=$(cq $"no")  y_lett=$(bq y) n_lett=$(bq n)
+my_select() {
+    local title=$1  var=$2  width=${3:-0}  default=$4
+    shift 4
 
-    local err_msg=$(printf $"You must answer %s or %s. Please try again" $(pqe y) $(pqe n))
-    while true; do
-        echo -e "$title?"
-        printf "${m_co}$y_lett=$yes. $n_lett=$no. %s $def_lab\n" $"The default is"
+    local data menu lab cnt=0 dcnt
+    for lab; do
+        cnt=$((cnt+1))
+        dcnt=$cnt
+
+        [ "$lab" = "quit" ] && dcnt=0
+        data="${data}$dcnt:$lab\n"
+
+        [ "$lab" = "quit" ] && lab=$bold_co$lab$nc_co
+        [ $cnt = "$default" ] && lab=$(printf "%${width}s (%s)" "$lab" "$(cq "default")")
+        menu="${menu}$(printf "$quest_co%2d$white)$cyan %${width}s" $dcnt "$lab")\n"
+    done
+
+    my_select_2 "$title" $var "$default" "$data" "$menu"
+}
+
+my_select_2() {
+    local title=$1  var=$2  default=$3  data=$4  menu=$5
+    local def_prompt=$(printf "Press <%s> for the default selection" "$(cq "enter")")
+
+    local val input err_msg
+    while [ -z "$val" ]; do
+
+        echo -e "$hi_co$title$nc_co"
+
+        printf "$menu\n" | colorize_menu
+        [ "$err_msg" ] && printf "$err_co%s$nc_co\n" "$err_msg"
+        [ "$default" ] && printf "$m_co%s$nc_co\n" "$def_prompt"
         echo -n "$green>$nc_co "
 
-        read ans
-        case x$ans in
-            x[Yy]*) return 0;;
-            x[Nn]*) return 1;;
-        esac
+        read input
+        err_msg=
+        [ -z "$input" -a -n "$default" ] && input=$default
 
-        [ -z "$ans" ] && return $def_ret
-        printf "$err_co%s$nc_co\n" "$err_msg"
+        if ! echo "$input" | grep -q "^[0-9]\+$"; then
+            err_msg="You must enter a number"
+            [ "$default" ] && err_msg="You must enter a number or press <enter>"
+            continue
+        fi
+
+        val=$(echo -e "$data" | sed -n "s/^$input://p" | cut -d: -f1)
+
+        if [ -z "$val" ]; then
+            err_msg=$(printf "The number <%s> is out of range" "$(pqe $input)")
+            continue
+        fi
+
+        eval $var=\$val
+        break
     done
+}
+
+colorize_menu() {
+    sed -r -e "s/(^| )([0-9]+)\)/\1$green\2$white)$cyan/g" -e "s/\(([^)]+)\)/($white\1$cyan)/g" -e "s/$/$nc_co/"
+}
+
+rpad() {
+    local width=$1  str=$2
+    local pad=$((width - $(echo $str | wc -m)))
+    [ $pad -le 0 ] && pad=0
+    printf "%s%${pad}s" "$str" ""
+}
+
+lpad() {
+    local width=$1  str=$2
+    local pad=$((width - $(echo $str | wc -m)))
+    [ $pad -le 0 ] && pad=0
+    printf "%${pad}s%s" "" "$str"
 }
 
 show_elapsed() {
