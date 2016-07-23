@@ -323,7 +323,8 @@ main() {
     my_mount $ext_dev $EXT_DIR
     my_mount $fat_dev $FAT_DIR
 
-    cmd df -Tm $EXT_DIR $FAT_DIR
+    (echo; df -Tm $EXT_DIR $FAT_DIR; echo) >> $LOG_FILE
+    [ "$QUIET" ] || df -Tm $EXT_DIR $FAT_DIR | tee -a $LOG_FILE
 
     need copy-ext && do_copy_ext $ISO_DIR $EXT_DIR
     need copy-fat && do_copy_fat $ISO_DIR $FAT_DIR
