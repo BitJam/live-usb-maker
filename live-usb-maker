@@ -597,13 +597,13 @@ do_install() {
             test -d $ext_dir/$idir || continue
 
             warn $"Create syslinux directory from %s" $idir
-                syslinux_dir=$ext_dir/${idir%isolinux}syslinux
-                cmd cp -r $ext_dir/$idir $syslinux_dir || fatal $"Could not copy the isolinux directory"
-                local f
-                for f in $(cd $syslinux_dir && ls isolinux.*); do
-                    test -e $ext_dir/$sdir/$f || continue
-                    cmd mv $ext_dir/$sdir/$f $ext_dir/$sdir/syslinux${f#isolinux}
-                done
+            syslinux_dir=$ext_dir/${idir%isolinux}syslinux
+            cmd cp -r $ext_dir/$idir $syslinux_dir || fatal $"Could not copy the isolinux directory"
+            local f
+            for f in $(cd $syslinux_dir && ls isolinux.*); do
+                test -e $ext_dir/$sdir/$f || continue
+                cmd mv $ext_dir/$sdir/$f $ext_dir/$sdir/syslinux${f#isolinux}
+            done
             break
         done
     fi
