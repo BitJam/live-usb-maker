@@ -87,13 +87,14 @@ Options:
 
   -g --gpt          Use gpt partitioning instead of msdos
   -h --help         Show this usage
+  -i --ignore-conf  Ignore the config file
   -L --label=Name   Label ext partition with Name
   -p --pretend      Don't run most commands, just show them
   -P --Pretend      Pretend witout verbose
   -q --quiet        Print less
   -s --size=XX      Percent of usb-device to use in (default 100)
   -v --verbose      Print more, show commands when run
-  -w --write        Write an fresh config file
+  -w --write-conf   Write an fresh config file
 
 Notes:
   - short options stack. Example: -Ff instead of -F -f
@@ -103,6 +104,16 @@ Notes:
   - it will be created if it doesn't exist
 Usage
     exit $ret
+}
+
+eval_early_argument() {
+    local arg=$1
+    case $arg in
+      -ignore-conf|i) IGNORE_CONF=true                   ;;
+       -write-conf|w) IGNORE_CONF=true ; WRITE_CONF=true ;;
+             -help|h) usage                              ;;
+    esac
+
 }
 
 eval_argument() {
@@ -118,7 +129,6 @@ eval_argument() {
              -force|f)  FORCE="$FORCE,$val"             ;;
          -force=*|f=*)  FORCE="$FORCE,$val"             ;;
                -gpt|g)  MBR_GPT="gpt"                   ;;
-              -help|h)  usage                           ;;
              -label|L)  EXT_LABEL=$val                  ;;
          -label=*|L=*)  EXT_LABEL=$val                  ;;
            -pretend|p)  PRETEND=true ; BE_VERBOSE=true  ;;
@@ -127,7 +137,11 @@ eval_argument() {
               -size|s)  SIZE=${val%\%}                  ;;
           -size=*|s=*)  SIZE=${val%\%}                  ;;
            -verbose|v)  BE_VERBOSE=true                 ;;
-             -write|w)  WRITE_CONF=true                 ;;
+
+       # These are read early.  They are not unknown
+       -ignore-conf|i)                                  ;;
+        -write-conf|w)                                  ;;
+
                     *)  fatal "Unknown parameter %s" "-$arg" ;;
     esac
 }
@@ -150,7 +164,9 @@ main() {
     local START_T=$(date +%s)
 
     [ $# -eq 0 ] && usage
-    check_usage "$@"
+
+    # Let non-root users get usage.  Need to get --ignore-config early.
+    read_early_params "$@"
 
     [ $UID -eq 0 ] || fatal 099 "This script must be run as root"
 
@@ -174,7 +190,7 @@ main() {
 
     local orig_args="$*"
 
-    test -r "$CONF_FILE" && . "$CONF_FILE"
+    [ -z "$IGNORE_CONF" ] && test -r "$CONF_FILE" && . "$CONF_FILE"
 
     # This loop allows complete intermingling of filenames and options
     local opt_cnt=0
@@ -223,6 +239,7 @@ main() {
     elif [ "$WRITE_CONF" ]; then
         reset_conf
         write_conf "$CONF_FILE"
+        exit 0
     fi
 
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
@@ -259,6 +276,7 @@ main() {
         msg "Distro: %s" "$(pq $iso_version)"
         msg
     fi
+
 
     local total_size=$(parted $usb_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     local mib_size=$((total_size * SIZE / 100 - 1))
@@ -591,13 +609,20 @@ need() {
 }
 
 # Test for valid commands and process cmd+ commands
+# Allow a trailing "+" if ordered is given and use that to add all commands
+# after the given one
 check_cmds() {
     local cmds_nam=$1  all=" $2 "  ordered=$3 cmds_in cmds_out
+
     eval "local cmds_in=\$$cmds_nam"
-    local cmd plus_cnt=0
+
+    local cmd plus_cnt=0 plus
+    [ "$ordered" ] && plus="+"
+
     for cmd in $cmds_in; do
+
         case $all in
-            *" ${cmd%+} "*) ;;
+            *" ${cmd%$plus} "*) ;;
             *) fatal "Unknown command: %s" $cmd ;;
         esac
 
@@ -607,10 +632,11 @@ check_cmds() {
         cmds_out="$cmds_out $(echo "$ORDERED_CMDS" | sed -rn "s/.*($cmd )/\1/p")"
         plus_cnt=$((plus_cnt + 1))
         [ $plus_cnt -gt 1 ] && fatal "Only one + command allowed"
-        eval "$cmds_nam=\$cmds_out"
     done
-}
 
+    [ ${#cmds_out} -gt 0 ] &&  eval "$cmds_nam=\"$cmds_in \$cmds_out\""
+
+}
 
 force() {
     local this=$1  option_list=${2:-$FORCE}
@@ -702,12 +728,26 @@ get_partition() {
     esac
 }
 
-check_usage() {
-    local arg
-    for arg; do
+read_early_params() {
+    local arg SHIFT
+
+    while [ $# -gt 0 ]; do
+        arg=$1
+        shift
+        [ ${#arg} -gt 0 -a -z "${arg##-*}" ] || continue
+        arg=${arg#-}
+        # Expand stacked single-char arguments
         case $arg in
-            -h|--help) usage ;;
+            [$SHORT_STACK][$SHORT_STACK]*)
+                if echo "$arg" | grep -q "^[$SHORT_STACK]\+$"; then
+                    local old_cnt=$#
+                    set -- $(echo $arg | sed -r 's/([a-zA-Z])/ -\1 /g') "$@"
+                    SHIFT=$((SHIFT - $# + old_cnt))
+                    continue
+                fi;;
         esac
+        takes_param "$arg" && shift
+        eval_early_argument "$arg"
     done
 }
 
