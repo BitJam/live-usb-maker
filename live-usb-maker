@@ -120,30 +120,30 @@ eval_early_argument() {
 eval_argument() {
     local arg=$1 val=$2
         case $arg in
-              -auto|a)  AUTO_MODE=true                  ;;
-             -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val";;
-             -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val";;
-             -clear|C)  CLEAR=true                      ;;
-             -debug|d)  DEBUG=true                      ;;
-          -esp-size|e)  FAT_SIZE=$val                   ;;
-       -ext-options|E)  EXT_OPTIONS=$val                ;;
-       -ext-options=*)  EXT_OPTIONS=$val                ;;
-          -esp-size=*)  FAT_SIZE=$val                   ;;
-             -force|f)  FORCE="$FORCE,$val"             ;;
-             -force=*)  FORCE="$FORCE,$val"             ;;
-               -gpt|g)  MBR_GPT="gpt"                   ;;
-             -label|L)  EXT_LABEL=$val                  ;;
-             -label=*)  EXT_LABEL=$val                  ;;
-           -pretend|p)  PRETEND=true ; BE_VERBOSE=true  ;;
-           -Pretend|P)  PRETEND=true ; BE_VERBOSE=      ;;
-             -quiet|q)  QUIET=true                      ;;
-              -size|s)  SIZE=${val%\%}                  ;;
-              -size=*)  SIZE=${val%\%}                  ;;
-           -verbose|v)  BE_VERBOSE=true                 ;;
+              -auto|a)  AUTO_MODE=true                   ;;
+             -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
+             -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
+             -clear|C)  CLEAR=true                       ;;
+             -debug|d)  DEBUG=true                       ;;
+          -esp-size|e)  FAT_SIZE=$val                    ;;
+       -ext-options|E)  EXT_OPTIONS=$val                 ;;
+       -ext-options=*)  EXT_OPTIONS=$val                 ;;
+          -esp-size=*)  FAT_SIZE=$val                    ;;
+             -force|f)  FORCE="$FORCE,$val"              ;;
+             -force=*)  FORCE="$FORCE,$val"              ;;
+               -gpt|g)  MBR_GPT="gpt"                    ;;
+             -label|L)  EXT_LABEL=$val                   ;;
+             -label=*)  EXT_LABEL=$val                   ;;
+           -pretend|p)  PRETEND=true ; BE_VERBOSE=true   ;;
+           -Pretend|P)  PRETEND=true ; BE_VERBOSE=       ;;
+             -quiet|q)  QUIET=true                       ;;
+              -size|s)  SIZE=${val%\%}                   ;;
+              -size=*)  SIZE=${val%\%}                   ;;
+           -verbose|v)  BE_VERBOSE=true                  ;;
 
        # These are read early.  They are not unknown
-       -ignore-conf|i)                                  ;;
-        -write-conf|w)                                  ;;
+       -ignore-conf|i)                                   ;;
+        -write-conf|w)                                   ;;
 
                     *)  fatal "Unknown parameter %s" "-$arg" ;;
     esac
