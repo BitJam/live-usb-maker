@@ -145,7 +145,7 @@ eval_argument() {
      -ignore-config|i)                                   ;;
       -write-config|w)                                   ;;
 
-                *)  fatal $"Unknown parameter %s" "-$arg" ;;
+               *)  fatal $"Unknown parameter %s" "-$arg" ;;
     esac
 }
 
@@ -282,7 +282,6 @@ main() {
         msg
     fi
 
-
     local total_size=$(parted $usb_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     local mib_size=$((total_size * SIZE / 100 - 1))
     local ext_size=$((mib_size - FAT_SIZE))
@@ -302,7 +301,6 @@ main() {
     msg "$mem_fmt" "fat $needed"         $fat_needed
     msg "$mem_fmt" "fat $extra"          $fat_extra
     msg
-
 
     if [ ${#CMDS} -le 0 ]; then
         echo -e $"No command(s) given.  Try 'all'."
@@ -644,8 +642,7 @@ check_cmds() {
         [ $plus_cnt -gt 1 ] && fatal $"Only one + command allowed"
     done
 
-    [ ${#cmds_out} -gt 0 ] &&  eval "$cmds_nam=\"$cmds_in \$cmds_out\""
-
+    [ ${#cmds_out} -gt 0 ] && eval "$cmds_nam=\"$cmds_in \$cmds_out\""
 }
 
 force() {
@@ -684,8 +681,8 @@ is_usb_or_removeable() {
 get_drive() {
     local drive part=${1##*/}
     case $part in
-        mmcblk*) echo ${part%p[0-9]}                        ;;
-              *) drive=${part%[0-9]}  ; echo ${drive%[0-9]} ;;
+        mmcblk*) echo ${part%p[0-9]}                       ;;
+              *) drive=${part%[0-9]} ; echo ${drive%[0-9]} ;;
     esac
 }
 
@@ -858,12 +855,12 @@ set_colors() {
        to_co=$lt_green;  warn_co=$yellow;  bold_co=$yellow;
 }
 
-pq()     { echo "$hi_co$*$m_co"           ;}
-pqw()    { echo "$warn_co$*$hi_co"        ;}
-pqe()    { echo "$hi_co$*$err_co"         ;}
-pqh()    { echo "$m_co$*$hi_co"           ;}
-bq()     { echo "$yellow$*$m_co"          ;}
-cq()     { echo "$cheat_co$*$m_co"        ;}
+pq()  { echo "$hi_co$*$m_co"           ;}
+pqw() { echo "$warn_co$*$hi_co"        ;}
+pqe() { echo "$hi_co$*$err_co"         ;}
+pqh() { echo "$m_co$*$hi_co"           ;}
+bq()  { echo "$yellow$*$m_co"          ;}
+cq()  { echo "$cheat_co$*$m_co"        ;}
 
 # The order is weird but it allows the *error* message to work like printf
 # The purpose is to make it easy to put questions into the error log.
