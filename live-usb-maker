@@ -687,10 +687,10 @@ get_drive() {
 
 expand_device() {
     case $1 in
-        /dev/*)  [ -b "$1"      ] && echo "$1";;
-         dev/*)  [ -b "/$1"     ] && echo "/$1";;
-            /*)  [ -b "/dev$1"  ] && echo "/dev$1";;
-             *)  [ -b "/dev/$1" ] && echo "/dev/$1";;
+        /dev/*)  [ -b "$1"      ] && echo "$1"      ;;
+         dev/*)  [ -b "/$1"     ] && echo "/$1"     ;;
+            /*)  [ -b "/dev$1"  ] && echo "/dev$1"  ;;
+             *)  [ -b "/dev/$1" ] && echo "/dev/$1" ;;
     esac
 }
 
