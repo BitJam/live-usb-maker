@@ -2,6 +2,8 @@
 
 ME=${0##*/}
 
+#== BEGIN_CONF
+
      MBR_GPT="msdos"
         SIZE=100
     FAT_SIZE=50
@@ -18,6 +20,8 @@ ME=${0##*/}
       CHEATS=""
     WORK_DIR="/tmp/$ME"
    LOCK_FILE="/run/lock/$ME"
+
+#== END_CONF
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
@@ -89,6 +93,7 @@ Options:
   -q --quiet        Print less
   -s --size=XX      Percent of usb-device to use in (default 100)
   -v --verbose      Print more, show commands when run
+  -w --write        Write an fresh config file
 
 Notes:
   - short options stack. Example: -Ff instead of -F -f
@@ -122,6 +127,7 @@ eval_argument() {
               -size|s)  SIZE=${val%\%}                  ;;
           -size=*|s=*)  SIZE=${val%\%}                  ;;
            -verbose|v)  BE_VERBOSE=true                 ;;
+             -write|w)  WRITE_CONF=true                 ;;
                     *)  fatal "Unknown parameter %s" "-$arg" ;;
     esac
 }
@@ -138,7 +144,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cdefghLpPqsv"
+    local SHIFT SHORT_STACK="cdefghLpPqsvw"
     local BE_VERBOSE ISO_FILE DEVICE
 
     local START_T=$(date +%s)
@@ -211,7 +217,13 @@ main() {
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
     # Write config file if one does not already exist
-    test -e "$CONF_FILE" || write_conf "$CONF_FILE"
+    if ! test -e "$CONF_FILE"; then
+        write_conf "$CONF_FILE"
+
+    elif [ "$WRITE_CONF" ]; then
+        reset_conf
+        write_conf "$CONF_FILE"
+    fi
 
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
@@ -267,6 +279,7 @@ main() {
     msg "$mem_fmt" "fat needed"         $fat_needed
     msg "$mem_fmt" "fat extra"          $fat_extra
     msg
+
 
     if [ ${#CMDS} -le 0 ]; then
         echo -e "No command(s) given.  Try 'all'."
@@ -955,6 +968,13 @@ warn() {
     shift
     printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >&2
     printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
+}
+
+reset_conf() {
+    local temp_file=$(mktemp /tmp/$ME-config-XXXXXX) || fatal "Could not make a temp file under /tmp"
+    sed -rn "/^#=+\s*BEGIN_CONF/,/^#=+\s*END_CONF/p" "$ME" > $temp_file
+    source $temp_file
+    rm -f $temp_file || fatal "Could not remove temp file %s" "$temp_file"
 }
 
 write_conf() {
