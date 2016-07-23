@@ -2,7 +2,7 @@
 
 ME=${0##*/}
 
-#== BEGIN_CONF
+#== BEGIN_CONFIG
 
      MBR_GPT="msdos"
         SIZE=100
@@ -21,7 +21,7 @@ ME=${0##*/}
     WORK_DIR="/tmp/$ME"
    LOCK_FILE="/run/lock/$ME"
 
-#== END_CONF
+#== END_CONFIG
 
    CONF_FILE="/root/.config/$ME/$ME.conf"
 THE_LOG_FILE="/var/log/$ME.log"
@@ -1017,7 +1017,7 @@ warn() {
 
 reset_conf() {
     local temp_file=$(mktemp /tmp/$ME-config-XXXXXX) || fatal "Could not make a temp file under /tmp"
-    sed -rn "/^#=+\s*BEGIN_CONF/,/^#=+\s*END_CONF/p" "$ME" > $temp_file
+    sed -rn "/^#=+\s*BEGIN_CONFIG/,/^#=+\s*END_CONFIG/p" "$ME" > $temp_file
     source $temp_file
     rm -f $temp_file || fatal "Could not remove temp file %s" "$temp_file"
 }
