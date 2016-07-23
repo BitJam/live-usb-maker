@@ -117,7 +117,7 @@ unpack_cpio() {
     rm -rf $dir
     mkdir -p $dir || return 1
     msg " Unpack CPIO file:$cheat_co $file"
-    (cd $dir && cpio -idum < $file)
+    (cd $dir && cpio -idum --quiet < $file)
     return 0
 }
 
@@ -125,7 +125,7 @@ repack_cpio() {
     local file=$1  dir=$2
     test -r $file || return 1
     msg " Repack CPIO file:$cheat_co $file"
-    (cd $dir && find . | cpio -o) > $file
+    (cd $dir && find . | cpio -o --quiet) > $file
     return 0
 }
 
