@@ -500,11 +500,12 @@ do_cheats_syslinux() {
     require cheats-syslinux gfxsave || return
 
     local file params
-
+    local verbose=1
+    [ "$BE_VERBOSE" ] && verbose=6
     if test -w $syslinux_cfg; then
         params=$(sed -nr "1,/^\s*APPEND\s/s/^\s*APPEND\s+//p" $syslinux_cfg)
         Msg "syslinux params: %s" "$(pq $params $cheats)"
-        VERBOSE=4 CMDLINE="$params $cheats" cmd gfxsave $ext_dir/boot both
+        VERBOSE=$verbose CMDLINE="$params $cheats" cmd gfxsave $ext_dir/boot both
     else
         warn "Could not find %s file to update" "$(basename $syslinux_cfg)"
     fi
