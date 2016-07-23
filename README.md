@@ -93,7 +93,6 @@ to save boot parameters selected by the user.  This is accomplished
 with the `antiX/esp-uuid` file which contains the UUID of the
 fat32 ESP partition.
 
-
 Practice
 --------
 This program started out as proof-of-concept for passing along
@@ -126,35 +125,64 @@ Optimizing for Size
 I've tried to optimize the ext4 file system with these options:
 
 ```
--m0 -N10000 -J size=32
+-m0 -i100000 -J size=32
 ```
 
-This limits the number of inodes, the size of the journal and sets
-aside no extra space reserved for root.  The idea is that our LiveUSB
-does not normally contain many files (compared to an installed system)
-nor does it need extra space reserved for root.  I've been using
-`-N2000 -J size-16` for years without a problem.  I increased them by
-factors of five and two for a greater margin of safety.  A user will
-be limited to roughly 10,000 files on these LiveUSBs.  This seems like
-a reasonable limit and yet provides significant savings in the
-space overhead of the file system.
+This reduces the number of inodes, the size of the journal and sets
+aside no extra space reserved for root.  The number of inodes scales
+with the size of the partition.  The idea is that our LiveUSB does not
+normally contain many files (compared to an installed system) nor does
+it need extra space reserved for root.  Since running out of inodes is
+very bad and since adding more inodes does not cost a lot space-wise,
+I've tried to err on the side of too many inodes while still keeping
+well under the default amount.
 
 The partitioning is aligned on 1 MiB boundaries.
 
 Here are results from using various mkfs.ext4 options.  All sizes are
 in Megabytes.  The savings are compared to the default settings.
 These tests were all done on an 32-Gig Samsung Fit using the default
-50 Meg fat32 partition in addition to the ext4 partition.
+50 Meg fat32 partition in addition to the ext4 partition.  The smaller
+drivers were simulated using --size=25% and --size=6%.
 
-       mkfs.ext4 options        total  avail  savings
-       ----------------------   -----  -----  -------
-    A  -m0 -N2000  -J size=16   30522  30462     2116
-    B  -m0 -N10000 -J size=32   30504  30444     2098
-    C  -m1 -N10000 -J size=32   30504  30138     1792
-    D  -m0                      29933  29873     1527
-    E      -N10000 -J size=32   30504  28917      571
-    F              -J size=32   30029  28422       76
-    G                           29933  28346        0
+On 32-Gig:
+
+```
+    mkfs.ext4 options         total  avail  savings    (inodes)
+    -----------------------   -----  -----  -------    --------
+A1  -m0 -N2000   -J size=16   30522  30462     2116      (3824)
+B1  -m0 -N10000  -J size=32   30504  30444     2098     (11472)
+A2  -m0 -N50000  -J size=32   30493  30433     2087     (53536)
+D2  -m0 -N100000 -J size=32   30481  30421     2075    (103248)
+E2  -m0 -i800000 -J size=32   30496  30436     2090     (42064)
+F2  -m0 -i400000 -J size=32   30487  30427     2081     (80304)
+G2  -m0 -i200000 -J size=32   30467  30407     2061    (160608)
+H2  -m0 -i100000 -J size=32   30428  30368     2022    (321216)
+J2  -m0 -i100000              30332  30272     1926    (321216)
+Z2                            29933  28346        0   (1957888)
+
+On 8-Gig (using --size=25%):
+
+    mkfs.ext4 options         total  avail  savings    (inodes)
+    ----------------------    -----  -----  -------    --------
+E3  -m0 -i800000 -J size=32    7561   7529      592     (10560)
+F3  -m0 -i400000 -J size=32    7559   7526      589     (20160)
+G3  -m0 -i200000 -J size=32    7554   7521      584     (40320)
+H3  -m0 -i100000 -J size=32    7545   7512      575     (79680)
+J3  -m0 -i100000               7449   7416      479     (79680)
+Z3                             7349   6937        0    (486720)
+
+On 2-Gig (using --size=6%):
+
+    mkfs.ext4 options         total  avail  savings    (inodes)
+    ----------------------    -----  -----  -------    --------
+E4  -m0 -i800000 -J size=32    1751   1732      116      (2464)
+F4  -m0 -i400000 -J size=32    7559   1732      116      (4704)
+G4  -m0 -i200000 -J size=32    1749   1730      114      (9408)
+H4  -m0 -i100000 -J size=32    1747   1728      112     (18816)
+J4  -m0 -i100000               1747   1728      112     (18816)
+Z4                             1723   1616        0    (114240)
+```
 
 Error Handling
 --------------
