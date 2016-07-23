@@ -973,7 +973,7 @@ msg() {
 }
 
 fatal() {
-    local code
+    local code e=$(printf "\e")
 
     if echo "$1" | grep -q "^[0-9]\+$"; then
         EXIT_NUM=$1
@@ -987,11 +987,9 @@ fatal() {
 
     local fmt=$1
     shift
-
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
-    printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
-
-    printf "$code:$(echo "$fmt" | sed 's/\\n//g')\n" "$@" >> $ERR_FILE
+    printf "Fatal error: $fmt\n" "$@" | sed -r -e "s/$e\[[0-9;]+[mK]//g" -e 's/\\n//g' >> $LOG_FILE
+    printf "$code:$fmt\n" "$@"        | sed -r -e "s/$e\[[0-9;]+[mK]//g" -e 's/\\n//g' >> $ERR_FILE
     my_exit ${EXIT_NUM:-100}
 }
 
