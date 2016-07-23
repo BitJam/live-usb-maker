@@ -704,10 +704,12 @@ umount_all() {
     mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
 
     # fatal "One or more partitions on device %s are mounted at: %s"
+    # This makes it easier on the translators (and my validation)
+    local msg="One or more partitions on device %s are mounted at"
     force umount || yes_NO_fatal "umount" \
         "Do you want those partitions unmounted" \
         "Use --force=umount to have us try to unmount them" \
-        "One or more partitions on device %s are mounted at:\n  %s" "$dev" "$(echo $mounted)"
+        "$msg:\n  %s" "$dev" "$(echo $mounted)"
 
     local i part
     for part in $(mount | egrep -o "^$dev[^ ]*"); do
@@ -724,8 +726,10 @@ umount_all() {
         sleep .1
     done
 
+    # Make translation and validation easier
+    msg="One or more partitions on device %s are in use at"
     mounted=$(mount | egrep "^$dev[^ ]*" | cut -d" " -f3 | grep .) || return 0
-    fatal "One or more partitions on device %s are in use at:\n  %s"  "$dev" "$(echo $mounted)"
+    fatal "$msg:\n  %s"  "$dev" "$(echo $mounted)"
     return 1
 }
 
