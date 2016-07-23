@@ -231,7 +231,8 @@ main() {
 
     check_force "$FORCE" "$ALL_FORCE"
 
-    local usb_dev=$(expand_device $DEVICE) || fatal "Could not find device %s" "$DEVICE"
+    local usb_dev=$(expand_device $DEVICE)
+    [ ${#usb_dev} -gt 0 ] || fatal "Could not find device %s" "$DEVICE"
 
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
