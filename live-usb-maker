@@ -523,7 +523,7 @@ do_cheats_grub() {
     if test -w $grub_cfg; then
         params=$(sed -nr "1,/^\s*linux\s/s/^\s*linux\s+[^ ]+//p" $grub_cfg)
         Msg "grub params: %s" "$(pq $params $cheats)"
-        cmd grub2-save $fat_dir --cheats="${params% } $cheats"
+        cmd grub2-save $fat_dir --no-kernel --cheats="${params% } $cheats"
     else
         warn "Could not find %s file to update" $(basename $grub_cfg)
     fi
