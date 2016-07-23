@@ -962,22 +962,21 @@ plural() {
 }
 
 Msg() {
-    local fmt=$1  e=$(printf "\e")
+    local fmt=$1
     shift
-    printf "$fmt\n" "$@" | sed -r "s/$e\[[0-9;]+[mK]//g" >> $LOG_FILE
+    printf "$fmt\n" "$@" | strip_color >> $LOG_FILE
     printf "$m_co$fmt$nc_co\n" "$@"
 }
 
-
 msg() {
-    local fmt=$1  e=$(printf "\e")
+    local fmt=$1
     shift
-    printf "$fmt\n" "$@" | sed -r "s/$e\[[0-9;]+[mK]//g" >> $LOG_FILE
+    printf "$fmt\n" "$@" | strip_color >> $LOG_FILE
     [ -z "$QUIET" ] && printf "$m_co$fmt$nc_co\n" "$@"
 }
 
 fatal() {
-    local code e=$(printf "\e")
+    local code
 
     if echo "$1" | grep -q "^[0-9]\+$"; then
         EXIT_NUM=$1
@@ -992,8 +991,8 @@ fatal() {
     local fmt=$1
     shift
     printf "${err_co}Fatal error:$hi_co $fmt$nc_co\n" "$@" >&2
-    printf "Fatal error: $fmt\n" "$@" | sed -r -e "s/$e\[[0-9;]+[mK]//g" -e 's/\\n//g' >> $LOG_FILE
-    printf "$code:$fmt\n" "$@"        | sed -r -e "s/$e\[[0-9;]+[mK]//g" -e 's/\\n//g' >> $ERR_FILE
+    printf "Fatal error: $fmt\n" "$@" | strip_color >> $LOG_FILE
+    printf "$code:$fmt\n" "$@"        | strip_color >> $ERR_FILE
     my_exit ${EXIT_NUM:-100}
 }
 
@@ -1011,11 +1010,16 @@ my_exit() {
     exit $ret
 }
 
+strip_color() {
+    local e=$(printf "\e")
+    sed -r -e "s/$e\[[0-9;]+[mK]//g"
+}
+
 warn() {
     local fmt=$1
     shift
     printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >&2
-    printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" >> $LOG_FILE
+    printf "${warn_co}Warning:$hi_co $fmt$nc_co\n" "$@" | strip_color >> $LOG_FILE
 }
 
 reset_conf() {
