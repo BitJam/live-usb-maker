@@ -145,7 +145,7 @@ eval_argument() {
        -ignore-conf|i)                                   ;;
         -write-conf|w)                                   ;;
 
-                    *)  fatal "Unknown parameter %s" "-$arg" ;;
+                *)  fatal "Unknown parameter %s" "-$arg" ;;
     esac
 }
 
