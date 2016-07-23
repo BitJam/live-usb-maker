@@ -88,14 +88,14 @@ Options:
 
   -g --gpt             Use gpt partitioning instead of msdos
   -h --help            Show this usage
-  -i --ignore-conf     Ignore the config file
+  -i --ignore-config   Ignore the config file
   -L --label=Name      Label ext partition with Name
   -p --pretend         Don't run most commands, just show them
   -P --Pretend         Pretend witout verbose
   -q --quiet           Print less
   -s --size=XX         Percent of usb-device to use in (default 100)
   -v --verbose         Print more, show commands when run
-  -w --write-conf      Write an fresh config file
+  -w --write-config    Write an fresh config file
 
 Notes:
   - short options stack. Example: -Ff instead of -F -f
@@ -110,9 +110,9 @@ Usage
 eval_early_argument() {
     local arg=$1
     case $arg in
-      -ignore-conf|i) IGNORE_CONF=true                   ;;
-       -write-conf|w) IGNORE_CONF=true ; WRITE_CONF=true ;;
-             -help|h) usage                              ;;
+      -ignore-config|i) IGNORE_CONF=true                   ;;
+       -write-config|w) IGNORE_CONF=true ; WRITE_CONF=true ;;
+               -help|h) usage                              ;;
     esac
 
 }
@@ -142,8 +142,8 @@ eval_argument() {
            -verbose|v)  BE_VERBOSE=true                  ;;
 
        # These are read early.  They are not unknown
-       -ignore-conf|i)                                   ;;
-        -write-conf|w)                                   ;;
+     -ignore-config|i)                                   ;;
+      -write-config|w)                                   ;;
 
                 *)  fatal "Unknown parameter %s" "-$arg" ;;
     esac
