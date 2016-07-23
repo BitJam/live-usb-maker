@@ -10,7 +10,7 @@ ME=${0##*/}
   EXT_MARGIN=20
   FAT_MARGIN=5
 
- EXT_OPTIONS="-m0 -N10000 -J size=32"
+ EXT_OPTIONS="-m0 -i100000 -J size=32"
    EXT_LABEL="LiveUSB"
 
      LIVE_MP="/live/boot-dev"
