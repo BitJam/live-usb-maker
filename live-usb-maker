@@ -162,8 +162,9 @@ takes_param() {
 
 main() {
     local SHIFT SHORT_STACK="cdefghLpPqsvw"
-    local BE_VERBOSE ISO_FILE DEVICE
+    local BE_VERBOSE ISO_FILE DEVICE FATAL_QUESTION
 
+    local orig_args="$*"
     local START_T=$(date +%s)
 
     [ $# -eq 0 ] && usage
@@ -185,13 +186,11 @@ main() {
         local msg=        # fatal "The %s program was not found."
         yes_NO_fatal "flock" \
             $"Do you want to continue without locking?" \
-            "$(printf $"Use %s to disable locking." "--force=flock")" \
+            "$(printf $"Use %s to always disable locking" "$(pq "--force=flock")" )" \
             $"The %s program was not found." "flock"
     fi
 
     rm -f $ERR_FILE
-
-    local orig_args="$*"
 
     if [ -z "$IGNORE_CONF" ]; then
         test -r "$CONF_FILE" && . "$CONF_FILE"
@@ -995,6 +994,7 @@ fatal() {
     printf "Fatal error: $fmt\n" "$@" | strip_color >> $LOG_FILE
     fmt=$(echo "$fmt" | sed 's/\\n/ /g')
     printf "$code:$fmt\n" "$@"        | strip_color >> $ERR_FILE
+    [ -n "$FATAL_QUESTION" ] && echo "Q:$FATAL_QUESTION" >> $ERR_FILE
     my_exit ${EXIT_NUM:-100}
 }
 
