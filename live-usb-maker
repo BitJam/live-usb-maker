@@ -212,6 +212,13 @@ main() {
         done
     done
 
+    local usb_dev=$(expand_device $DEVICE)
+    [ ${#usb_dev} -gt 0 ] || fatal "Could not find device %s" "$DEVICE"
+
+    # We start logging right after we've expanded the target device
+    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
+
+
     [ $opt_cnt -lt 2 ] && fatal "Expected at least two command line arguments"
 
     [ "$PRETEND" ] && msg "PRETEND MODE ENABLED"
@@ -230,11 +237,6 @@ main() {
     check_cmds CMDS "$ALL_CMDS" "$ORDERED_CMDS"
 
     check_force "$FORCE" "$ALL_FORCE"
-
-    local usb_dev=$(expand_device $DEVICE)
-    [ ${#usb_dev} -gt 0 ] || fatal "Could not find device %s" "$DEVICE"
-
-    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
     # Write config file if one does not already exist
     if ! test -e "$CONF_FILE"; then
