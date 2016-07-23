@@ -17,18 +17,18 @@ commands given will be run.  Use a trailing "+" to run a command and all
 commands after it.
 
 Commands:
-    sizes            Only show and check sizes, don't do anything
-    all              Do all commands below
-    partition        Partition the live usb
-    makefs-ext       Create the ext file system
-    makefs-fat       Create the fat file system
-    makefs           Both makefs-ext and makefs-fat
-    copy-ext         Copy files to live usb ext partition
-    copy-fat         Copy files to fat partition
-    copy             Both copy-ext and copy-fat
-    uuids            Write UUIDs linking file systems
-    cheats           Copy cheat codes to live-usb
-    install          Install the legacy bootloader
+    sizes              Only show and check sizes, don't do anything
+    all                Do all commands below
+    partition          Partition the live usb
+    makefs-ext         Create the ext file system
+    makefs-fat         Create the fat file system
+    makefs             Both makefs-ext and makefs-fat
+    copy-ext           Copy files to live usb ext partition
+    copy-fat           Copy files to fat partition
+    copy               Both copy-ext and copy-fat
+    uuids              Write UUIDs linking file systems
+    cheats             Copy cheat codes to live-usb
+    install            Install the legacy bootloader
 
 Options:
   -a --auto            Never ask questions.  Always assume the safe answer
@@ -46,14 +46,14 @@ Options:
 
   -g --gpt             Use gpt partitioning instead of msdos
   -h --help            Show this usage
-  -i --ignore-conf     Ignore the config file
+  -i --ignore-config   Ignore the config file
   -L --label=Name      Label ext partition with Name
   -p --pretend         Don't run most commands, just show them
   -P --Pretend         Pretend witout verbose
   -q --quiet           Print less
   -s --size=XX         Percent of usb-device to use in (default 100)
   -v --verbose         Print more, show commands when run
-  -w --write-conf      Write an fresh config file
+  -w --write-config    Write an fresh config file
 
 Notes:
   - short options stack. Example: -Ff instead of -F -f
