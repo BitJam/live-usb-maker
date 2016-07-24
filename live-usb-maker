@@ -209,13 +209,13 @@ main() {
         exit 0
     fi
 
+    [ $PARAM_CNT -lt 2 ] && fatal $"Expected at least two command line arguments"
+
     local usb_dev=$(expand_device $DEVICE)
     [ ${#usb_dev} -gt 0 ] || fatal $"Could not find device %s" "$DEVICE"
 
     # We start logging right after we've expanded the target device
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
-
-    [ $PARAM_CNT -lt 2 ] && fatal $"Expected at least two command line arguments"
 
     [ "$PRETEND" ] && msg $"PRETEND MODE ENABLED"
 
