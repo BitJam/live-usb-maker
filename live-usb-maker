@@ -112,13 +112,11 @@ Usage
 }
 
 eval_early_argument() {
-    local arg=$1
-    case $arg in
+    case $1 in
       -ignore-config|i) IGNORE_CONF=true                   ;;
        -write-config|w) IGNORE_CONF=true ; WRITE_CONF=true ;;
                -help|h) usage                              ;;
     esac
-
 }
 
 eval_argument() {
