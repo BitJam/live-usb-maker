@@ -237,11 +237,11 @@ main() {
     mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
 
-    local dev_type=$(lsblk -no type --nodeps $usb_dev)
-    [ "$dev_type" = "disk" ] || fatal $"Device %s is not a disk device" $usb_dev
-
     test -e $usb_dev || fatal $"Device %s does not exist" $usb_dev
     test -b $usb_dev || fatal $"Device %s is not a block device" $usb_dev
+
+    local dev_type=$(lsblk -no type --nodeps $usb_dev)
+    [ "$dev_type" = "disk" ] || fatal $"Device %s is not a disk device" $usb_dev
 
     local ext_dev=$(get_partition $usb_dev 1)
     local fat_dev=$(get_partition $usb_dev 2)
