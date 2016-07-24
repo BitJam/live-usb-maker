@@ -153,6 +153,15 @@ eval_argument() {
     esac
 }
 
+assign_parameter() {
+    local cnt=$1 param=$2
+   case $cnt in
+        1) ISO_FILE=$param     ;;
+        2) DEVICE=$param       ;;
+        *) CMDS="$CMDS $param" ;;
+    esac
+}
+
 takes_param() {
     case $1 in
        -cheat|c) return 0 ;;
@@ -166,7 +175,7 @@ takes_param() {
 
 main() {
     local SHIFT SHORT_STACK="cdefghLpPqsvw"
-    local BE_VERBOSE ISO_FILE DEVICE FATAL_QUESTION
+    local BE_VERBOSE ISO_FILE DEVICE FATAL_QUESTION CMD PARAM_CNT
 
     set_colors
 
@@ -203,22 +212,7 @@ main() {
         test -e "$CONF_FILE" || write_conf "$CONF_FILE"
     fi
 
-    # This loop allows complete intermingling of filenames and options
-    local opt_cnt=0
-    while [ $# -gt 0 ]; do
-        read_params "$@"
-        shift $SHIFT
-
-        while [ $# -gt 0 -a ${#1} -gt 0 -a -n "${1##-*}" ]; do
-            case $opt_cnt in
-                0) ISO_FILE=$1     ;;
-                1) DEVICE=$1       ;;
-                *) CMDS="$CMDS $1" ;;
-            esac
-            shift
-            opt_cnt=$((opt_cnt + 1))
-        done
-    done
+    read_all_cmdline_mingled "$@"
 
     # Always write a new config file and then exit if requested
     if [ "$WRITE_CONF" ]; then
