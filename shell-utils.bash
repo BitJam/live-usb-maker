@@ -183,6 +183,21 @@ read_early_params() {
     done
 }
 
+read_all_cmdline_mingled() {
+
+    : ${PARAM_CNT:=0}
+
+    while [ $# -gt 0 ]; do
+        read_params "$@"
+        shift $SHIFT
+        while [ $# -gt 0 -a ${#1} -gt 0 -a -n "${1##-*}" ]; do
+            PARAM_CNT=$((PARAM_CNT + 1))
+            assign_parameter $PARAM_CNT "$1"
+            shift
+        done
+    done
+}
+
 #-------------------------------------------------------------------------------
 # Send "$@".  Expects
 #
