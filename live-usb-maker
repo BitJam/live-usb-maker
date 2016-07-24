@@ -193,17 +193,7 @@ main() {
 
     trap clean_up EXIT
 
-    if which flock &> /dev/null; then
-        exec 18> $LOCK_FILE
-        flock -n 18 || fatal 101 $"A %s process is running.  If you think this is an error, remove %s" "$ME" "$LOCK_FILE"
-        echo $$ >&18
-    else
-        local msg=        # fatal "The %s program was not found."
-        yes_NO_fatal "flock" \
-            $"Do you want to continue without locking?" \
-            "$(printf $"Use %s to always ignore this warning" "$(pq "--force=flock")" )" \
-            $"The %s program was not found." "flock"
-    fi
+    do_flock $LOCK_FILE $ME
 
     rm -f $ERR_FILE
 
