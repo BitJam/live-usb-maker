@@ -53,6 +53,22 @@ need() {
     return 0
 }
 
+force() {
+    local this=$1  option_list=${2:-$FORCE}
+    case ,$option_list, in
+        *,$this,*|*,all,*) return 0 ;;
+    esac
+    return 1
+}
+
+check_force() {
+    local cmds=$1  all=$2  force_opt
+    for force_opt in ${cmds//,/ }; do
+        force $force_opt "$all" || fatal $"Unknown force option: %s" "$force_opt"
+    done
+}
+
+
 # Test for valid commands and process cmd+ commands
 # Allow a trailing "+" if ordered is given and use that to add all commands
 # after the given one
@@ -82,22 +98,6 @@ check_cmds() {
     [ ${#cmds_out} -gt 0 ] && eval "$cmds_nam=\"$cmds_in \$cmds_out\""
 }
 
-force() {
-    local this=$1  option_list=${2:-$FORCE}
-    case ,$option_list, in
-        *,$this,*|*,all,*) return 0 ;;
-    esac
-    return 1
-}
-
-check_force() {
-    local cmds=$1  all=$2  force_opt
-    for force_opt in ${cmds//,/ }; do
-        echo $force_opt
-        force $force_opt "$all" || fatal $"Unknown force option: %s" "$force_opt"
-    done
-}
-
 write_file() {
     file=$1
     shift
@@ -114,6 +114,24 @@ is_usb_or_removeable() {
     [ "$devpath" ] || return 1
     echo $devpath | grep -q /usb
     return $?
+}
+
+do_flock() {
+    file=$1  me=$2
+
+    if which flock &> /dev/null; then
+        exec 18> $file
+        flock -n 18 || fatal 101 $"A %s process is running.  If you think this is an error, remove %s" "$me" "$file"
+        echo $$ >&18
+        return
+    fi
+
+    force flock && return
+
+    yes_NO_fatal "flock" \
+        $"Do you want to continue without locking?" \
+        "$(printf $"Use %s to always ignore this warning" "$(pq "--force=flock")" )" \
+        $"The %s program was not found." "flock"
 }
 
 get_drive() {
@@ -169,7 +187,7 @@ read_early_params() {
 # Send "$@".  Expects
 #
 #   SHORT_STACK               variable, list of single chars that stack
-#   fatal(msg)                routine,  fatal([errnum] "error message")
+#   fatal(msg)                routine,  fatal([errnum] [errlabel] "error message")
 #   takes_param(arg)          routine,  true if arg takes a value
 #   eval_argument(arg, [val]) routine,  do whatever you want with $arg and $val
 #
@@ -498,4 +516,20 @@ require() {
         ret=2
     done
     return $ret
+}
+
+need_prog() {
+    local prog
+    for prog; do
+        which $prog &>/dev/null && continue
+        fatal "Could not find required program '%s'" "$(pqh $prog)"
+    done
+}
+
+is_writable() {
+    local dir=$1
+    test -d "$dir" || fatal "Directory %s does not exist" "$dir"
+    local temp=$(mktemp -p $dir 2> /dev/null) || return 1
+    rm -f "$temp"
+    return 0
 }
