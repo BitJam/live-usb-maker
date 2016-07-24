@@ -167,12 +167,6 @@ main() {
     local SHIFT SHORT_STACK="cdefghLpPqsvw"
     local BE_VERBOSE ISO_FILE DEVICE FATAL_QUESTION
 
-    if ! load_lib "$SHELL_LIB"  $LIB_PATH; then
-        echo "Could not find library '%s' on path '%s'" "$SHELL_LIB" "$LIB_PATH" >&2
-        echo "This is a fatal error" >&2
-        exit 17
-    fi
-
     set_colors
 
     local orig_args="$*"
@@ -712,6 +706,13 @@ load_lib() {
     [ "$found" ]
     return $?
 }
+
+#===== Start Here =============================================================
+if ! load_lib "$SHELL_LIB"  $LIB_PATH; then
+    echo "Could not find library '%s' on path '%s'" "$SHELL_LIB" "$LIB_PATH" >&2
+    echo "This is a fatal error" >&2
+    exit 17
+fi
 
 main "$@"
 
