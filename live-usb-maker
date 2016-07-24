@@ -23,7 +23,7 @@
    LOCK_FILE="/run/lock/$ME"
 
    SHELL_LIB="shell-utils.bash"
-    LIB_PATH=". /usr/local/lib/shell-utils"
+    LIB_PATH="/usr/local/lib/shell-utils"
 
 #== END_CONFIG
 
@@ -703,7 +703,7 @@ load_lib() {
 }
 
 #===== Start Here =============================================================
-if ! load_lib "$SHELL_LIB"  $LIB_PATH; then
+if ! load_lib "$SHELL_LIB"  $LIB_PATH $MY_DIR/../shell-utils $MY_DIR; then
     echo "Could not find library '%s' on path '%s'" "$SHELL_LIB" "$LIB_PATH" >&2
     echo "This is a fatal error" >&2
     exit 17
