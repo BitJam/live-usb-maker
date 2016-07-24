@@ -217,7 +217,7 @@ main() {
     # We start logging right after we've expanded the target device
     start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
 
-    [ $opt_cnt -lt 2 ] && fatal $"Expected at least two command line arguments"
+    [ $PARAM_CNT -lt 2 ] && fatal $"Expected at least two command line arguments"
 
     [ "$PRETEND" ] && msg $"PRETEND MODE ENABLED"
 
