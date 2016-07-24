@@ -1,3 +1,8 @@
+# shell-utils.bash
+#
+# An integrated collection of utilites for shell scripting.
+# The .bash version uses $"..." for translation and one other bashism in cmd().
+
 umount_all() {
     local dev=$1  mounted
 
