@@ -657,10 +657,29 @@ comand line: $args
 Start_Log
 }
 
+umount_work_dirs() {
+    [ -n "$WORK_DIR" ] || return
+
+    local mp try
+    for mp in $(mount | cut -d" " -f3 | egrep "^$WORK_DIR/[^/]+$"); do
+        umount -r "$mp"
+    done
+    mount | cut -d" " -f3 | egrep -q "^$WORK_DIR/" || return 0
+
+    for try in $(seq 1 30); do
+        for mp in $(mount | cut -d" " -f3 | egrep "^$WORK_DIR/[^/]+$"); do
+            umount -r "$mp"
+        done
+        mount | cut -d" " -f3 | egrep -q "^$WORK_DIR/" || return 0
+        sleep .1
+    done
+}
+
 clean_up() {
     sync; sync
+    local mp
     for mp in $ISO_DIR $EXT_DIR $FAT_DIR $MNT_DIR; do
-        is_mountpoint $mp && umount -r -l $mp
+        is_mountpoint $mp && umount -r $mp
         if ! is_mountpoint $mp; then
             rm -rf $mp
         else
