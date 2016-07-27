@@ -275,7 +275,7 @@ main() {
     local ext_extra=$((ext_size - ext_needed))
     local fat_extra=$((FAT_SIZE - fat_needed))
 
-    local mem_fmt="%20s:$white %7s$msg_co MiB"
+    local mem_fmt="%20s:$num_co %7s$m_co MiB"
     local available=$"available" needed=$"needed" extra=$"extra"
     msg "$mem_fmt" $"total usb size"     $total_size
     msg "$mem_fmt" $"requested usb size" $mib_size
