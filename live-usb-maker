@@ -377,7 +377,7 @@ mount_live() {
     test -d "$live_dir"       || fatal $"Live directory '%s' is not a directory"   "$live_dir"
     is_mountpoint "$live_dir" || fatal $"Live directory '%s' is not a mountpoint"  "$live_dir"
 
-    mount --bind $targ_dir $targ_dir
+    mount -t devtmpfs devtmpfs $targ_dir
 
     # NOTE:
     # the cd && eval "ls ..." allows us to use globbing expansions with spaces in paths
