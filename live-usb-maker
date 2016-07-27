@@ -295,7 +295,7 @@ main() {
     check_size ext $ext_extra $EXT_MARGIN
     check_size fat $fat_extra $FAT_MARGIN
 
-    echo "$CMNDS" | egrep -q "(^| )sizes( |$)" && my_exit 0
+    given_cmd sizes && my_exit 0
 
     umount_all $usb_dev
 
