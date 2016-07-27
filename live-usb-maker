@@ -701,22 +701,24 @@ load_lib() {
     for dir in $path; do
         lib=$dir/$file
         test -r $lib || continue
-        . $lib || return 2
+        if ! . $lib; then
+            printf "Error when loading library %s\n" "$lib" >&2
+            printf "This is a fatal error\n" >&2
+            exit 15
+        fi
         FOUND_LIB=$lib
-        break
+        IFS=$orig_ifs
+        return 0
     done
-    IFS=$orig_ifs
-    [ "$FOUND_LIB" ] && return 0
-    return 3
+
+    printf "Could not find library '%s' on path '%s'\n" "$file" "$path" >&2
+    printf "This is a fatal error\n" >&2
+    exit 17
 }
 
 #===== Start Here =============================================================
 LIB_PATH="$LIB_PATH:$MY_DIR/../cli-shell-utils:$MY_DIR"
-if ! load_lib "$SHELL_LIB" "$LIB_PATH" ; then
-    printf "Could not find library '%s' on path '%s'\n" "$SHELL_LIB" "$LIB_PATH" >&2
-    printf "This is a fatal error\n" >&2
-    exit 17
-fi
+load_lib "$SHELL_LIB" "$LIB_PATH"
 
 main "$@"
 
