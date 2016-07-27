@@ -246,7 +246,7 @@ main() {
     local fat_dev=$(get_partition $usb_dev 2)
 
     # fatal "The device %s does not seem to be usb or removeable."
-    force usb || is_usb_or_removeable $usb_dev || yes_NO_fatal "usb" \
+    force usb || is_usb_or_removable $usb_dev || yes_NO_fatal "usb" \
         $"Do you want to use it anyway (dangerous)?" \
         $"Use %s to always ignore this warning"      \
         $"The device %s does not seem to be usb or removeable."  "$usb_dev"
