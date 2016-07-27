@@ -230,9 +230,8 @@ main() {
     #echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
     #echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
 
-    check_cmds CMDS "$ALL_CMDS" "$ORDERED_CMDS"
-
-    check_force "$FORCE" "$ALL_FORCE"
+    check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
+    check_force FORCE "$ALL_FORCE"
 
     mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
     chmod 755 $WORK_DIR
