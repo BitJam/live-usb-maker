@@ -234,7 +234,7 @@ main() {
     check_force FORCE "$ALL_FORCE"
 
     mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
-    chmod 755 $WORK_DIR
+    mount -t tmpfs tmpfs $WORK_DIR || fatal $"Could not mount tmpfs at %s" $WORK_DIR
 
     test -e $usb_dev || fatal $"Device %s does not exist" $usb_dev
     test -b $usb_dev || fatal $"Device %s is not a block device" $usb_dev
