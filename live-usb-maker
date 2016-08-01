@@ -657,38 +657,26 @@ comand line: $args
 Start_Log
 }
 
-umount_work_dirs() {
-    [ -n "$WORK_DIR" ] || return
+umount_work_dir() {
+    local dir=${1:-$WORK_DIR}
+    [ -n "$dir" ] || return
 
-    local mp try
-    for mp in $(mount | cut -d" " -f3 | egrep "^$WORK_DIR/[^/]+$"); do
-        umount -r "$mp"
-    done
-    mount | cut -d" " -f3 | egrep -q "^$WORK_DIR/" || return 0
+    sync; sync
+    is_mountpoint "$dir" || return 0
 
+    local try
     for try in $(seq 1 30); do
-        for mp in $(mount | cut -d" " -f3 | egrep "^$WORK_DIR/[^/]+$"); do
-            umount -r "$mp"
-        done
-        mount | cut -d" " -f3 | egrep -q "^$WORK_DIR/" || return 0
+        umount --recursive "$dir"
+        is_mountpoint "$dir" || return 0
         sleep .1
     done
+    rmdir "$dir"
 }
 
 clean_up() {
-    sync; sync
-    local mp
-    for mp in $ISO_DIR $EXT_DIR $FAT_DIR $MNT_DIR; do
-        is_mountpoint $mp && umount -r $mp
-        if ! is_mountpoint $mp; then
-            rm -rf $mp
-        else
-            warn "%s remains mounted" "$mp"
-            continue
-        fi
-    done
-    rm -f $LOCK_FILE
+    umount_work_dir
     test -d $WORK_DIR && rmdir $WORK_DIR
+    rm -f $LOCK_FILE
 }
 
 load_lib() {
