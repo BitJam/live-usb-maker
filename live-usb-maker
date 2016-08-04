@@ -5,6 +5,7 @@
 
 #== BEGIN_CONFIG
 
+COLOR_SCHEME="high"
      MBR_GPT="msdos"
         SIZE=100
     FAT_SIZE=50
@@ -47,20 +48,22 @@ usage() {
     local ret=${1:-0}
 
 cat<<Usage
-Usage: $ME [options] <iso-file> <usb-device> <commands>
+Usage: $ME [commands]
 
-Create a live-usb on <usb-device> from <iso-file>.  This will destroy
-any existing information on <usb-device>.  Uses ext4 as the filesystem
-for the live-usb and add a small fat32 file system for booting via UEFI.
+Create a live-usb on from an iso-file, another live-usb, a live-cd/dvd
+or a running live system.  You will be prompted for information that
+is not supplied in the options.
+
+This will destroy any existing information on <usb-device>.  Uses ext4 as the
+filesystem for the live-usb and add a small fat32 file system for booting via
+UEFI.
 
   - Use "clone" as the iso-file to clone a running live system.
   - Use "clone=<dir>" to clone from a mounted live-usb or iso-file.
   - You may specify a device as the iso-file.  That device will be
     mounted and cloned.
 
-At least one command must be given.  If "all" is not given then only the
-commands given will be run.  Use a trailing "+" to run a command and all
-commands after it.
+Use a trailing "+" to run a command and all commands after it.
 
 Commands:
     sizes              Only show and check sizes, don't do anything
@@ -77,29 +80,35 @@ Commands:
     install            Install the legacy bootloader
 
 Options:
-  -a --auto            Never ask questions.  Always assume the safe answer
-  -c --cheat=xxx       Add these cheatcodes to the live-usb
-  -C --clear           Delete files from each partition before copying
-  -d --debug           Pause before cleaning up
-  -e --esp-size=XX     Size of ESP (fat) partition in MiB (default 50)
-  -E --ext-options=XX  Use these options when creating the ext4 filesystem
-  -f --force=XXXX      Force the options specfied:
-                           umount: Allows try to umount all partitions on drive
-                              usb: Ignore usb/removable check
-                           makefs: Make the ext4 filesystem even if one exists
-                             copy: Overwrite ext4 partition even if antiX/ exists
-                              all: All of the above (dangerous!)
+  -a --auto             Never ask questions.  Always assume the safe answer
+  -c --cheat=xxx        Add these cheatcodes to the live-usb
+     --color=<xxx>      Set color scheme to off|low|high
+  -C --clear            Delete files from each partition before copying
+  -d --device=<xxx>
+  -D --debug            Pause before cleaning up
+  -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
+  -E --ext-options=<xx> Use these options when creating the ext4 filesystem
 
-  -g --gpt             Use gpt partitioning instead of msdos
-  -h --help            Show this usage
-  -i --ignore-config   Ignore the config file
-  -L --label=Name      Label ext partition with Name
-  -p --pretend         Don't run most commands, just show them
-  -P --Pretend         Pretend witout verbose
-  -q --quiet           Print less
-  -s --size=XX         Percent of usb-device to use in (default 100)
-  -v --verbose         Print more, show commands when run
-  -w --write-config    Write an fresh config file
+  -f --from=<xxx>       The device, cdrom, or file to make the live-usb from
+                        Use "clone" to clone the current live system or use
+                        clone=<xxx> to clone another live-usb
+
+  -F --force=<xxxX>       Force the options specfied:
+                            umount: Allows try to umount all partitions on drive
+                               usb: Ignore usb/removable check
+                            makefs: Make the ext4 filesystem even if one exists
+                              copy: Overwrite ext4 partition even if antiX/ exists
+                               all: All of the above (dangerous!)
+
+  -g --gpt              Use gpt partitioning instead of msdos
+  -h --help             Show this usage
+  -i --ignore-config    Ignore the config file
+  -L --label=Name       Label ext partition with Name
+  -p --pretend          Don't run most commands
+  -q --quiet            Print less
+  -s --size=XX          Percent of usb-device to use in (default 100)
+  -v --verbose          Print more, show commands when run
+  -w --write-config     Write a fresh config file
 
 Notes:
   - short options stack. Example: -Ff instead of -F -f
@@ -120,24 +129,28 @@ eval_early_argument() {
 }
 
 eval_argument() {
-    local arg=$1 val=$2
+    local arg=$1  val=$2
         case $arg in
-              -auto|a)  AUTO_MODE=true                   ;;
              -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -clear|C)  CLEAR=true                       ;;
-             -debug|d)  DEBUG=true                       ;;
+               -color) COLOR_SCHEME=$val                 ;;
+             -color=*) COLOR_SCHEME=$val                 ;;
+             -debug|D)  DEBUG=true                       ;;
+            -device|d)  TARGET=$val                      ;;
+            -device=*)  TARGET=$val                      ;;
           -esp-size|e)  FAT_SIZE=$val                    ;;
        -ext-options|E)  EXT_OPTIONS=$val                 ;;
        -ext-options=*)  EXT_OPTIONS=$val                 ;;
           -esp-size=*)  FAT_SIZE=$val                    ;;
-             -force|f)  FORCE="$FORCE,$val"              ;;
+              -from|f)  FROM=$val                        ;;
+              -from=*)  FROM=$val                        ;;
+             -force|F)  FORCE="$FORCE,$val"              ;;
              -force=*)  FORCE="$FORCE,$val"              ;;
                -gpt|g)  MBR_GPT="gpt"                    ;;
              -label|L)  EXT_LABEL=$val                   ;;
              -label=*)  EXT_LABEL=$val                   ;;
-           -pretend|p)  PRETEND=true ; BE_VERBOSE=true   ;;
-           -Pretend|P)  PRETEND=true ; BE_VERBOSE=       ;;
+           -pretend|p)  PRETEND=true                     ;;
              -quiet|q)  QUIET=true                       ;;
               -size|s)  SIZE=${val%\%}                   ;;
               -size=*)  SIZE=${val%\%}                   ;;
@@ -154,8 +167,6 @@ eval_argument() {
 assign_parameter() {
     local cnt=$1 param=$2
    case $cnt in
-        1) ISO_FILE=$param     ;;
-        2) DEVICE=$param       ;;
         *) CMDS="$CMDS $param" ;;
     esac
 }
@@ -163,8 +174,10 @@ assign_parameter() {
 takes_param() {
     case $1 in
        -cheat|c) return 0 ;;
+      -device|d) return 0 ;;
     -esp-size|e) return 0 ;;
-       -force|f) return 0 ;;
+        -from|f) return 0 ;;
+       -force|F) return 0 ;;
        -label|L) return 0 ;;
         -size|s) return 0 ;;
     esac
@@ -172,8 +185,8 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cdefghLpPqsvw"
-    local BE_VERBOSE ISO_FILE DEVICE FATAL_QUESTION CMD PARAM_CNT
+    local SHIFT SHORT_STACK="cCdDeEfFghiLpqsvw"
+    local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
 
     set_colors
 
@@ -202,22 +215,10 @@ main() {
 
     read_all_cmdline_mingled "$@"
 
-    # Always write a new config file and then exit if requested
-    if [ "$WRITE_CONF" ]; then
-        reset_conf
-        write_conf "$CONF_FILE"
-        exit 0
-    fi
+    set_colors $COLOR_SCHEME
+    check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
+    check_force FORCE "$ALL_FORCE"
 
-    [ $PARAM_CNT -lt 2 ] && fatal $"Expected at least two command line arguments"
-
-    local usb_dev=$(expand_device $DEVICE)
-    [ ${#usb_dev} -gt 0 ] || fatal $"Could not find device %s" "$DEVICE"
-
-    # We start logging right after we've expanded the target device
-    start_log "$orig_args" "$CMDS" "$ISO_FILE" "$usb_dev"
-
-    [ "$PRETEND" ] && msg $"PRETEND MODE ENABLED"
 
     case $SIZE in
         [1-9]|[0-9][0-9]|100) ;;
@@ -227,11 +228,27 @@ main() {
     [ -z "${FAT_SIZE##[0-9]}" ] && fatal $"esp-size must be larger than %s" 9
     echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal $"esp-size must be an integer larger than %s" 9
 
+    # Always write a new config file and then exit if requested
+    if [ "$WRITE_CONF" ]; then
+        reset_conf
+        write_conf "$CONF_FILE"
+        exit 0
+    fi
+
+    [ "$PRETEND" ] && msg $"PRETEND MODE ENABLED"
+
+    [ ${#FROM} -eq 0 ] && select_usb_src FROM
+    echo "FROM: $FROM"
+
+    #[ $PARAM_CNT -lt 2 ] && fatal $"Expected at least two command line arguments"
+
+    local usb_dev=$(expand_device $TARGET)
+    [ ${#usb_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
+
+    # We start logging right after we've expanded the target device
+    start_log "$orig_args" "$CMDS" "$FROM" "$usb_dev"
     #echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
     #echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
-
-    check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
-    check_force FORCE "$ALL_FORCE"
 
     mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
     mount -t tmpfs tmpfs $WORK_DIR || fatal $"Could not mount tmpfs at %s" $WORK_DIR
@@ -258,7 +275,7 @@ main() {
 
     mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal $"Could not make %s subdirectories" "$WORK_DIR"
 
-    mount_iso "$ISO_FILE" $ISO_DIR || fatal $"Could not mount iso file %s" "$ISO_FILE"
+    mount_iso "$FROM" $ISO_DIR || fatal $"Could not mount iso file %s" "$FROM"
 
     local iso_version version_file=$ISO_DIR/version
     if test -r $version_file && iso_version=$(cat $version_file 2>/dev/null) \
