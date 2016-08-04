@@ -346,6 +346,15 @@ main() {
     my_exit 0
 }
 
+select_usb_src() {
+    local var=$1
+    local title=$"Please select the source of the new live-usb"
+    local menu=$(cli_live_usb_src_menu)
+    #echo "$menu"
+    #exit
+    my_select_quit "$var" "$title" "$menu"
+}
+
 mount_iso() {
     local file=$1  dir=$2
     mkdir -p $dir
