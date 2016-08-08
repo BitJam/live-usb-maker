@@ -766,38 +766,9 @@ my_exit() {
     exit $ret
 }
 
-write_conf() {
-    local file=$1
-
-    mkdir -p $(dirname $file)
-    Msg
-    Msg $"Writing config file at %s" "$file"
-    Msg
-
-    cat<<Conf_File > $file
-# $(basename $file)
+#------------------------------------------------------------------------------
 #
-# This file will be sourced by the live-usb-maker script if it is found
-# at $file
-
-     MBR_GPT="$MBR_GPT"
-        SIZE=$SIZE
-    FAT_SIZE=$FAT_SIZE
-  EXT_MARGIN=$EXT_MARGIN
-  FAT_MARGIN=$FAT_MARGIN
-
- EXT_OPTIONS="$EXT_OPTIONS"
-   EXT_LABEL="$EXT_LABEL"
-
-     LIVE_MP="$LIVE_MP"
-  LIVE_FILES="$LIVE_FILES"
-   LIVE_DIRS="$LIVE_DIRS"
-
-   GRUB_CONF="$GRUB_CONF"
-      CHEATS=""
-Conf_File
-}
-
+#------------------------------------------------------------------------------
 start_log() {
     local args=$1 cmds=${2# } iso=$3 dev=$4
 
