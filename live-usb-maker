@@ -230,20 +230,51 @@ main() {
 
     # Always write a new config file and then exit if requested
     if [ "$WRITE_CONF" ]; then
-        reset_conf
         write_conf "$CONF_FILE"
         exit 0
     fi
 
-    [ "$PRETEND" ] && msg $"PRETEND MODE ENABLED"
+    [ "$PRETEND" ] && shout $"PRETEND MODE ENABLED"
+
+    local we_are_live live_dev
+    if its_alive; then
+        we_are_live=true
+        # FIXME: should use initrd.out to get the uuid, etc
+        live_dev=$(get_live_dev)
+        fatal_z "$live_dev" "Could not find the live boot device"
+    fi
 
     [ ${#FROM} -eq 0 ] && select_usb_src FROM
-    echo "FROM: $FROM"
 
-    #[ $PARAM_CNT -lt 2 ] && fatal $"Expected at least two command line arguments"
+    local search_dirs
+    if [ ${#FROM} -gt 0 -a -z "${FROM##*\**}" ]; then
+        ISO_FILE_SPEC=$(basename "$FROM")
+        local sdir=$(dirname "$FROM")
+        [ ${#sdir} -gt 0  ] && search_dirs=$sdir
+        local fmt="%30s: %s"
+        msg "$fmt"  "ISO file wildcard"       "$(pq "$FROM")"
+        msg "$fmt"  "Will search directories" "$(pq "$search_dirs")"
+        msg "$fmt"  "For files matching"      "$(pq "$ISO_FILE_SPEC")"
+        FROM="iso-file"
+    fi
+
+    if [ "$FROM" = "iso-file"  ]; then
+        : ${search_dirs:=$(echo $SEARCH_DIRS | sed "s|%USER_HOME%|$(get_user_home)|")}
+        cli_search_file FROM "$ISO_FILE_SPEC" "$search_dirs" "$SEARCH_DEPTH" "$MAX_FILES"
+        test -f "$FROM" || fatal "Not a normal file %s" "$FROM"
+        msg "Using file %s" "$(pq "$FROM")"
+        check_md5 "$FROM"
+    fi
+
+    local from_dev
+    [ -n "$FROM" -a -z "${FROM##clone=*}" ] && from_dev=${FROM#clone=}
+    [ ${#TARGET} -eq 0 ] && select_target_device TARGET "$live_dev" "$from_dev"
 
     local usb_dev=$(expand_device $TARGET)
     [ ${#usb_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
+
+    [ ${#CHEATS} -eq 0  -a -z "$NO_CHEATS" ] && cheats_menus CHEATS
+    #echo "CHEATS: $CHEATS" ; exit
 
     # We start logging right after we've expanded the target device
     start_log "$orig_args" "$CMDS" "$FROM" "$usb_dev"
@@ -302,11 +333,14 @@ main() {
     msg "$mem_fmt" "fat $available"      $FAT_SIZE
     msg "$mem_fmt" "fat $needed"         $fat_needed
     msg "$mem_fmt" "fat $extra"          $fat_extra
-    msg
+
+    YES_no_pretend || my_exit
+
+    : ${CMNDS:=all}
 
     if [ ${#CMDS} -le 0 ]; then
         echo -e $"No command(s) given.  Try 'all'."
-        exit 0
+        my_exit 0
     fi
 
     check_size ext $ext_extra $EXT_MARGIN
@@ -346,15 +380,52 @@ main() {
     my_exit 0
 }
 
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
 select_usb_src() {
-    local var=$1
+    local var=$1  live_dev=$2
     local title=$"Please select the source of the new live-usb"
-    local menu=$(cli_live_usb_src_menu)
-    #echo "$menu"
-    #exit
+    local menu=$(cli_live_usb_src_menu "$live_dev")
     my_select_quit "$var" "$title" "$menu"
 }
 
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+select_target_device() {
+    local var=$1  live_dev=$2  from_dev=$3
+    local menu=$(cli_drive_menu "$live_dev" "$from_dev")
+    local dev cnt=$(count_lines "$menu")
+    case $cnt in
+        0) fatal $"No usb drives found to create a live-usb on" ;;
+        1) dev=$(echo "$menu" | cut -d"$P_IFS" -f1 | head -n1)
+            Msg "Only one usb device was found: %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
+           eval $var=\$dev
+           return ;;
+    esac
+    my_select_quit $var "Please select the target usb device" "$menu"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+cheats_menus() {
+    local var=$1
+    local tz_cheat cheats
+    cli_text_menu cheats lang "Select default Language for the live-usb" \
+        "Language implies timezone and other things"
+
+    local blurb=$(printf "Timezones are listed by longitude. %s denotes daylight savings time" "$(pqq "*")")
+    cli_text_menu tz_cheat tz "Select Default Timezone for the live-usb" "$blurb"
+
+    [ "$tz_cheat" ] && cheats="$cheats${cheats:+ }$tz_cheat"
+    eval $var=\$cheats
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
 mount_iso() {
     local file=$1  dir=$2
     mkdir -p $dir
