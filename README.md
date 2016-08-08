@@ -1,59 +1,53 @@
 # live-usb-maker
 Create an antiX/MX LiveUSB
 ```
-Usage: live-usb-maker [options] <iso-file> <usb-device> <commands>
+Usage: live-usb-maker [commands]
 
-Create a live-usb on <usb-device> from <iso-file>.  This will destroy
-any existing information on <usb-device>.  Uses ext4 as the filesystem
-for the live-usb and add a small fat32 file system for booting via UEFI.
+Create a live-usb from an iso-file, another live-usb, a live-cd/dvd
+or a running live system.  You will be prompted for information that
+is not supplied in the command line options.
 
-  - Use "clone" as the iso-file to clone a running live system.
-  - Use "clone=<dir>" to clone from a mounted live-usb or iso-file.
-  - You may specify a device as the iso-file.  That device will be
-    mounted and cloned.
+Uses ext4 as the filesystem for the main live-usb partition and adds
+a small fat32 file system for booting via UEFI.
 
-At least one command must be given.  If "all" is not given then only the
-commands given will be run.  Use a trailing "+" to run a command and all
-commands after it.
+This will destroy any existing information on <usb-device>.
 
-Commands:
-    sizes              Only show and check sizes, don't do anything
-    all                Do all commands below
-    partition          Partition the live usb
-    makefs-ext         Create the ext file system
-    makefs-fat         Create the fat file system
-    makefs             Both makefs-ext and makefs-fat
-    copy-ext           Copy files to live usb ext partition
-    copy-fat           Copy files to fat partition
-    copy               Both copy-ext and copy-fat
-    uuids              Write UUIDs linking file systems
-    cheats             Copy cheat codes to live-usb
-    install            Install the legacy bootloader
+  --from="iso-file"    get a menu of iso files
+  --from="clone"       clone a running live system.
+  --from=clone=<dir>   clone from a mounted live-usb or iso-file.
+  --from=<dev>         copy from a livecd/dvd or live-usb
 
 Options:
-  -a --auto            Never ask questions.  Always assume the safe answer
-  -c --cheat=xxx       Add these cheatcodes to the live-usb
-  -C --clear           Delete files from each partition before copying
-  -d --debug           Pause before cleaning up
-  -e --esp-size=XX     Size of ESP (fat) partition in MiB (default 50)
-  -E --ext-options=XX  Use these options when creating the ext4 filesystem
-  -f --force=XXXX      Force the options specfied:
-                           umount: Allows try to umount all partitions on drive
-                              usb: Ignore usb/removable check
-                           makefs: Make the ext4 filesystem even if one exists
-                             copy: Overwrite ext4 partition even if antiX/ exists
-                              all: All of the above (dangerous!)
+  -a --auto             Never ask questions.  Always assume the safe answer
+  -c --cheat=xxx        Add these cheatcodes to the live-usb
+     --color=<xxx>      Set color scheme to off|low|high
+  -C --clear            Delete files from each partition before copying
+  -d --device=<xxx>
+  -D --debug            Pause before cleaning up
+  -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
+  -E --ext-options=<xx> Use these options when creating the ext4 filesystem
 
-  -g --gpt             Use gpt partitioning instead of msdos
-  -h --help            Show this usage
-  -i --ignore-config   Ignore the config file
-  -L --label=Name      Label ext partition with Name
-  -p --pretend         Don't run most commands, just show them
-  -P --Pretend         Pretend witout verbose
-  -q --quiet           Print less
-  -s --size=XX         Percent of usb-device to use in (default 100)
-  -v --verbose         Print more, show commands when run
-  -w --write-config    Write an fresh config file
+  -f --from=<xxx>       The device, cdrom, or file to make the live-usb from
+                        Use "clone" to clone the current live system or use
+                        clone=<xxx> to clone another live-usb
+
+  -F --force=<xxxX>       Force the options specfied:
+                            umount: Allows try to umount all partitions on drive
+                               usb: Ignore usb/removable check
+                            makefs: Make the ext4 filesystem even if one exists
+                              copy: Overwrite ext4 partition even if antiX/ exists
+                               all: All of the above (dangerous!)
+
+  -g --gpt              Use gpt partitioning instead of msdos
+  -h --help             Show this usage
+  -i --ignore-config    Ignore the config file
+  -L --label=Name       Label ext partition with Name
+  -n --no-cheats        Don't show menus for adding cheat codes
+  -p --pretend          Don't run most commands
+  -q --quiet            Print less
+  -s --size=XX          Percent of usb-device to use in (default 100)
+  -v --verbose          Print more, show commands when run
+  -w --write-config     Write a fresh config file
 
 Notes:
   - short options stack. Example: -Ff instead of -F -f
