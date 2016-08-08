@@ -152,7 +152,7 @@ eval_argument() {
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
          -no-cheats|n)  NO_CHEATS=true                   ;;
-           -pretend|p)  PRETEND=true                     ;;
+           -pretend|p)  PRETEND_MODE=true                ;;
              -quiet|q)  QUIET=true                       ;;
               -size|s)  SIZE=${val%\%}                   ;;
               -size=*)  SIZE=${val%\%}                   ;;
@@ -234,7 +234,7 @@ main() {
         exit 0
     fi
 
-    [ "$PRETEND" ] && shout $"PRETEND MODE ENABLED"
+    [ "$PRETEND_MODE" ] && shout $"PRETEND MODE ENABLED"
 
     local we_are_live live_dev
     if its_alive; then
