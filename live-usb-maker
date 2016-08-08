@@ -477,35 +477,68 @@ mount_live() {
     test -d "$live_dir"       || fatal $"Live directory '%s' is not a directory"   "$live_dir"
     is_mountpoint "$live_dir" || fatal $"Live directory '%s' is not a mountpoint"  "$live_dir"
 
-    mount -t devtmpfs devtmpfs $targ_dir
+    mount -t tmpfs tmpfs $targ_dir
+
+    # FIXME: should the error message have a device, not a directory?
+    local boot_dir
+    find_live_boot_dir boot_dir "$live_dir" "$LINUXFS_NAME" \
+        || fatal $"No '%s' ifle found in any directory on clone device at '%s'" "$LINUXFS_NAME" "$live_mp"
+
+    msg "Live boot directory %s" "$(pq $boot_dir)"
+
+    local full_boot_dir="$live_dir/${boot_dir#/}"
+    local src_root_dir=$live_dir
+
+    if [ -z "${boot_dir##*Frugal*}" ]; then
+        msg "Cloning from a frugal directory"
+        src_root_dir=$full_boot_dir
+    fi
 
     # NOTE:
     # the cd && eval "ls ..." allows us to use globbing expansions with spaces in paths
 
     local dir from dest
     while read dir; do
-        from="$live_dir/$dir"
+        [ ${#dir} -gt 0 ] || continue
+        from="$src_root_dir/$dir"
         dest="$targ_dir/$dir"
         test -d "$from" || continue
         mkdir -p "$dest" || fatal $"Could not create directory %s" "$dest"
         mount --bind "$from" "$dest"
-    done <<Live_Dirs
-$(cd "$live_dir" && eval "ls -d $LIVE_DIRS" 2>/dev/null)
-Live_Dirs
+    done <<Clone_Dirs
+$(cd "$src_root_dir" && eval "ls -d $CLONE_DIRS" 2>/dev/null)
+Clone_Dirs
 
     local file
     while read file; do
-        from="$live_dir/$file"
+        [ ${#file} -gt 0 ] || continue
+        from="$src_root_dir/$file"
         dest="$targ_dir/$file"
         test -f "$from" || continue
         mkdir -p "$(dirname "$dest")" || fatal $"Could not mkdir %s" "$(dirname "$dest")"
         touch "$dest"                 || fatal $"Could not touch file %s" "$dest"
         mount --bind "$from" "$dest"
-    done <<Live_Files
-$(cd "$live_dir" && eval "ls -d $LIVE_FILES" 2>/dev/null)
-Live_Files
+    done <<Clone_Files
+$(cd "$src_root_dir" && eval "ls -d $CLONE_FILES" 2>/dev/null)
+Clone_Files
+
+    while read file; do
+        [ ${#file} -gt 0 ] || continue
+        from="$full_boot_dir/$file"
+        dest="$targ_dir/${DEF_BOOT_DIR#/}/$file"
+
+        test -f "$from" || continue
+        mkdir -p "$(dirname "$dest")" || fatal $"Could not mkdir %s" "$(dirname "$dest")"
+        touch "$dest"                 || fatal $"Could not touch file %s" "$dest"
+        mount --bind "$from" "$dest"
+    done <<Clone_Bdir_Files
+$(cd "$full_boot_dir" && eval "ls -d $CLONE_BDIR_FILES" 2>/dev/null)
+Clone_Bdir_Files
 }
 
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
 do_partition() {
     local drive=$1  type=${2:-msdos}  ext_size=$3  mib_size=$4
 
