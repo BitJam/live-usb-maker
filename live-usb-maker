@@ -200,7 +200,7 @@ main() {
     # Let non-root users get usage.  Need to get --ignore-config early.
     read_early_params "$@"
 
-    [ $UID -eq 0 ] || fatal 099 $"This script must be run as root"
+    need_root
 
     ERR_FILE=$THE_ERR_FILE
 
@@ -216,11 +216,9 @@ main() {
     fi
 
     read_all_cmdline_mingled "$@"
-
     set_colors $COLOR_SCHEME
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
-
 
     case $SIZE in
         [1-9]|[0-9][0-9]|100) ;;
