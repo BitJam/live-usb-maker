@@ -224,19 +224,19 @@ main() {
 
     case $SIZE in
         [1-9]|[0-9][0-9]|100) ;;
-        *) fatal $"Bad size format '%s'.  Should be between %s and %s inclusive." "$(pqh $SIZE)" 1 100
+        *) fatal $"Bad size format '%s'.  Should be between %s and %s inclusive." "$(pqh $SIZE)" "1%" "100%"
     esac
 
     [ -z "${FAT_SIZE##[0-9]}" ] && fatal $"esp-size must be larger than %s" 9
     echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal $"esp-size must be an integer larger than %s" 9
 
     # Always write a new config file and then exit if requested
-    if [ "$WRITE_CONF" ]; then
-        write_conf "$CONF_FILE"
-        exit 0
-    fi
+    [ "$WRITE_CONF" ] && write_conf "$CONF_FILE" && exit 0
 
     [ "$PRETEND_MODE" ] && shout $"PRETEND MODE ENABLED"
+
+    #--- Find live boot device if we are running live
+    #--- FIXME:? Use initrd.out for toram case?
 
     local we_are_live live_dev
     if its_alive; then
@@ -246,8 +246,10 @@ main() {
         fatal_z "$live_dev" "Could not find the live boot device"
     fi
 
+    #--- Select source of live-usb if one was not given
     [ ${#FROM} -eq 0 ] && select_usb_src FROM
 
+    #--- Make an iso-file search criteria based on a from with wildcard characters
     local search_dirs
     if [ ${#FROM} -gt 0 -a -z "${FROM##*\**}" ]; then
         ISO_FILE_SPEC=$(basename "$FROM")
@@ -260,47 +262,58 @@ main() {
         FROM="iso-file"
     fi
 
+    #--- Search for iso file
     if [ "$FROM" = "iso-file"  ]; then
+        # Use %USER_HOME% as a placeholder for user's home directory (uid = 1000)
         : ${search_dirs:=$(echo $SEARCH_DIRS | sed "s|%USER_HOME%|$(get_user_home)|")}
+
         cli_search_file FROM "$ISO_FILE_SPEC" "$search_dirs" "$SEARCH_DEPTH" "$MAX_FILES"
         test -f "$FROM" || fatal "Not a normal file %s" "$FROM"
         msg "Using file %s" "$(pq "$FROM")"
+
+        #--- offer to check the md5 if a .md5 file is found
         check_md5 "$FROM"
     fi
 
+    # Extract live-usb from device so we don't offer it (or live system) in the target menu
     local from_dev
     [ -n "$FROM" -a -z "${FROM##clone=*}" ] && from_dev=${FROM#clone=}
     [ ${#TARGET} -eq 0 ] && select_target_device TARGET "$live_dev" "$from_dev"
 
+    # Make sure our target is a real device
     local usb_dev=$(expand_device $TARGET)
     [ ${#usb_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
+    # Present cheat menus if no cheats given and --not-cheats not given
     [ ${#CHEATS} -eq 0  -a -z "$NO_CHEATS" ] && cheats_menus CHEATS
-    #echo "CHEATS: $CHEATS" ; exit
 
+    #--- Okay, now we are ready for final checks and to do the work
     # We start logging right after we've expanded the target device
     start_log "$orig_args" "$CMDS" "$FROM" "$usb_dev"
-    #echo "$CMDS" | egrep -q "(^| )pre( |$)"  && CMDS="$CMDS $PRE_CMDS"
-    #echo "$CMDS" | egrep -q "(^| )post( |$)" && CMDS="$CMDS $POST_CMDS"
 
     mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
     mount -t tmpfs tmpfs $WORK_DIR || fatal $"Could not mount tmpfs at %s" $WORK_DIR
 
-    test -e $usb_dev || fatal $"Device %s does not exist" $usb_dev
-    test -b $usb_dev || fatal $"Device %s is not a block device" $usb_dev
+    # This are mostly for a manually entered target
+    test -e $usb_dev || fatal $"Target device %s does not exist" $usb_dev
+    test -b $usb_dev || fatal $"Target device %s is not a block device" $usb_dev
 
+    # Require that an entire disk device be specified (could relax?)
     local dev_type=$(lsblk -no type --nodeps $usb_dev)
     [ "$dev_type" = "disk" ] || fatal $"Device %s is not a disk device" $usb_dev
 
+    # Get first to partitions (lexically only)
     local ext_dev=$(get_partition $usb_dev 1)
     local fat_dev=$(get_partition $usb_dev 2)
 
-    # fatal "The device %s does not seem to be usb or removeable."
+    # fatal "The device %s does not seem to be usb or removable."
+    # FIXME: move this to the lib
     force usb || is_usb_or_removable $usb_dev || yes_NO_fatal "usb" \
         $"Do you want to use it anyway (dangerous)?" \
         $"Use %s to always ignore this warning"      \
         $"The device %s does not seem to be usb or removeable."  "$usb_dev"
 
+    # Set up our directories.  These a GLOBALS so they can be used in clean_up() on exit
     ISO_DIR=$WORK_DIR/iso
     EXT_DIR=$WORK_DIR/ext
     FAT_DIR=$WORK_DIR/fat
@@ -308,8 +321,11 @@ main() {
 
     mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal $"Could not make %s subdirectories" "$WORK_DIR"
 
-    mount_iso "$FROM" $ISO_DIR || fatal $"Could not mount iso file %s" "$FROM"
+    #--- Mount or clone the source
+    mount_or_clone_src "$FROM" $ISO_DIR || fatal $"Could not mount iso file %s" "$FROM"
 
+    #--- Cheap way to get the distro version
+    #---- (should we dig deeper and look inside linuxfs???)
     local iso_version version_file=$ISO_DIR/version
     if test -r $version_file && iso_version=$(cat $version_file 2>/dev/null) \
         && [ ${#iso_version} -gt 0 ]; then
@@ -317,6 +333,7 @@ main() {
         msg
     fi
 
+    #--- calculate and show various sizes before we through errors due to size
     local total_size=$(parted $usb_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     local mib_size=$((total_size * SIZE / 100 - 1))
     local ext_size=$((mib_size - FAT_SIZE))
@@ -336,21 +353,19 @@ main() {
     msg "$mem_fmt" "fat $needed"         $fat_needed
     msg "$mem_fmt" "fat $extra"          $fat_extra
 
-    YES_no_pretend || my_exit
-
     : ${CMNDS:=all}
-
-    if [ ${#CMDS} -le 0 ]; then
-        echo -e $"No command(s) given.  Try 'all'."
-        my_exit 0
-    fi
 
     check_size ext $ext_extra $EXT_MARGIN
     check_size fat $fat_extra $FAT_MARGIN
 
+    # Bail early if only size info is requested
     given_cmd sizes && my_exit 0
 
+    # Make sure the target is not in use
     umount_all $usb_dev
+
+    #--- One last check with the user before we start doing the work
+    YES_no_pretend || my_exit
 
     need partition && do_partition "$usb_dev" "$MBR_GPT" $ext_size $mib_size
 
