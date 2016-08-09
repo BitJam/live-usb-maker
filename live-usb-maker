@@ -443,16 +443,22 @@ cheats_menus() {
 #------------------------------------------------------------------------------
 #
 #------------------------------------------------------------------------------
-mount_iso() {
+mount_or_clone_src() {
     local file=$1  dir=$2
-    mkdir -p $dir
 
+    mkdir -p $dir
     is_mountpoint $dir && fatal $"Directory '%s' is already a mountpoint" $dir
 
     case $file in
-        clone) mount_live $dir              ; return ;;
-      clone=*) mount_live $dir "${file#*=}" ; return ;;
+        clone) clone_live_src $dir              ; return ;;
+      clone=*) clone_live_src $dir "${file#*=}" ; return ;;
     esac
+
+    mount_dev_or_iso "$file" "$dir"
+}
+
+mount_dev_or_iso() {
+    local file=$1  dir=$2
 
     local block_dev=$(expand_device $file)
     file=${block_dev:-$file}
@@ -475,11 +481,13 @@ mount_iso() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Clone a running system or a live-usb stick by filling the targ_dir with
+# bind mounts that go back to the original.  This means that *only* the files
+# we bind mount end up in the new live-usb.
 #------------------------------------------------------------------------------
-mount_live() {
+clone_live_src() {
     local targ_dir=$1  live_dir=${2:-$LIVE_MP}
-
+    mkdir -p $dir
     is_mountpoint "$targ_dir" && fatal $"Live directory '%s' is already a mountpoint" "$targ_dir"
 
     # Allow live "directory" to be a device that we mount
@@ -494,15 +502,18 @@ mount_live() {
     test -d "$live_dir"       || fatal $"Live directory '%s' is not a directory"   "$live_dir"
     is_mountpoint "$live_dir" || fatal $"Live directory '%s' is not a mountpoint"  "$live_dir"
 
+    # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
+    # making directories
     mount -t tmpfs tmpfs $targ_dir
 
-    # FIXME: should the error message have a device, not a directory?
+    # FIXME: should this error message have a device, not a directory?
     local boot_dir
     find_live_boot_dir boot_dir "$live_dir" "$LINUXFS_NAME" \
-        || fatal $"No '%s' ifle found in any directory on clone device at '%s'" "$LINUXFS_NAME" "$live_mp"
+        || fatal $"No '%s' file found in any directory on clone device at '%s'" "$LINUXFS_NAME" "$live_dir"
 
     msg "Live boot directory %s" "$(pq $boot_dir)"
 
+    # Prepare to get all files/dirs from under the boot-directory on a frugal install
     local full_boot_dir="$live_dir/${boot_dir#/}"
     local src_root_dir=$live_dir
 
@@ -512,8 +523,9 @@ mount_live() {
     fi
 
     # NOTE:
-    # the cd && eval "ls ..." allows us to use globbing expansions with spaces in paths
+    # the cd && eval "ls ..." below allows us to use globbing expansions with spaces in paths
 
+    # Bind mount directories
     local dir from dest
     while read dir; do
         [ ${#dir} -gt 0 ] || continue
@@ -526,6 +538,7 @@ mount_live() {
 $(cd "$src_root_dir" && eval "ls -d $CLONE_DIRS" 2>/dev/null)
 Clone_Dirs
 
+    # Bind mount top level files
     local file
     while read file; do
         [ ${#file} -gt 0 ] || continue
@@ -539,6 +552,7 @@ Clone_Dirs
 $(cd "$src_root_dir" && eval "ls -d $CLONE_FILES" 2>/dev/null)
 Clone_Files
 
+    # Bind mount boot-dir files
     while read file; do
         [ ${#file} -gt 0 ] || continue
         from="$full_boot_dir/$file"
