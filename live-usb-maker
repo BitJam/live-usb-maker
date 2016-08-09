@@ -11,7 +11,7 @@ MY_DIR=$(dirname "$(readlink -f $0)")
         MAX_FILES=20
      MIN_ISO_SIZE="180M"
 
-          MBR_GPT="msdos"
+        MSDOS_GPT="gpt"
              SIZE=100
          FAT_SIZE=50
        EXT_MARGIN=20
@@ -102,10 +102,11 @@ Options:
                               copy: Overwrite ext4 partition even if antiX/ exists
                                all: All of the above (dangerous!)
 
-  -g --gpt              Use gpt partitioning instead of msdos
+  -g --gpt              Use gpt partitioning (default) instead of msdos
   -h --help             Show this usage
   -i --ignore-config    Ignore the config file
   -L --label=Name       Label ext partition with Name
+  -m --msdos            Use msdos partitioning instead of gpt
   -n --no-cheats        Don't show menus for adding cheat codes
   -p --pretend          Don't run most commands
   -q --quiet            Print less
@@ -150,9 +151,10 @@ eval_argument() {
               -from=*)  FROM=$val                        ;;
              -force|F)  FORCE="$FORCE,$val"              ;;
              -force=*)  FORCE="$FORCE,$val"              ;;
-               -gpt|g)  MBR_GPT="gpt"                    ;;
+               -gpt|g)  MSDOS_GPT="gpt"                  ;;
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
+             -msdos|m)  MSDOS_GPT="msdos"                ;;
          -no-cheats|n)  NO_CHEATS=true                   ;;
            -pretend|p)  PRETEND_MODE=true                ;;
              -quiet|q)  QUIET=true                       ;;
@@ -189,7 +191,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cCdDeEfFghILnpqsvW"
+    local SHIFT SHORT_STACK="cCdDeEfFghILmnpqsvW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
 
     set_colors
@@ -367,7 +369,7 @@ main() {
     #--- One last check with the user before we start doing the work
     YES_no_pretend || my_exit
 
-    need partition && do_partition "$target_dev" "$MBR_GPT" $ext_size $mib_size
+    need partition && do_partition "$target_dev" "$MSDOS_GPT" $ext_size $mib_size
 
     need makefs-ext && do_makefs_ext "$ext_dev" "$EXT4_OPTIONS" "$EXT4_LABEL"
     need makefs-fat && do_makefs_fat $fat_dev
@@ -392,7 +394,7 @@ main() {
     [ ${#CHEATS} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $EXT_DIR "$CHEATS"
     [ ${#CHEATS} -gt 0 ] && need cheats-grub     && do_cheats_grub     $FAT_DIR "$CHEATS"
 
-    need install && do_install_bootloader $target_dev $EXT_DIR $MBR_GPT
+    need install && do_install_bootloader $target_dev $EXT_DIR $MSDOS_GPT
 
     my_exit 0
 }
