@@ -392,7 +392,7 @@ main() {
     [ ${#CHEATS} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $EXT_DIR "$CHEATS"
     [ ${#CHEATS} -gt 0 ] && need cheats-grub     && do_cheats_grub     $FAT_DIR "$CHEATS"
 
-    need install && do_install $target_dev $EXT_DIR $MBR_GPT
+    need install && do_install_bootloader $target_dev $EXT_DIR $MBR_GPT
 
     my_exit 0
 }
@@ -726,9 +726,9 @@ do_uuids() {
 }
 
 #------------------------------------------------------------------------------
-#
+# This installs the legacy syslinux bootloader
 #------------------------------------------------------------------------------
-do_install() {
+do_install_bootloader() {
     local target_dev=$1  ext_dir=$2  type=$3
 
     local fname
