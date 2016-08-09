@@ -441,7 +441,10 @@ cheats_menus() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Mount a plain file as an iso image
+# Mount a block device
+# If given "clone" then clone current live system
+# If given "clone=<dev>" then mount <dev> and clone it instead
 #------------------------------------------------------------------------------
 mount_or_clone_src() {
     local file=$1  dir=$2
@@ -457,6 +460,9 @@ mount_or_clone_src() {
     mount_dev_or_iso "$file" "$dir"
 }
 
+#------------------------------------------------------------------------------
+# Mount an iso file or a block device
+#------------------------------------------------------------------------------
 mount_dev_or_iso() {
     local file=$1  dir=$2
 
@@ -484,6 +490,9 @@ mount_dev_or_iso() {
 # Clone a running system or a live-usb stick by filling the targ_dir with
 # bind mounts that go back to the original.  This means that *only* the files
 # we bind mount end up in the new live-usb.
+#
+# NOTE: the targ_dir here is the work_dir/iso directory.  We make it looke like
+# a mounted iso file so later code does not have to know this is a clone
 #------------------------------------------------------------------------------
 clone_live_src() {
     local targ_dir=$1  live_dir=${2:-$LIVE_MP}
@@ -568,7 +577,7 @@ Clone_Bdir_Files
 }
 
 #------------------------------------------------------------------------------
-#
+# Partition the traget usb device
 #------------------------------------------------------------------------------
 do_partition() {
     local drive=$1  type=${2:-msdos}  ext_size=$3  mib_size=$4
@@ -593,7 +602,7 @@ do_partition() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Make the ext4 file system
 #------------------------------------------------------------------------------
 do_makefs_ext() {
     local dev=$1  options=$2  label=$3  force_ext
@@ -604,7 +613,7 @@ do_makefs_ext() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Make the fat32 file system
 #------------------------------------------------------------------------------
 do_makefs_fat() {
     local fat_dev=$1
@@ -613,7 +622,7 @@ do_makefs_fat() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Copy from mounted source (or the clone) to the ext4 partition
 #------------------------------------------------------------------------------
 do_copy_ext() {
     local iso_dir=$1  ext_dir=$2
@@ -631,7 +640,7 @@ do_copy_ext() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Copy selected directories from the source to the fat32 partitions
 #------------------------------------------------------------------------------
 do_copy_fat() {
     local iso_dir=$1  fat_dir=$2
@@ -647,7 +656,7 @@ do_copy_fat() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Use the gfxsave script to add chaats to the gfxboot/syslinux bootladers
 #------------------------------------------------------------------------------
 do_cheats_syslinux() {
     #warn "Cheats are still being worked on"; return
@@ -670,7 +679,7 @@ do_cheats_syslinux() {
 }
 
 #------------------------------------------------------------------------------
-#
+#  Use the grub2-save script to add cheats to the UEFI grub2 bootloader
 #------------------------------------------------------------------------------
 do_cheats_grub() {
     #warn "Cheats are still being worked on"; return
@@ -691,7 +700,9 @@ do_cheats_grub() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Here is a tricky part.  The grub2.cfg must know the UUID of the main system
+# and the main system must know the UUID of the fat partition in order for the
+# user to be amble to save their  boot parameter selections.
 #------------------------------------------------------------------------------
 do_uuids() {
     local ext_dir=$1  ext_uuid=$2  grub_cfg=$3  fat_uuid=$4
