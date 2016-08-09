@@ -43,11 +43,11 @@ MY_DIR=$(dirname "$(readlink -f $0)")
 
 #== END_CONFIG
 
-   CONF_FILE="/root/.config/$ME/$ME.conf"
-THE_LOG_FILE="/var/log/$ME.log"
-THE_ERR_FILE="/var/log/$ME.errors"
-    LOG_FILE=/dev/null
-    ERR_FILE=/dev/null
+        CONF_FILE="/root/.config/$ME/$ME.conf"
+     THE_LOG_FILE="/var/log/$ME.log"
+     THE_ERR_FILE="/var/log/$ME.errors"
+         LOG_FILE="/dev/null"
+         ERR_FILE="/dev/null"
 
 ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
