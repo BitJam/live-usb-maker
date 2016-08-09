@@ -31,7 +31,9 @@ MY_DIR=$(dirname "$(readlink -f $0)")
 
         GRUB_CONF="boot/grub/grub.cfg"
            CHEATS=""
-         WORK_DIR="/tmp/$ME"
+        NO_CHEATS=""
+
+         WORK_DIR="/run/$ME"
         LOCK_FILE="/run/lock/$ME"
 
         SHELL_LIB="cli-shell-utils.bash"
