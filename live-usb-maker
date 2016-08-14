@@ -75,7 +75,9 @@ is not supplied in the command line options.
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
 
-This will destroy any existing information on <usb-device>.
+This will destroy any existing information on <usb-device>.  The default
+partitioning scheme is GPT.  Use --msdos flag to use msdos partitioning
+instead.
 
   --from="iso-file"    get a menu of iso files
   --from="clone"       clone a running live system.
@@ -85,6 +87,8 @@ This will destroy any existing information on <usb-device>.
 Options:
   -a --auto             Never ask questions.  Always assume the safe answer
   -c --cheat=xxx        Add these cheatcodes to the live-usb
+                        Use "off" to disable cheats menu.  Use "on to always enable it.
+                        Otherwise you will be asked.
      --color=<xxx>      Set color scheme to off|low|high
   -C --clear            Delete files from each partition before copying
   -d --device=<xxx>
@@ -108,7 +112,6 @@ Options:
   -i --ignore-config    Ignore the config file
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
-  -n --no-cheats        Don't show menus for adding cheat codes
   -p --pretend          Don't run most commands
   -q --quiet            Print less
   -s --size=XX          Percent of usb-device to use in (default 100)
@@ -156,7 +159,6 @@ eval_argument() {
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
              -msdos|m)  MSDOS_GPT="msdos"                ;;
-         -no-cheats|n)  NO_CHEATS=true                   ;;
            -pretend|p)  PRETEND_MODE=true                ;;
              -quiet|q)  QUIET=true                       ;;
               -size|s)  SIZE=${val%\%}                   ;;
@@ -192,7 +194,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cCdDeEfFghILmnpqsvW"
+    local SHIFT SHORT_STACK="cCdDeEfFghILmpqsvW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
 
     set_colors
@@ -287,8 +289,11 @@ main() {
     local target_dev=$(expand_device $TARGET)
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
-    # Present cheat menus if no cheats given and --not-cheats not given
-    [ ${#CHEATS} -eq 0  -a -z "$NO_CHEATS" ] && cheats_menus CHEATS
+    case $CHEATS in
+        "") YES_no "Customize language and timezone?"  && cheats_menu CHEATS ;;
+    off|no) CHEATS= ;;
+    yes|on) cheats_menu CHEATS ;;
+    esac
 
     #--- Okay, now we are ready for final checks and to do the work
     # We start logging right after we've expanded the target device
