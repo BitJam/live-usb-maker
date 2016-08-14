@@ -350,16 +350,11 @@ main() {
     local ext_extra=$((ext_size - ext_needed))
     local fat_extra=$((FAT_SIZE - fat_needed))
 
-    local mem_fmt="%20s:$num_co %7s$m_co MiB"
-    local available=$"available" needed=$"needed" extra=$"extra"
-    msg "$mem_fmt" $"total usb size"     $total_size
-    msg "$mem_fmt" $"requested usb size" $mib_size
-    msg "$mem_fmt" "ext $available"      $ext_size
-    msg "$mem_fmt" "ext $needed"         $ext_needed
-    msg "$mem_fmt" "ext $extra"          $ext_extra
-    msg "$mem_fmt" "fat $available"      $FAT_SIZE
-    msg "$mem_fmt" "fat $needed"         $fat_needed
-    msg "$mem_fmt" "fat $extra"          $fat_extra
+    usb_stats $"entire drive"    "$total_size" \
+              $"main partition"  "$ext_size" "$ext_needed"  "$ext_extra" \
+              $"uefi partition"  "$FAT_SIZE" "$fat_needed"  "$fat_extra" \
+
+    [ ${#CHEATS} -gt 0 ] && msg "Cheats: %s" "$(pq $CHEATS)"
 
     : ${CMNDS:=all}
 
