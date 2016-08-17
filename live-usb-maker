@@ -104,15 +104,16 @@ Options:
 
   -g --gpt              Use gpt partitioning (default) instead of msdos
   -h --help             Show this usage
-  -I --ignore-config    Ignore the config file
+  -I --ignore-config    Ignore the configuration file
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
   -p --pretend          Don't run most commands
   -q --quiet            Print less
+  -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use in (default 100)
   -t --target=<xxx>     The device to make into a new live-usb
   -v --verbose          Print more, show commands when run
-  -W --write-config     Write a fresh config file
+  -W --write-config     Write a config file preserving current options
 
 Notes:
   - short options stack. Example: fixme
@@ -126,9 +127,10 @@ Usage
 
 eval_early_argument() {
     case $1 in
-      -ignore-config|I) IGNORE_CONF=true                   ;;
-       -write-config|W) IGNORE_CONF=true ; WRITE_CONF=true ;;
-               -help|h) usage                              ;;
+      -ignore-config|I) IGNORE_CONFIG=true   ;;
+       -write-config|W)  WRITE_CONFIG=true   ;;
+       -reset_config|R)  RESET_CONFIG=true   ;;
+               -help|h) usage                ;;
     esac
 }
 
@@ -163,6 +165,7 @@ eval_argument() {
 
        # These are read early.  They are not unknown
      -ignore-config|I)                                   ;;
+      -reset-config|R)                                   ;;
       -write-config|W)                                   ;;
 
                *)  fatal $"Unknown parameter %s" "-$arg" ;;
@@ -190,7 +193,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cCDeEfFghILmpqstvW"
+    local SHIFT SHORT_STACK="cCDeEfFghILmpqRstvW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
 
     set_colors
@@ -204,6 +207,9 @@ main() {
     read_early_params "$@"
 
     need_root
+    EXIT_NUM=100
+
+    read_reset_config_file "$CONFIG_FILE"
 
     ERR_FILE=$THE_ERR_FILE
 
