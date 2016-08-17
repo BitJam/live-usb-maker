@@ -8,15 +8,15 @@ MY_DIR=$(dirname "$(readlink -f $0)")
           NO_QUIT="true"  # FOR TESTING
     ISO_FILE_SPEC="*.iso"
       SEARCH_DIRS="%USER_HOME% /media /root"
-     SEARCH_DEPTH=4
-        MAX_FILES=20
+     SEARCH_DEPTH="4"
+        MAX_FILES="20"
      MIN_ISO_SIZE="180M"
 
         MSDOS_GPT="gpt"
-             SIZE=100
-         FAT_SIZE=50
-       EXT_MARGIN=20
-       FAT_MARGIN=5
+             SIZE="100%"
+         FAT_SIZE="50"
+       EXT_MARGIN="20"
+       FAT_MARGIN="5"
 
      EXT4_OPTIONS="-m0 -i100000 -J size=32"
        EXT4_LABEL="LiveUSB"
@@ -32,18 +32,14 @@ MY_DIR=$(dirname "$(readlink -f $0)")
 
         GRUB_CONF="boot/grub/grub.cfg"
            CHEATS=""
-        NO_CHEATS=""
-
-         WORK_DIR="/run/$ME"
-        LOCK_FILE="/run/lock/$ME"
-
-        SHELL_LIB="cli-shell-utils.bash"
-         LIB_PATH="/usr/local/lib/cli-shell-utils"
      COLOR_SCHEME="high"
-        NO_CHEATS=""
 
 #== END_CONFIG
 
+         WORK_DIR="/run/$ME"
+        LOCK_FILE="/run/lock/$ME"
+        SHELL_LIB="cli-shell-utils.bash"
+         LIB_PATH="/usr/local/lib/cli-shell-utils"
         CONF_FILE="/root/.config/$ME/$ME.conf"
      THE_LOG_FILE="/var/log/$ME.log"
      THE_ERR_FILE="/var/log/$ME.errors"
@@ -876,6 +872,48 @@ umount_work_dir() {
         sleep .1
     done
     rmdir "$dir"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+write_config() {
+    local file=${1:-$CONFIG_FILE}
+    local dir=$(dirname "$file")
+    mkdir -p "$dir" || fatal "Could not make config file directory %s" "$dir"
+    msg "Writing config file %s" "$(pq "$file")"
+
+    cat<<Config_File >"$file"
+          NO_QUIT="$NO_QUIT"  # FOR TESTING
+    ISO_FILE_SPEC="$ISO_FILE_SPEC"
+      SEARCH_DIRS="$SEARCH_DIRS"
+     SEARCH_DEPTH="$SEARCH_DEPTH"
+        MAX_FILES="$MAX_FILES"
+     MIN_ISO_SIZE="$MIN_ISO_SIZE"
+
+        MSDOS_GPT="$MSDOS_GPT"
+             SIZE="$SIZE"
+         FAT_SIZE="$FAT_SIZE"
+       EXT_MARGIN="$EXT_MARGIN"
+       FAT_MARGIN="$FAT_MARGIN"
+
+     EXT4_OPTIONS="$EXT4_OPTIONS"
+       EXT4_LABEL="$EXT4_LABEL"
+
+          LIVE_MP="$LIVE_MP"
+     LINUXFS_NAME="$LINUXFS_NAME"
+ MIN_LINUXFS_SIZE="$MIN_LINUXFS_SIZE"
+     DEF_BOOT_DIR="$DEF_BOOT_DIR"
+
+       CLONE_DIRS="$CLONE_DIRS"
+      CLONE_FILES="$CLONE_FILES"
+ CLONE_BDIR_FILES="$CLONE_BDIR_FILES"
+
+        GRUB_CONF="$GRUB_CONF"
+           CHEATS=""
+     COLOR_SCHEME="$COLOR_SCHEME"
+Config_File
+    return 0
 }
 
 #------------------------------------------------------------------------------
