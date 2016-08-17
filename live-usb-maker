@@ -238,7 +238,7 @@ main() {
     # Always write a new config file and then exit if requested
     [ "$WRITE_CONF" ] && write_conf "$CONF_FILE" && exit 0
 
-    [ "$PRETEND_MODE" ] && shout $"PRETEND MODE ENABLED"
+    shout_pretend
 
     #--- Find live boot device if we are running live
     #--- FIXME:? Use initrd.out for toram case?
