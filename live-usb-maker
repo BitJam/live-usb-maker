@@ -425,7 +425,7 @@ main() {
 #------------------------------------------------------------------------------
 select_usb_src() {
     local var=$1  exclude=$2
-    local title=$"Please select the source of the new live-usb"
+    local title=$"Please select the source for the new live-usb"
     local menu=$(cli_live_usb_src_menu "$exclude")
     my_select_quit "$var" "$title" "$menu"
 }
@@ -518,21 +518,21 @@ mount_dev_or_iso() {
 # a mounted iso file so later code does not have to know this is a clone
 #------------------------------------------------------------------------------
 clone_live_src() {
-    local targ_dir=$1  live_dir=${2:-$LIVE_MP}
+    local targ_dir=$1  from_dir=${2:-$LIVE_MP}  mnt_dir=${3:-$MNT_DIR}
     mkdir -p $dir
-    is_mountpoint "$targ_dir" && fatal $"Live directory '%s' is already a mountpoint" "$targ_dir"
+    is_mountpoint "$targ_dir" && fatal $"Directory '%s' is already a mountpoint" "$targ_dir"
 
     # Allow live "directory" to be a device that we mount
-    local block_dev=$(expand_device $live_dir)
+    local block_dev=$(expand_device $from_dir)
     if [ ${#block_dev} -gt 0 ];  then
-        my_mkdir $MNT_DIR
-        mount -o ro $block_dev $MNT_DIR
-        is_mountpoint $MNT_DIR || fatal $"Could not mount device %s" "$block_dev"
-        live_dir=$MNT_DIR
+        my_mkdir $mnt_dir
+        mount -o ro $block_dev $mnt_dir
+        is_mountpoint $mnt_dir || fatal $"Could not mount device %s" "$block_dev"
+        from_dir=$mnt_dir
     fi
 
-    test -d "$live_dir"       || fatal $"Live directory '%s' is not a directory"   "$live_dir"
-    is_mountpoint "$live_dir" || fatal $"Live directory '%s' is not a mountpoint"  "$live_dir"
+    test -d "$from_dir"       || fatal $"Clone directory '%s' is not a directory"   "$from_dir"
+    is_mountpoint "$from_dir" || fatal $"Clone directory '%s' is not a mountpoint"  "$from_dir"
 
     # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
     # making directories
@@ -540,14 +540,14 @@ clone_live_src() {
 
     # FIXME: should this error message have a device, not a directory?
     local boot_dir
-    find_live_boot_dir boot_dir "$live_dir" "$LINUXFS_NAME" \
-        || fatal $"No '%s' file found in any directory on clone device at '%s'" "$LINUXFS_NAME" "$live_dir"
+    find_live_boot_dir boot_dir "$from_dir" "$LINUXFS_NAME" \
+        || fatal $"No '%s' file found in any directory on clone device at '%s'" "$LINUXFS_NAME" "$from_dir"
 
     msg "Live boot directory %s" "$(pq $boot_dir)"
 
     # Prepare to get all files/dirs from under the boot-directory on a frugal install
-    local full_boot_dir="$live_dir/${boot_dir#/}"
-    local src_root_dir=$live_dir
+    local full_boot_dir="$from_dir/${boot_dir#/}"
+    local src_root_dir=$from_dir
 
     if [ -z "${boot_dir##*Frugal*}" ]; then
         msg "Cloning from a frugal directory"
