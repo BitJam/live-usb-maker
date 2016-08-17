@@ -348,23 +348,20 @@ main() {
 
     #--- Cheap way to get the distro version
     #---- (should we dig deeper and look inside linuxfs???)
-    local iso_version version_file=$ISO_DIR/version
-    if test -r $version_file && iso_version=$(cat $version_file 2>/dev/null) \
-        && [ ${#iso_version} -gt 0 ]; then
-        msg $"Distro: %s" "$(pq $iso_version)"
-        msg
-    fi
+
+    show_distro_version "$ISO_DIR"
 
     #--- calculate and show various sizes before we through errors due to size
     local total_size=$(parted $target_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     local mib_size=$((total_size * SIZE / 100 - 1))
     local ext_size=$((mib_size - FAT_SIZE))
+    local total_extra=$((total_size - mib_size))
     local ext_needed=$(du_size $ISO_DIR/*)
     local fat_needed=$(du_size $ISO_DIR/{boot,EFI,efi})
     local ext_extra=$((ext_size - ext_needed))
     local fat_extra=$((FAT_SIZE - fat_needed))
 
-    usb_stats $"entire drive"    "$total_size" \
+    usb_stats $"entire drive"    "$total_size" "$mib_size"  "$total_extra" \
               $"main partition"  "$ext_size" "$ext_needed"  "$ext_extra" \
               $"uefi partition"  "$FAT_SIZE" "$fat_needed"  "$fat_extra" \
 
