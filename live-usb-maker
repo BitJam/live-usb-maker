@@ -91,7 +91,6 @@ Options:
                         Otherwise you will be asked.
      --color=<xxx>      Set color scheme to off|low|high
   -C --clear            Delete files from each partition before copying
-  -d --device=<xxx>
   -D --debug            Pause before cleaning up
   -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
   -E --ext-options=<xx> Use these options when creating the ext4 filesystem
@@ -100,7 +99,7 @@ Options:
                         Use "clone" to clone the current live system or use
                         clone=<xxx> to clone another live-usb
 
-  -F --force=<xxxX>       Force the options specfied:
+  -F --force=<xxx>      Force the options specfied:
                             umount: Allows try to umount all partitions on drive
                                usb: Ignore usb/removable check
                             makefs: Make the ext4 filesystem even if one exists
@@ -109,17 +108,18 @@ Options:
 
   -g --gpt              Use gpt partitioning (default) instead of msdos
   -h --help             Show this usage
-  -i --ignore-config    Ignore the config file
+  -I --ignore-config    Ignore the config file
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
   -p --pretend          Don't run most commands
   -q --quiet            Print less
   -s --size=XX          Percent of usb-device to use in (default 100)
+  -t --target=<xxx>     The device to make into a new live-usb
   -v --verbose          Print more, show commands when run
-  -w --write-config     Write a fresh config file
+  -W --write-config     Write a fresh config file
 
 Notes:
-  - short options stack. Example: -Ff instead of -F -f
+  - short options stack. Example: fixme
   - options can be intermingled with commands and parameters
   - config file: $CONF_FILE
   - the config file will be sourced if it exists
@@ -145,8 +145,6 @@ eval_argument() {
                -color)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
              -debug|D)  DEBUG=true                       ;;
-            -device|d)  TARGET=$val                      ;;
-            -device=*)  TARGET=$val                      ;;
           -esp-size|e)  FAT_SIZE=$val                    ;;
        -ext-options|E)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
@@ -163,6 +161,8 @@ eval_argument() {
              -quiet|q)  QUIET=true                       ;;
               -size|s)  SIZE=${val%\%}                   ;;
               -size=*)  SIZE=${val%\%}                   ;;
+            -target|t)  TARGET=$val                      ;;
+            -target=*)  TARGET=$val                      ;;
            -verbose|v)  BE_VERBOSE=true                  ;;
 
        # These are read early.  They are not unknown
@@ -183,18 +183,18 @@ assign_parameter() {
 takes_param() {
     case $1 in
        -cheat|c) return 0 ;;
-      -device|d) return 0 ;;
     -esp-size|e) return 0 ;;
         -from|f) return 0 ;;
        -force|F) return 0 ;;
        -label|L) return 0 ;;
         -size|s) return 0 ;;
+      -target|t) return 0 ;;
     esac
     return 1
 }
 
 main() {
-    local SHIFT SHORT_STACK="cCdDeEfFghILmpqsvW"
+    local SHIFT SHORT_STACK="cCDeEfFghILmpqstvW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
 
     set_colors
