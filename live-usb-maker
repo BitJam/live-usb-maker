@@ -304,7 +304,7 @@ main() {
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
     case $CHEATS in
-        "") YES_no "Customize language and timezone?"  && cheats_menu CHEATS ;;
+        "") yes_NO "Customize language and timezone?"  && cheats_menu CHEATS ;;
     off|no) CHEATS= ;;
     yes|on) cheats_menu CHEATS ;;
     esac
