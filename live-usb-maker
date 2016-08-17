@@ -238,7 +238,7 @@ main() {
     echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal $"esp-size must be an integer larger than %s" 9
 
     # Always write a new config file and then exit if requested
-    [ "$WRITE_CONF" ] && write_conf "$CONF_FILE" && exit 0
+    [ "$WRITE_CONFIG" ] && write_config "$CONFIG_FILE" && exit 0
 
     shout_pretend
 
