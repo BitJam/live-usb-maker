@@ -259,40 +259,45 @@ main() {
         msg "Using target device %s" "$(pq $TARGET)"
     fi
 
+    local from
+    if [ ${#FROM} -gt 0 ]; then
+        check_from from "$FROM"
+    else
     #--- Select source of live-usb if one was not given
-    if [ ${#FROM} -eq 0 ] && select_usb_src FROM $TARGET
+        select_usb_src from $TARGET
+    fi
 
     #--- Make an iso-file search criteria based on a from with wildcard characters
     local search_dirs
-    if [ ${#FROM} -gt 0 -a -z "${FROM##*\**}" ]; then
-        ISO_FILE_SPEC=$(basename "$FROM")
-        local sdir=$(dirname "$FROM")
+    if [ ${#from} -gt 0 -a -z "${from##*\**}" ]; then
+        ISO_FILE_SPEC=$(basename "$from")
+        local sdir=$(dirname "$from")
         [ ${#sdir} -gt 0  ] && search_dirs=$sdir
         local fmt="%30s: %s"
-        msg "$fmt"  "ISO file wildcard"       "$(pq "$FROM")"
+        msg "$fmt"  "ISO file wildcard"       "$(pq "$from")"
         msg "$fmt"  "Will search directories" "$(pq "$search_dirs")"
         msg "$fmt"  "For files matching"      "$(pq "$ISO_FILE_SPEC")"
-        FROM="iso-file"
+        from="iso-file"
     fi
 
     #--- Search for iso file
     local from_dev from_label
-    case $FROM in
+    case $from in
         iso-file|iso|file)
             # Use %USER_HOME% as a placeholder for user's home directory (uid = 1000)
             : ${search_dirs:=$(echo $SEARCH_DIRS | sed "s|%USER_HOME%|$(get_user_home)|")}
 
-            cli_search_file FROM "$ISO_FILE_SPEC" "$search_dirs" "$SEARCH_DEPTH" "$MAX_FILES"
-            test -f "$FROM" || fatal "Not a normal file %s" "$FROM"
-            msg "Using file %s" "$(pq "$FROM")"
+            cli_search_file from "$ISO_FILE_SPEC" "$search_dirs" "$SEARCH_DEPTH" "$MAX_FILES"
+            test -f "$from" || fatal "Not a normal file %s" "$from"
+            msg "Using file %s" "$(pq "$from")"
 
-            from_label=$(printf $"from file %s" "$(pqq ${FROM##*/})")
+            from_label=$(printf $"from file %s" "$(pqq ${from##*/})")
 
             #--- offer to check the md5 if a .md5 file is found
-            check_md5 "$FROM" ;;
+            check_md5 "$from" ;;
 
         clone=*)
-            from_dev=${FROM#clone=}
+            from_dev=${from#clone=}
             from_label=$(printf $"by cloning device %s" "$(pqq ${from_dev##*/})")  ;;
 
         clone)
@@ -313,7 +318,7 @@ main() {
 
     #--- Okay, now we are ready for final checks and to do the work
     # We start logging right after we've expanded the target device
-    start_log "$orig_args" "$CMDS" "$FROM" "$target_dev"
+    start_log "$orig_args" "$CMDS" "$from" "$target_dev"
 
     mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
     mount -t tmpfs tmpfs $WORK_DIR || fatal $"Could not mount tmpfs at %s" $WORK_DIR
@@ -346,7 +351,7 @@ main() {
     mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal $"Could not make %s subdirectories" "$WORK_DIR"
 
     #--- Mount or clone the source
-    mount_or_clone_src "$FROM" $ISO_DIR || fatal $"Could not mount iso file %s" "$FROM"
+    mount_or_clone_src "$from" $ISO_DIR || fatal $"Could not mount iso file %s" "$from"
 
     #--- Cheap way to get the distro version
     #---- (should we dig deeper and look inside linuxfs???)
