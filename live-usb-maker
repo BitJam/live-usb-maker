@@ -229,7 +229,7 @@ main() {
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
 
-    case $SIZE in
+    case ${SIZE%%%} in
         [1-9]|[0-9][0-9]|100) ;;
         *) fatal $"Bad size format '%s'.  Should be between %s and %s inclusive." "$(pqh $SIZE)" "1%" "100%"
     esac
