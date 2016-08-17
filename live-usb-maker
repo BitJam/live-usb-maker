@@ -924,6 +924,7 @@ write_config() {
            CHEATS=""
      COLOR_SCHEME="$COLOR_SCHEME"
 Config_File
+
     return 0
 }
 
