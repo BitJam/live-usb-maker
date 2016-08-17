@@ -377,9 +377,11 @@ main() {
 
     # Make sure the target is not in use
     umount_all $target_dev
+    local final_q=$(quest "%s %s %s$nc_co\n$quest_co%s" $"Ready to make live-usb on device" \
+        "$(pqq ${target_dev##*/})" "$from_label" $"Shall we begin?")
 
     #--- One last check with the user before we start doing the work
-    YES_no_pretend || my_exit
+    YES_no_pretend "$final_q" || my_exit
 
     need partition && do_partition "$target_dev" "$MSDOS_GPT" $ext_size $mib_size
 
