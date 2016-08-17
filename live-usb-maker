@@ -251,8 +251,14 @@ main() {
         fatal_z "$live_dev" "Could not find the live boot device"
     fi
 
+    # Check cmdline target *before* the first menu
+    if [ ${#TARGET} -gt 0 ]; then
+        check_target "$TARGET" "$live_dev"
+        msg "Using target device %s" "$(pq $TARGET)"
+    fi
+
     #--- Select source of live-usb if one was not given
-    [ ${#FROM} -eq 0 ] && select_usb_src FROM
+    if [ ${#FROM} -eq 0 ] && select_usb_src FROM $TARGET
 
     #--- Make an iso-file search criteria based on a from with wildcard characters
     local search_dirs
@@ -268,21 +274,29 @@ main() {
     fi
 
     #--- Search for iso file
-    if [ "$FROM" = "iso-file"  ]; then
-        # Use %USER_HOME% as a placeholder for user's home directory (uid = 1000)
-        : ${search_dirs:=$(echo $SEARCH_DIRS | sed "s|%USER_HOME%|$(get_user_home)|")}
+    local from_dev from_label
+    case $FROM in
+        iso-file|iso|file)
+            # Use %USER_HOME% as a placeholder for user's home directory (uid = 1000)
+            : ${search_dirs:=$(echo $SEARCH_DIRS | sed "s|%USER_HOME%|$(get_user_home)|")}
 
-        cli_search_file FROM "$ISO_FILE_SPEC" "$search_dirs" "$SEARCH_DEPTH" "$MAX_FILES"
-        test -f "$FROM" || fatal "Not a normal file %s" "$FROM"
-        msg "Using file %s" "$(pq "$FROM")"
+            cli_search_file FROM "$ISO_FILE_SPEC" "$search_dirs" "$SEARCH_DEPTH" "$MAX_FILES"
+            test -f "$FROM" || fatal "Not a normal file %s" "$FROM"
+            msg "Using file %s" "$(pq "$FROM")"
 
-        #--- offer to check the md5 if a .md5 file is found
-        check_md5 "$FROM"
-    fi
+            from_label=$(printf $"from file %s" "$(pqq ${FROM##*/})")
 
-    # Extract live-usb from device so we don't offer it (or live system) in the target menu
-    local from_dev
-    [ -n "$FROM" -a -z "${FROM##clone=*}" ] && from_dev=${FROM#clone=}
+            #--- offer to check the md5 if a .md5 file is found
+            check_md5 "$FROM" ;;
+
+        clone=*)
+            from_dev=${FROM#clone=}
+            from_label=$(printf $"by cloning device %s" "$(pqq ${from_dev##*/})")  ;;
+
+        clone)
+            from_label=$(printf $"by cloning live system %s" "$(pqq ${live_dev/##*/})")  ;;
+    esac
+
     [ ${#TARGET} -eq 0 ] && select_target_device TARGET "$live_dev" "$from_dev"
 
     # Make sure our target is a real device
