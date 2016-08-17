@@ -417,9 +417,9 @@ main() {
 #
 #------------------------------------------------------------------------------
 select_usb_src() {
-    local var=$1  live_dev=$2
+    local var=$1  exclude=$2
     local title=$"Please select the source of the new live-usb"
-    local menu=$(cli_live_usb_src_menu "$live_dev")
+    local menu=$(cli_live_usb_src_menu "$exclude")
     my_select_quit "$var" "$title" "$menu"
 }
 
