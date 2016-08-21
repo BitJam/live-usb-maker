@@ -245,6 +245,16 @@ main() {
 
     shout_pretend
 
+    mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
+    mount -t tmpfs tmpfs $WORK_DIR || fatal $"Could not mount tmpfs at %s" $WORK_DIR
+    # Set up our directories.  These a GLOBALS so they can be used in clean_up() on exit
+    ISO_DIR=$WORK_DIR/iso
+    EXT_DIR=$WORK_DIR/ext
+    FAT_DIR=$WORK_DIR/fat
+    MNT_DIR=$WORK_DIR/live-dev
+
+    mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal $"Could not make %s subdirectories" "$WORK_DIR"
+
     #--- Find live boot device if we are running live
     #--- FIXME:? Use initrd.out for toram case?
 
@@ -339,18 +349,17 @@ main() {
     local target_dev=$(expand_device $TARGET)
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
+    local cheats
     case $CHEATS in
-        "") yes_NO "Customize language and timezone?"  && cheats_menu CHEATS ;;
-    off|no) CHEATS= ;;
-    yes|on) cheats_menu CHEATS ;;
+        "") yes_NO "Customize language and timezone?"  && cheats_menu cheats ;;
+    off|no) ;;
+    yes|on) cheats_menu cheats ;;
+         *) cheats=$CHEATS     ;;
     esac
 
     #--- Okay, now we are ready for final checks and to do the work
     # We start logging right after we've expanded the target device
-    start_log "$orig_args" "$CMDS" "$from" "$target_dev"
-
-    mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
-    mount -t tmpfs tmpfs $WORK_DIR || fatal $"Could not mount tmpfs at %s" $WORK_DIR
+    start_log "$orig_args" "$CMDS" "$from" "$target_dev" "$cheats"
 
     # This are mostly for a manually entered target
     test -e $target_dev || fatal $"Target device %s does not exist" $target_dev
@@ -370,20 +379,6 @@ main() {
         $"Do you want to use it anyway (dangerous)?" \
         $"Use %s to always ignore this warning"      \
         $"The device %s does not seem to be usb or removeable."  "$target_dev"
-
-    # Set up our directories.  These a GLOBALS so they can be used in clean_up() on exit
-    ISO_DIR=$WORK_DIR/iso
-    EXT_DIR=$WORK_DIR/ext
-    FAT_DIR=$WORK_DIR/fat
-    MNT_DIR=$WORK_DIR/live-dev
-
-    mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal $"Could not make %s subdirectories" "$WORK_DIR"
-
-    #--- Mount or clone the source
-    mount_or_clone_src "$from" $ISO_DIR || fatal $"Could not mount iso file %s" "$from"
-
-    #--- Cheap way to get the distro version
-    #---- (should we dig deeper and look inside linuxfs???)
 
     show_distro_version "$ISO_DIR"
 
