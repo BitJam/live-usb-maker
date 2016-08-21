@@ -527,10 +527,11 @@ cheats_menus() {
 #
 #------------------------------------------------------------------------------
 mount_device() {
-    local dev=$1  dir=$2
+    local dev=$(expand_device "$1")  dir=$2
+    [ ${#dev} -gt 0 ]     || fatal "Could not find device %s" "$1"
     mkdir -p "$dir"       || fatal "Failed to create mountpoint directory %s" "$dir"
     is_mountpoint "$dir"  && fatal "Directory '%s' is already a mountpoint"   "$dir"
-    mount "$dev"  "$dir"
+    mount -o ro "$dev" "$dir"
     is_mountpoint "$dir"  || fatal "Failed to mount device %s at %s" "$dev"   "$dir"
 }
 
