@@ -263,7 +263,7 @@ main() {
         we_are_live=true
         # FIXME: should use initrd.out to get the uuid, etc
         live_dev=$(get_live_dev)
-        fatal_z "$live_dev" "Could not find the live boot device"
+        fatal_z "$live_dev" "FIXME: Could not find the live boot device"
     fi
 
     # Check cmdline target *before* the first menu
