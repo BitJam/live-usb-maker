@@ -75,15 +75,16 @@ This will destroy any existing information on <usb-device>.  The default
 partitioning scheme is GPT.  Use --msdos flag to use msdos partitioning
 instead.
 
-  --from="iso-file"    get a menu of iso files
+  --from="iso-file"    Enter an iso file to use as the source
   --from="clone"       clone a running live system.
   --from=clone=<dir>   clone from a mounted live-usb or iso-file.
   --from=<dev>         copy from a livecd/dvd or live-usb
 
 Options:
-  -a --auto             Never ask questions.  Always assume the safe answer
   -c --cheat=xxx        Add these cheatcodes to the live-usb
-                        Use "off" to disable cheats menu.  Use "on to always enable it.
+                           Use "off" or "no" to disable cheats menu.
+                           Use "on" or "yes"  to show cheat menus without asking
+
                         Otherwise you will be asked.
      --color=<xxx>      Set color scheme to off|low|high
   -C --clear            Delete files from each partition before copying
