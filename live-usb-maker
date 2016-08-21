@@ -396,7 +396,7 @@ main() {
               $"main partition"  "$ext_size" "$ext_needed"  "$ext_extra" \
               $"uefi partition"  "$FAT_SIZE" "$fat_needed"  "$fat_extra" \
 
-    [ ${#CHEATS} -gt 0 ] && msg "Cheats: %s" "$(pq $CHEATS)"
+    [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
 
     : ${CMNDS:=all}
 
@@ -875,7 +875,7 @@ my_exit() {
 #
 #------------------------------------------------------------------------------
 start_log() {
-    local args=$1 cmds=${2# } iso=$3 dev=$4
+    local args=$1 cmds=${2# }  iso=$3  dev=$4  cheats=$5
 
     LOG_FILE=$THE_LOG_FILE
 
@@ -888,7 +888,7 @@ comand line: $args
    commands: $cmds
    iso file: $iso
      target: $dev
-     cheats: $CHEATS
+     cheats: $cheats
 
 Start_Log
 }
