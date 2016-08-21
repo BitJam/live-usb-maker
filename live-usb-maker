@@ -477,7 +477,7 @@ check_from() {
 mk_from_label() {
     local fmt=$1  what=${2##*/}
     [ ${#from_label} -gt 0 ] && return
-    from_label=$(printf "$fmt" "$(ppq "$what")")
+    from_label=$(printf "$fmt" "$(pqq "$what")")
 }
 
 #------------------------------------------------------------------------------
