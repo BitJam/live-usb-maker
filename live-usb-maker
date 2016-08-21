@@ -923,6 +923,8 @@ write_config() {
 
     cat<<Config_File >"$file"
           NO_QUIT="$NO_QUIT"  # FOR TESTING
+
+     ISO_FILE_DIR="$ISO_FILE_DIR"
     ISO_FILE_SPEC="$ISO_FILE_SPEC"
       SEARCH_DIRS="$SEARCH_DIRS"
      SEARCH_DEPTH="$SEARCH_DEPTH"
