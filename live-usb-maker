@@ -232,9 +232,10 @@ main() {
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
 
-    case ${SIZE%%%} in
+    local percent_size=${SIZE%%%}
+    case $percent_size in
         [1-9]|[0-9][0-9]|100) ;;
-        *) fatal $"Bad size format '%s'.  Should be between %s and %s inclusive." "$(pqh $SIZE)" "1%" "100%"
+        *) fatal $"Bad size format '%s'.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
     esac
 
     [ -z "${FAT_SIZE##[0-9]}" ] && fatal $"esp-size must be larger than %s" 9
@@ -384,7 +385,7 @@ main() {
 
     #--- calculate and show various sizes before we through errors due to size
     local total_size=$(parted $target_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
-    local mib_size=$((total_size * SIZE / 100 - 1))
+    local mib_size=$((total_size * percent_size / 100 - 1))
     local ext_size=$((mib_size - FAT_SIZE))
     local total_extra=$((total_size - mib_size))
     local ext_needed=$(du_size $ISO_DIR/*)
