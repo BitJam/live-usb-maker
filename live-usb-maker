@@ -354,9 +354,9 @@ main() {
 
     local cheats
     case $CHEATS in
-        "") yes_NO "Customize language and timezone?"  && cheats_menu cheats ;;
+        "") yes_NO "Customize language and timezone?"  && cheats_menus cheats ;;
     off|no) ;;
-    yes|on) cheats_menu cheats ;;
+    yes|on) cheats_menus cheats ;;
          *) cheats=$CHEATS     ;;
     esac
 
