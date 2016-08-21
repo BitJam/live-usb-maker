@@ -6,6 +6,8 @@ MY_DIR=$(dirname "$(readlink -f $0)")
 #== BEGIN_CONFIG
 
           NO_QUIT="true"  # FOR TESTING
+
+     ISO_FILE_DIR="%USER_HOME%"
     ISO_FILE_SPEC="*.iso"
       SEARCH_DIRS="%USER_HOME% /media /root"
      SEARCH_DEPTH="4"
@@ -262,47 +264,73 @@ main() {
 
     local from
     if [ ${#FROM} -gt 0 ]; then
-        check_from from "$FROM"
+        check_from from "$FROM" "$TARGET"
     else
     #--- Select source of live-usb if one was not given
-        select_usb_src from $TARGET
+        select_usb_src from "$TARGET"
     fi
 
-    #--- Make an iso-file search criteria based on a from with wildcard characters
-    local search_dirs
-    if [ ${#from} -gt 0 -a -z "${from##*\**}" ]; then
-        ISO_FILE_SPEC=$(basename "$from")
-        local sdir=$(dirname "$from")
-        [ ${#sdir} -gt 0  ] && search_dirs=$sdir
-        local fmt="%30s: %s"
-        msg "$fmt"  "ISO file wildcard"       "$(pq "$from")"
-        msg "$fmt"  "Will search directories" "$(pq "$search_dirs")"
-        msg "$fmt"  "For files matching"      "$(pq "$ISO_FILE_SPEC")"
-        from="iso-file"
-    fi
+    #----- #--- Make an iso-file search criteria based on a from with wildcard characters
+    #----- local search_dirs
+    #----- if [ ${#from} -gt 0 -a -z "${from##*\**}" ]; then
+    #-----     ISO_FILE_SPEC=$(basename "$from")
+    #-----     local sdir=$(dirname "$from")
+    #-----     [ ${#sdir} -gt 0  ] && search_dirs=$sdir
+    #-----     local fmt="%30s: %s"
+    #-----     msg "$fmt"  "ISO file wildcard"       "$(pq "$from")"
+    #-----     msg "$fmt"  "Will search directories" "$(pq "$search_dirs")"
+    #-----     msg "$fmt"  "For files matching"      "$(pq "$ISO_FILE_SPEC")"
+    #-----     from="iso-file"
+    #----- fi
 
-    #--- Search for iso file
-    local from_dev from_label
+    local from_label from_file
     case $from in
         iso-file|iso|file)
-            # Use %USER_HOME% as a placeholder for user's home directory (uid = 1000)
-            : ${search_dirs:=$(echo $SEARCH_DIRS | sed "s|%USER_HOME%|$(get_user_home)|")}
-
-            cli_search_file from "$ISO_FILE_SPEC" "$search_dirs" "$SEARCH_DEPTH" "$MAX_FILES"
-            test -f "$from" || fatal "Not a normal file %s" "$from"
-            msg "Using file %s" "$(pq "$from")"
-
-            from_label=$(printf $"from file %s" "$(pqq ${from##*/})")
-
-            #--- offer to check the md5 if a .md5 file is found
-            check_md5 "$from" ;;
-
-        clone=*)
-            from_dev=${from#clone=}
-            from_label=$(printf $"by cloning device %s" "$(pqq ${from_dev##*/})")  ;;
+            cli_get_filename from_file "$ISO_FILE_DIR" ; from=file=$from_file ;;
 
         clone)
-            from_label=$(printf $"by cloning live system %s" "$(pqq ${live_dev/##*/})")  ;;
+            mk_from_label  $"by cloning live system %s" "$live_dev"
+            from=clone=$LIVE_MP ;;
+
+        dev=*|clone=*|file=*)   ;;
+
+        *) test -f "$from" && from=file=$from ;;
+    esac
+
+    # The $from variable must be type=value as seen below.  This is more
+    # Complicated but it makes it easier to report to user what is going on
+    local from_val=${from#*=}
+    case $from in
+        file=*)
+            mount_iso_file "$from_val" "$ISO_DIR"
+            check_md5 "$from_val"
+            mk_from_label $"from file %s" "$from_val"
+            ;;
+
+        dev=*)
+            mount_device "$from_val" "$ISO_DIR"
+            mk_from_label $"copy device %s" "$from_val"
+            ;;
+
+        clone=*)
+            # First see if we were given a block device to clone
+            local from_dev=$(expand_device "$from_val")
+            if [ ${#from_dev} -gt 0 ]; then
+                mk_from_label $"by cloning device %s" "$from_dev"
+                mount_device    "$from_dev" "$MNT_DIR"
+                clone_directory "$MNT_DIR"  "$ISO_DIR"
+
+            elif test -d "$from_val"; then
+                mk_from_label $"by cloning directory %s" "$from_val"
+                clone_directory "$from_val" "$ISO_DIR"
+
+            else
+                fatal "Can only clone devices and directories, not '%s" "$from_val"
+            fi
+            ;;
+        *)
+            fatal "Internal error.  Bad from variable '%s" "$from"
+            ;;
     esac
 
     [ ${#TARGET} -eq 0 ] && select_target_device TARGET "$live_dev" "$from_dev"
@@ -413,12 +441,47 @@ main() {
 
     need uuids   && do_uuids $EXT_DIR "$ext_uuid" "$FAT_DIR/$GRUB_CONF" "$fat_uuid"
 
-    [ ${#CHEATS} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $EXT_DIR "$CHEATS"
-    [ ${#CHEATS} -gt 0 ] && need cheats-grub     && do_cheats_grub     $FAT_DIR "$CHEATS"
+    [ ${#cheats} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $EXT_DIR "$cheats"
+    [ ${#cheats} -gt 0 ] && need cheats-grub     && do_cheats_grub     $FAT_DIR "$cheats"
 
     need install && do_install_bootloader $target_dev $EXT_DIR $MSDOS_GPT
 
     my_exit 0
+}
+
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+check_from() {
+    local var=$1  cmd_from=$2  exclude=$3
+    case $cmd_from in
+        iso|file|iso-file) eval $var=\$cmd_from ; return 0 ;;
+            clone|clone=*) eval $var=\$cmd_from ; return 0 ;;
+    esac
+    local from_dev=$(expand_dev "$cmd_from")
+    if [ ${#from_dev} -gt 0 ]; then
+
+        eval "$var=dev=\$from_dev"
+        return 0
+    elif test -f "$cmd_from"; then
+        eval "$var=file=\$cmd_from"
+        return 0
+    else
+        fatal "The --from parameter '%s' was not recognized" "$cmd_from"
+    fi
+
+
+}
+
+#------------------------------------------------------------------------------
+# Fill the $from_label variable from a simple printf but ONLY if that 
+# variable is empty
+#------------------------------------------------------------------------------
+mk_from_label() {
+    local fmt=$1  what=${2##*/}
+    [ ${#from_label} -gt 0 ] && return
+    from_label=$(printf "$fmt" "$(ppq "$what")")
 }
 
 #------------------------------------------------------------------------------
@@ -465,79 +528,47 @@ cheats_menus() {
 }
 
 #------------------------------------------------------------------------------
-# Mount a plain file as an iso image
-# Mount a block device
-# If given "clone" then clone current live system
-# If given "clone=<dev>" then mount <dev> and clone it instead
+#
 #------------------------------------------------------------------------------
-mount_or_clone_src() {
-    local file=$1  dir=$2
-
-    mkdir -p $dir
-    is_mountpoint $dir && fatal $"Directory '%s' is already a mountpoint" $dir
-
-    case $file in
-        clone) clone_live_src $dir              ; return ;;
-      clone=*) clone_live_src $dir "${file#*=}" ; return ;;
-    esac
-
-    mount_dev_or_iso "$file" "$dir"
+mount_device() {
+    local dev=$1  dir=$2
+    mkdir -p "$dir"       || fatal "Failed to create mountpoint directory %s" "$dir"
+    is_mountpoint "$dir"  && fatal "Directory '%s' is already a mountpoint"   "$dir"
+    mount "$dev"  "$dir"
+    is_mountpoint "$dir"  || fatal "Failed to mount device %s at %s" "$dev"   "$dir"
 }
 
 #------------------------------------------------------------------------------
-# Mount an iso file or a block device
+# Mount an iso file
 #------------------------------------------------------------------------------
-mount_dev_or_iso() {
+mount_iso_file() {
     local file=$1  dir=$2
 
-    local block_dev=$(expand_device $file)
-    file=${block_dev:-$file}
+    test -e "$file" || fatal $"Could not find iso file %s" "$file"
+    test -r "$file" || fatal $"Could not read iso file %s" "$file"
 
-    if test -b $file; then
-        mount -o ro "$file" $dir
+    local type
+    for type in iso9660 udf; do
+        mount -t $type -o loop,ro "$file" $dir 2>/dev/null
         is_mountpoint $dir && return 0
-    else
-        test -e "$file" || fatal $"Could not find iso file %s" "$file"
-        test -r "$file" || fatal $"Could not read iso file %s" "$file"
-
-        local type
-        for type in iso9660 udf; do
-            mount -t $type -o loop,ro "$file" $dir 2>/dev/null
-            is_mountpoint $dir && return 0
-        done
-    fi
+    done
 
     fatal $"Could not mount iso file %s" "$file"
 }
 
 #------------------------------------------------------------------------------
-# Clone a running system or a live-usb stick by filling the targ_dir with
-# bind mounts that go back to the original.  This means that *only* the files
-# we bind mount end up in the new live-usb.
 #
-# NOTE: the targ_dir here is the work_dir/iso directory.  We make it looke like
-# a mounted iso file so later code does not have to know this is a clone
 #------------------------------------------------------------------------------
-clone_live_src() {
-    local targ_dir=$1  from_dir=${2:-$LIVE_MP}  mnt_dir=${3:-$MNT_DIR}
-    mkdir -p $dir
+clone_directory() {
+    local from_dir=$1 targ_dir=$2
     is_mountpoint "$targ_dir" && fatal $"Directory '%s' is already a mountpoint" "$targ_dir"
 
-    # Allow live "directory" to be a device that we mount
-    local block_dev=$(expand_device $from_dir)
-    if [ ${#block_dev} -gt 0 ];  then
-        my_mkdir $mnt_dir
-        mount -o ro $block_dev $mnt_dir
-        is_mountpoint $mnt_dir || fatal $"Could not mount device %s" "$block_dev"
-        from_dir=$mnt_dir
-    fi
-
     test -d "$from_dir"       || fatal $"Clone directory '%s' is not a directory"   "$from_dir"
-    is_mountpoint "$from_dir" || fatal $"Clone directory '%s' is not a mountpoint"  "$from_dir"
+    is_mountpoint "$from_dir" || warn  $"Clone directory '%s' is not a mountpoint"  "$from_dir"
 
     # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
     # making directories
-    mount -t tmpfs tmpfs $targ_dir
+    mount -t tmpfs tmpfs "$targ_dir"
 
     # FIXME: should this error message have a device, not a directory?
     local boot_dir
@@ -601,7 +632,7 @@ Clone_Bdir_Files
 }
 
 #------------------------------------------------------------------------------
-# Partition the traget usb device
+# Partition the target usb device
 #------------------------------------------------------------------------------
 do_partition() {
     local drive=$1  type=${2:-msdos}  ext_size=$3  mib_size=$4
