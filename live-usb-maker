@@ -996,5 +996,7 @@ load_lib() {
 LIB_PATH="$LIB_PATH:$MY_DIR/../cli-shell-utils:$MY_DIR"
 load_lib "$SHELL_LIB" "$LIB_PATH"
 
+set_colors
+
 main "$@"
 
