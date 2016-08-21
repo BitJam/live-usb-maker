@@ -344,6 +344,8 @@ main() {
             ;;
     esac
 
+    show_distro_version "$ISO_DIR" "$from_val"
+
     [ ${#TARGET} -eq 0 ] && select_target_device TARGET "$live_dev" "$from_dev"
 
     # Make sure our target is a real device
@@ -380,8 +382,6 @@ main() {
         $"Do you want to use it anyway (dangerous)?" \
         $"Use %s to always ignore this warning"      \
         $"The device %s does not seem to be usb or removeable."  "$target_dev"
-
-    show_distro_version "$ISO_DIR"
 
     #--- calculate and show various sizes before we through errors due to size
     local total_size=$(parted $target_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
