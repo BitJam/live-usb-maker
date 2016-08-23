@@ -114,7 +114,7 @@ Options:
   -p --pretend          Don't run most commands
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
-  -s --size=XX          Percent of usb-device to use in (default 100)
+  -s --size=XX          Percent of usb-device to use (default 100)
   -t --target=<xxx>     The device to make into a new live-usb
   -v --verbose          Print more, show commands when run
   -W --write-config     Write a config file preserving current options
@@ -242,7 +242,7 @@ main() {
     local percent_size=${CMD_SIZE%%%}
     case $percent_size in
         [1-9]|[0-9][0-9]|100) ;;
-        *) fatal $"Bad size format '%s'.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
+        *) fatal $"Wrong percentage value '%s'.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
     esac
 
     [ -z "${FAT_SIZE##[0-9]}" ] && fatal $"esp-size must be larger than %s" 9
@@ -762,7 +762,7 @@ do_uuids() {
     fi
 
     if [ ${#ext_uuid} -eq 0 ]; then
-        warn $"No %s give for %s partition" UUID ext4
+        warn $"No %s given for %s partition" UUID ext4
         return
     fi
 
