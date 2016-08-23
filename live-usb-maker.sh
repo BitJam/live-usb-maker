@@ -200,11 +200,10 @@ takes_param() {
 main() {
     local SHIFT SHORT_STACK="cCDeEfFghILmpqRstvW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
-
+    local START_T=0
     set_colors
 
     local orig_args="$*"
-    local START_T=$(date +%s)
 
     # Let non-root users get usage.  Need to get --ignore-config early.
     read_early_params "$@"
@@ -406,6 +405,8 @@ main() {
 
     #--- One last check with the user before we start doing the work
     YES_no_pretend "$final_q" || my_exit
+
+    START_T=$(date +%s)
 
     need partition && do_partition "$target_dev" "$MSDOS_GPT" $ext_size $mib_size
 
