@@ -206,8 +206,6 @@ main() {
     local orig_args="$*"
     local START_T=$(date +%s)
 
-    [ $# -eq 0 ] && usage
-
     # Let non-root users get usage.  Need to get --ignore-config early.
     read_early_params "$@"
 
