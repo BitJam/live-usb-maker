@@ -1,0 +1,15 @@
+1:default
+2:checkmd5
+3:checkfs
+4:toram
+5:from=usb
+6:from=hd
+7:nousb2
+8:hwclock=ask
+9:hwclock=utc
+10:hwclock=local
+11:password
+12:nostore
+13:dostore
+14:savestate
+15:nosavestate

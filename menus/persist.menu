@@ -1,0 +1,10 @@
+   1)  Default
+   2)  persist_all     Fast. Saves root and home (uses RAM, saves at shutdown)
+   3)  persist_root    Fast. Only saves root (uses RAM, saves at shutdown)
+   4)  persist_static  Slow. Saves root and home (no RAM use, saves constantly)
+   5)  persist_home    Only home persistence
+   6)  frugal_persist  Frugal with both root and home persistence
+   7)  frugal_root     Frugal with only root persistence
+   8)  frugal_static   Frugal with home and static root persistence
+   9)  frugal_home     Frugal with only home persistence
+  10)  frugal_only     Only Frugal, no persistence
