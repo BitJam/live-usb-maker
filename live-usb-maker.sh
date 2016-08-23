@@ -524,6 +524,8 @@ mount_device() {
     [ ${#dev} -gt 0 ]     || fatal "Could not find device %s" "$1"
     mkdir -p "$dir"       || fatal "Failed to create mountpoint directory %s" "$dir"
     is_mountpoint "$dir"  && fatal "Directory '%s' is already a mountpoint"   "$dir"
+
+    [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount disc at %s" "$(pq $dev)"
     always_cmd mount -o ro "$dev" "$dir"
     is_mountpoint "$dir"  || fatal "Failed to mount device %s at %s" "$dev"   "$dir"
 }
