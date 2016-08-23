@@ -289,19 +289,6 @@ main() {
         select_usb_src from "$TARGET"
     fi
 
-    #----- #--- Make an iso-file search criteria based on a from with wildcard characters
-    #----- local search_dirs
-    #----- if [ ${#from} -gt 0 -a -z "${from##*\**}" ]; then
-    #-----     ISO_FILE_SPEC=$(basename "$from")
-    #-----     local sdir=$(dirname "$from")
-    #-----     [ ${#sdir} -gt 0  ] && search_dirs=$sdir
-    #-----     local fmt="%30s: %s"
-    #-----     msg "$fmt"  "ISO file wildcard"       "$(pq "$from")"
-    #-----     msg "$fmt"  "Will search directories" "$(pq "$search_dirs")"
-    #-----     msg "$fmt"  "For files matching"      "$(pq "$ISO_FILE_SPEC")"
-    #-----     from="iso-file"
-    #----- fi
-
     local from_label from_file
     case $from in
         iso-file|iso|file)
