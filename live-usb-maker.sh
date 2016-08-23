@@ -290,7 +290,7 @@ main() {
     local from_label from_file
     case $from in
         iso-file|iso|file)
-            cli_get_filename from_file "$ISO_FILE_DIR" ; from=file=$from_file ;;
+            cli_get_filename from_file "Please enter the filename" "$ISO_FILE_DIR" ; from=file=$from_file ;;
 
         clone)
             mk_from_label  $"by cloning live system %s" "$live_dev"
