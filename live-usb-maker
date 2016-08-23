@@ -277,6 +277,8 @@ main() {
     if [ ${#TARGET} -gt 0 ]; then
         check_target "$TARGET" "$live_dev"
         msg "Using target device %s" "$(pq $TARGET)"
+    else
+        select_target_device TARGET "$live_dev"
     fi
 
     local from
@@ -339,7 +341,6 @@ main() {
 
     show_distro_version "$ISO_DIR" "$from_val"
 
-    [ ${#TARGET} -eq 0 ] && select_target_device TARGET "$live_dev" "$from_dev"
 
     # Make sure our target is a real device
     local target_dev=$(expand_device $TARGET)
