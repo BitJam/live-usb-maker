@@ -265,7 +265,6 @@ main() {
     mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal $"Could not make %s subdirectories" "$WORK_DIR"
 
     #--- Find live boot device if we are running live
-    #--- FIXME:? Use initrd.out for toram case?
 
     local we_are_live live_dev
     if its_alive; then
