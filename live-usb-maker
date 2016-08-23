@@ -407,8 +407,6 @@ main() {
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
 
-    : ${CMNDS:=all}
-
     check_size ext $ext_extra $EXT_MARGIN
     check_size fat $fat_extra $FAT_MARGIN
 
