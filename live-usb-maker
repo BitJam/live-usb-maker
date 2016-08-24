@@ -379,25 +379,10 @@ main() {
         $"Use %s to always ignore this warning"      \
         $"The device %s does not seem to be usb or removeable."  "$target_dev"
 
-    #--- calculate and show various sizes before we through errors due to size
-    local total_size=$(parted $target_dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
-    local mib_size=$((total_size * percent_size / 100 - 1))
-    local ext_size=$((mib_size - FAT_SIZE))
-    local total_extra=$((total_size - mib_size))
-    local ext_needed=$(du_size $ISO_DIR/*)
-    local fat_needed=$(du_size $ISO_DIR/{boot,EFI,efi})
-    local ext_extra=$((ext_size - ext_needed))
-    local fat_extra=$((FAT_SIZE - fat_needed))
-
-    usb_stats $"entire drive"    "$total_size" "$mib_size"  "$total_extra" \
-              $"main partition"  "$ext_size" "$ext_needed"  "$ext_extra" \
-              $"uefi partition"  "$FAT_SIZE" "$fat_needed"  "$fat_extra" \
+    local mib_size ext_size
+    verify_sizes mib_size ext_size "$target_dev"  "$ISO_DIR" "$percent_size" "$FAT_SIZE"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
-
-    check_size ext $ext_extra $EXT_MARGIN
-    check_size fat $fat_extra $FAT_MARGIN
-
     # Bail early if only size info is requested
     given_cmd sizes && my_exit 0
 
@@ -501,6 +486,59 @@ select_target_device() {
            return ;;
     esac
     my_select_quit $var "Please select the target usb device" "$menu"
+}
+
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+verify_sizes() {
+    local mib_var=$1  ext_var=$2  dev=$3  dir=$4  percent=$5  fat_size=$6
+
+    local total_size=$(parted $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+
+    while true; do
+        #--- calculate and show various sizes before we through errors due to size
+        local mib_size=$((total_size * percent_size / 100 - 1))
+        local ext_size=$((mib_size - fat_size))
+        local total_extra=$((total_size - mib_size))
+        local ext_needed=$(du_size $dir/*)
+        local fat_needed=$(du_size $dir/{boot,EFI,efi})
+        local ext_extra=$((ext_size - ext_needed))
+        local fat_extra=$((FAT_SIZE - fat_needed))
+
+        local min_percent=$((1 + 100 * (ext_needed + fat_size + EXT_MARGIN + FAT_MARGIN) / total_size))
+
+        usb_stats $"entire drive"    "$total_size" "$mib_size"  "$total_extra" \
+                  $"main partition"  "$ext_size" "$ext_needed"  "$ext_extra" \
+                  $"uefi partition"  "$fat_size" "$fat_needed"  "$fat_extra" \
+
+        check_size ext $ext_extra $EXT_MARGIN warn
+        check_size fat $fat_extra $FAT_MARGIN warn
+
+        eval $mib_var=\$mib_size
+        eval $ext_var=\$ext_size
+
+        if [ $min_percent -ge 90 ]; then
+            msg $"Already using over 90% of the device"
+            break
+        fi
+
+        yes_NO $"Do you want to use less than 100% of the device?" || break
+        select_free_space percent_size "$min_percent" "$total_size"
+    done
+
+    check_size ext $ext_extra $EXT_MARGIN fatal
+    check_size fat $fat_extra $FAT_MARGIN fatal
+
+}
+
+select_free_space() {
+    local var=$1  min_size=$2  total_size=$3
+    local title1=$"Please select how much EXTRA space you want left on the device"
+    local title2=$"(this space can't be used for remasters or persistence)"
+    local list=$(free_space_data "$min_size" "$total_size")
+    my_select $var "$title1\n$title2" "$list"
 }
 
 #------------------------------------------------------------------------------
@@ -852,9 +890,9 @@ check_target() {
 #
 #------------------------------------------------------------------------------
 check_size() {
-    local type=$1  extra=$2  margin=$3
-    [ $extra -lt 0 ] && fatal $"Not enough space on %s partition" "$type"
-    [ $extra -lt $margin ] && fatal $"Less than %s MiB would remain on %s partition" "$margin" "$type"
+    local type=$1  extra=$2  margin=$3  action=${4:-fatal}
+    [ $extra -lt 0 ]       && $action $"Not enough space on %s partition" "$type"
+    [ $extra -lt $margin ] && $action $"Less than %s MiB would remain on %s partition" "$margin" "$type"
 }
 
 my_exit() {
