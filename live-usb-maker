@@ -274,12 +274,12 @@ main() {
     fi
 
     # Check cmdline target *before* the first menu
-    if [ ${#TARGET} -gt 0 ]; then
-        check_target "$TARGET" "$live_dev"
-        msg "Using target device %s" "$(pq $TARGET)"
-    else
+    if [ ${#TARGET} -eq 0 ]; then
         select_target_device TARGET "$live_dev"
+    else
+        check_target "$TARGET" "$live_dev"
     fi
+    msg "Will use target device %s" "$(pq $TARGET)"
 
     local from
     if [ ${#FROM} -gt 0 ]; then
@@ -302,6 +302,8 @@ main() {
 
         *) test -f "$from" && from=file=$from ;;
     esac
+
+    msg "Will use source %s" "$(pq ${from#*=})"
 
     # The $from variable must be type=value as seen below.  This is more
     # Complicated but it makes it easier to report to user what is going on
