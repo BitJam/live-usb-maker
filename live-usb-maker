@@ -5,7 +5,7 @@ MY_DIR=$(dirname "$(readlink -f $0)")
 
 #== BEGIN_CONFIG
 
-          NO_QUIT="true"  # FOR TESTING
+          NO_QUIT="true"  # for testing part of the UI
 
      ISO_FILE_DIR="%USER_HOME%"
     ISO_FILE_SPEC="*.iso"
@@ -920,7 +920,7 @@ write_config() {
     msg "Writing config file %s" "$(pq "$file")"
 
     cat<<Config_File >"$file"
-          NO_QUIT="$NO_QUIT"  # FOR TESTING
+          NO_QUIT="$NO_QUIT"  # for testing part of the UI
 
      ISO_FILE_DIR="$ISO_FILE_DIR"
     ISO_FILE_SPEC="$ISO_FILE_SPEC"
