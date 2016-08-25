@@ -505,13 +505,14 @@ select_target_device() {
 #
 #------------------------------------------------------------------------------
 verify_sizes() {
-    local mib_var=$1  ext_var=$2  dev=$3  dir=$4  percent=$5  fat_size=$6
+    local mib_var=$1  ext_var=$2  dev=$3  dir=$4  cmd_percent=$5  fat_size=$6
+    local percent=${cmd_percent:-100}
 
     local total_size=$(parted $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
 
     while true; do
         #--- calculate and show various sizes before we through errors due to size
-        local mib_size=$((total_size * percent_size / 100 - 1))
+        local mib_size=$((total_size * percent / 100 - 1))
         local ext_size=$((mib_size - fat_size))
         local total_extra=$((total_size - mib_size))
         local ext_needed=$(du_size $dir/*)
@@ -536,15 +537,19 @@ verify_sizes() {
             break
         fi
 
-        yes_NO $"Do you want to use less than 100% of the device?" || break
-        select_free_space percent_size "$min_percent" "$total_size"
+        # Only offer to change if a size was not given on the cmdline
+        [ ${#cmd_percent} -gt 0 ] && break
+        yes_NO $"Do you want change how much of the device is used?" || break
+        select_free_space percent "$min_percent" "$total_size"
     done
 
     check_size ext $ext_extra $EXT_MARGIN fatal
     check_size fat $fat_extra $FAT_MARGIN fatal
-
 }
 
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
 select_free_space() {
     local var=$1  min_size=$2  total_size=$3
     local title1=$"Please select how much EXTRA space you want left on the device"
