@@ -35,7 +35,7 @@ MY_DIR=$(dirname "$(readlink -f $0)")
         GRUB_CONF="boot/grub/grub.cfg"
            CHEATS=""
      COLOR_SCHEME="high"
-     DEFAULT_MODE=""
+    QUESTION_MODE=""
 
 #== END_CONFIG
 
@@ -51,7 +51,7 @@ MY_DIR=$(dirname "$(readlink -f $0)")
 
 ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
-    ALL_CMDS="sizes all defaults $ORDERED_CMDS"
+    ALL_CMDS="sizes all $ORDERED_CMDS"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
 
@@ -70,6 +70,9 @@ Usage: $ME [commands]
 Create a live-usb from an iso-file, another live-usb, a live-cd/dvd
 or a running live system.  You will be prompted for information that
 is not supplied in the command line options.
+
+Use "default" command for fewer questions.
+Use "expert" for more questions.
 
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
@@ -179,8 +182,9 @@ eval_argument() {
 assign_parameter() {
     local cnt=$1 param=$2
    case $param in
-       defaults) DEFAULT_MODE=true    ;;
-              *) CMDS="$CMDS $param"  ;;
+       default) QUESTION_MODE=default  ;;
+        expert) QUESTION_MODE=expert   ;;
+             *) CMDS="$CMDS $param"    ;;
     esac
 }
 
@@ -229,10 +233,17 @@ main() {
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
 
-    if [ "$DEFAULT_MODE" ]; then
-        msg "Using default mode"
+    if [ -z "$QUESTION_MODE" ]; then
+        QUESTION_MODE=expert
+        YES_no $"Use default mode (fewer questions)?" && QUESTION_MODE=default
+        msg "Using %s mode" "$(pq $QUESTION_MODE)"
+    fi
+
+    if [ "$QUESTION_MODE" = default ]; then
         CMD_SIZE=100
         CHEATS=no
+    else
+        : #CHEATS=yes
     fi
 
     : ${CMDS:=all}
@@ -241,6 +252,7 @@ main() {
 
     local percent_size=${CMD_SIZE%%%}
     case $percent_size in
+                          "") ;; # laterz
         [1-9]|[0-9][0-9]|100) ;;
         *) fatal $"Wrong percentage value '%s'.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
     esac
@@ -990,7 +1002,7 @@ write_config() {
         GRUB_CONF="$GRUB_CONF"
            CHEATS=""
      COLOR_SCHEME="$COLOR_SCHEME"
-     DEFAULT_MODE="$DEFAULT_MODE"
+    QUESTION_MODE="$QUESTION_MODE"
 Config_File
 
     return 0
