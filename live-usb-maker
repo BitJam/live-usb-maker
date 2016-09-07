@@ -1,7 +1,9 @@
 #!/bin/bash
 
-ME=${0##*/}
-MY_DIR=$(dirname "$(readlink -f $0)")
+        ME=${0##*/}
+    MY_DIR=$(dirname "$(readlink -f $0)")
+MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
+   LIB_DIR="/usr/local/lib/cli-shell-utils"
 
 #== BEGIN_CONFIG
 
@@ -42,7 +44,6 @@ MY_DIR=$(dirname "$(readlink -f $0)")
          WORK_DIR="/run/$ME"
         LOCK_FILE="/run/lock/$ME"
         SHELL_LIB="cli-shell-utils.bash"
-         LIB_PATH="/usr/local/lib/cli-shell-utils"
         CONF_FILE="/root/.config/$ME/$ME.conf"
      THE_LOG_FILE="/var/log/$ME.log"
      THE_ERR_FILE="/var/log/$ME.errors"
@@ -57,9 +58,8 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
 
-       PATH="$MY_DIR:/usr/local/share/live-usb-maker/bin:$PATH"
-  MENU_PATH="$MY_DIR/menus:/usr/local/share/text-menus/"
-   MENU_DIR="$MY_DIR/menus"
+    LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
+        PATH="$MY_LIB_DIR/bin:$LIB_DIR/bin:$PATH"
 
 usage() {
     local ret=${1:-0}
@@ -1027,11 +1027,9 @@ clean_up() {
 #------------------------------------------------------------------------------
 load_lib() {
     local file=$1 path=$2
-    shift
-
     unset FOUND_LIB
-    local dir lib found orig_ifs=$IFS
-    IFS=:
+
+    local dir lib found local IFS=:
     for dir in $path; do
         lib=$dir/$file
         test -r $lib || continue
@@ -1041,7 +1039,6 @@ load_lib() {
             exit 15
         fi
         FOUND_LIB=$lib
-        IFS=$orig_ifs
         return 0
     done
 
@@ -1051,7 +1048,6 @@ load_lib() {
 }
 
 #===== Start Here =============================================================
-LIB_PATH="$LIB_PATH:$MY_DIR/../cli-shell-utils:$MY_DIR"
 load_lib "$SHELL_LIB" "$LIB_PATH"
 
 set_colors
