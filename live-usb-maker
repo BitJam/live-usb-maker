@@ -334,6 +334,15 @@ main() {
         clone=*)
             # First see if we were given a block device to clone
             local from_dev=$(expand_device "$from_val")
+
+            # Just clone the directory instead if the device is already mounted
+            if is_mounted "$from_dev"; then
+                from_val=$(grep "^$from_dev " /proc/mounts | cut -d" " -f2 | head -n1)
+                msg "Will trying cloning directory %s" "$(pq "$from_val")"
+                from_dev=
+
+            fi
+
             if [ ${#from_dev} -gt 0 ]; then
                 mk_from_label $"by cloning device %s" "$from_dev"
                 mount_device    "$from_dev" "$MNT_DIR"
