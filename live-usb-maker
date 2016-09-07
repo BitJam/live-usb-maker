@@ -315,7 +315,6 @@ main() {
         *) test -f "$from" && from=file=$from ;;
     esac
 
-    msg "Will use source %s" "$(pq ${from#*=})"
 
     # The $from variable must be type=value as seen below.  This is more
     # Complicated but it makes it easier to report to user what is going on
@@ -353,6 +352,7 @@ main() {
             ;;
     esac
 
+    msg "Will use source %s" "$(pq ${from#*=})"
     show_distro_version "$ISO_DIR" "$from_val"
 
 
