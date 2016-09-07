@@ -592,6 +592,7 @@ mount_device() {
     mkdir -p "$dir"       || fatal "Failed to create mountpoint directory %s" "$dir"
     is_mountpoint "$dir"  && fatal "Directory '%s' is already a mountpoint"   "$dir"
 
+    is_mounted "$dev"     && fatal "Device %s is already mounted" "$dev"
     [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount disc at %s" "$(pq $dev)"
     always_cmd mount -o ro "$dev" "$dir"
     is_mountpoint "$dir"  || fatal "Failed to mount device %s at %s" "$dev"   "$dir"
