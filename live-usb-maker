@@ -303,10 +303,11 @@ main() {
         select_usb_src from "$TARGET"
     fi
 
-    local from_label from_file
+    local from_label from_file from_act=copying
     case $from in
         iso-file|iso|file)
-            cli_get_filename from_file "Please enter the filename" "$ISO_FILE_DIR" ; from=file=$from_file ;;
+            cli_get_filename from_file "Please enter the filename" "$ISO_FILE_DIR"
+            from=file=$from_file ;;
 
         clone)
             mk_from_label  $"by cloning live system %s" "$live_dev"
@@ -317,30 +318,37 @@ main() {
         *) test -f "$from" && from=file=$from ;;
     esac
 
+    [ -n "$from" -a -n "${from%%*=*}" ] &&* fatal "Internal error 1: bad from value: %s" "$from"
+
+    local from_type=${from%%=*}
+    local from_value=${from#*=}
 
     # The $from variable must be type=value as seen below.  This is more
     # Complicated but it makes it easier to report to user what is going on
-    local from_val=${from#*=}
-    case $from in
-        file=*)
-            mount_iso_file "$from_val" "$ISO_DIR"
-            check_md5 "$from_val"
-            mk_from_label $"from file %s" "$from_val"
+    local from_dev from_thing
+    case $from_type in
+        file)
+            mount_iso_file "$from_value" "$ISO_DIR"
+            check_md5 "$from_value"
+            mk_from_label $"from file %s" "$from_value"
+            from_thing=file
             ;;
 
-        dev=*)
-            mount_device "$from_val" "$ISO_DIR"
-            mk_from_label $"copy device %s" "$from_val"
+        dev)
+            mount_device "$from_value" "$ISO_DIR"
+            mk_from_label $"copy device %s" "$from_value"
+            from_thing=device
             ;;
 
-        clone=*)
+        clone)
             # First see if we were given a block device to clone
-            local from_dev=$(expand_device "$from_val")
+            local from_dev=$(expand_device "$from_value")
+            from_act=cloning
 
             # Just clone the directory instead if the device is already mounted
             if is_mounted "$from_dev"; then
-                from_val=$(grep "^$from_dev " /proc/mounts | cut -d" " -f2 | head -n1)
-                msg "Will trying cloning directory %s" "$(pq "$from_val")"
+                from_value=$(grep "^$from_dev " /proc/mounts | cut -d" " -f2 | head -n1)
+                msg "Will trying cloning directory %s" "$(pq "$from_value")"
                 from_dev=
 
             fi
@@ -349,22 +357,24 @@ main() {
                 mk_from_label $"by cloning device %s" "$from_dev"
                 mount_device    "$from_dev" "$MNT_DIR"
                 clone_directory "$MNT_DIR"  "$ISO_DIR"
+                from_thing=device
 
-            elif test -d "$from_val"; then
-                mk_from_label $"by cloning directory %s" "$from_val"
-                clone_directory "$from_val" "$ISO_DIR"
+            elif test -d "$from_value"; then
+                mk_from_label $"by cloning directory %s" "$from_value"
+                clone_directory "$from_value" "$ISO_DIR"
+                from_thing=directory
 
             else
-                fatal "Can only clone devices and directories, not '%s" "$from_val"
+                fatal "Can only clone devices and directories, not '%s" "$from_value"
             fi
             ;;
         *)
-            fatal "Internal error.  Bad from variable '%s" "$from"
+            fatal "Internal error 2.  Bad from variable '%s" "$from"
             ;;
     esac
 
-    msg "Will use source %s" "$(pq ${from#*=})"
-    show_distro_version "$ISO_DIR" "$from_val"
+    msg "Will use source %s" "$from_thing $(pq $from_value)"
+    show_distro_version "$ISO_DIR" # "$from_value"
 
 
     # Make sure our target is a real device
@@ -411,8 +421,10 @@ main() {
 
     # Make sure the target is not in use
     umount_all $target_dev
-    local final_q=$(quest "%s %s %s$nc_co\n$quest_co%s" $"Ready to make live-usb on device" \
-        "$(pqq ${target_dev##*/})" "$from_label" $"Shall we begin?")
+    local final_q=$(quest $"Ready to make live-usb on device %s by %s" \
+        "$(pqq ${target_dev##*/})" "$from_act $from_thing $(pqq $from_value)")
+
+    final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
 
     #--- One last check with the user before we start doing the work
     YES_no_pretend "$final_q" || my_exit
@@ -464,6 +476,7 @@ check_from() {
 
         eval "$var=dev=\$from_dev"
         return 0
+
     elif test -f "$cmd_from"; then
         eval "$var=file=\$cmd_from"
         return 0
@@ -475,7 +488,7 @@ check_from() {
 }
 
 #------------------------------------------------------------------------------
-# Fill the $from_label variable from a simple printf but ONLY if that 
+# Fill the $from_label variable from a simple printf but ONLY if that
 # variable is empty
 #------------------------------------------------------------------------------
 mk_from_label() {
