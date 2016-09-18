@@ -391,7 +391,7 @@ main() {
 
     #--- Okay, now we are ready for final checks and to do the work
     # We start logging right after we've expanded the target device
-    start_log "$orig_args" "$CMDS" "$from" "$target_dev" "$cheats"
+    start_log "$orig_args" "$CMDS" "$from" "$target_dev"
 
     # This are mostly for a manually entered target
     test -e $target_dev || fatal $"Target device %s does not exist" $target_dev
@@ -955,7 +955,7 @@ my_exit() {
 #
 #------------------------------------------------------------------------------
 start_log() {
-    local args=$1 cmds=${2# }  iso=$3  dev=$4  cheats=$5
+    local args=$1 cmds=${2# }  iso=$3  dev=$4
 
     LOG_FILE=$THE_LOG_FILE
 
@@ -968,7 +968,6 @@ comand line: $args
    commands: $cmds
    iso file: $iso
      target: $dev
-     cheats: $cheats
 
 Start_Log
 }
