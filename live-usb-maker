@@ -535,7 +535,7 @@ verify_sizes() {
     local mib_var=$1  ext_var=$2  dev=$3  dir=$4  cmd_percent=$5  fat_size=$6  default_size=${7:-100}
     local percent=${cmd_percent:-$default_size}
 
-    local total_size=$(parted $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    local total_size=$(parted --script $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
 
     while true; do
         #--- calculate and show various sizes before we through errors due to size
@@ -724,6 +724,9 @@ do_partition() {
     esac
 
     msg $"Using %s partitioning" $(pq $type)
+
+    # Clear out previous partition table (darned "dd" live-usbs)
+    cmd dd if=/dev/zero of=$drive count=1 bs=512
 
     cmd parted --script --align optimal $target_dev \
         unit MiB                                    \
