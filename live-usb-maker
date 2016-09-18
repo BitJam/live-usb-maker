@@ -433,7 +433,10 @@ main() {
 
     need partition && do_partition "$target_dev" "$MSDOS_GPT" "$ext_size" "$mib_size"
 
+    cmd wait_for_file "$ext_dev"
     need makefs-ext && do_makefs_ext "$ext_dev" "$EXT4_OPTIONS" "$EXT4_LABEL"
+
+    cmd wait_for_file "$fat_dev"
     need makefs-fat && do_makefs_fat $fat_dev
 
     my_mount $ext_dev $EXT_DIR
@@ -729,6 +732,19 @@ do_partition() {
         mkpart primary fat32 $ext_size $mib_size    \
         set 1 $boot_flag on                         \
         set 2 esp  on || fatal $"Partitioning failed"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+wait_for_file() {
+    local file=$1  name={$2:-Device}  delay=${3:-.1}  total=${4:-40}
+    local i
+    for i in $(seq 1 $total); do
+        test -e $file && return 0
+        sleep $delay
+    done
+    fatal $"%s does not exist!" "$name $file"
 }
 
 #------------------------------------------------------------------------------
