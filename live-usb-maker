@@ -396,14 +396,14 @@ main() {
     local fat_dev=$(get_partition $target_dev 2)
 
     # fatal "The device %s does not seem to be usb or removable."
-    # FIXME: move this to the lib
+    # FIXME: move this to the lib?
     force usb || is_usb_or_removable $target_dev || yes_NO_fatal "usb" \
         $"Do you want to use it anyway (dangerous)?" \
         $"Use %s to always ignore this warning"      \
         $"The device %s does not seem to be usb or removeable."  "$target_dev"
 
     local mib_size ext_size
-    verify_sizes mib_size ext_size "$target_dev"  "$ISO_DIR" "$percent_size" "$FAT_SIZE"
+    verify_sizes mib_size ext_size "$target_dev"  "$ISO_DIR" "$percent_size" "$FAT_SIZE" "${DEFAULT_SIZE%%%}"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
     # Bail early if only size info is requested
@@ -516,8 +516,8 @@ select_target_device() {
 #
 #------------------------------------------------------------------------------
 verify_sizes() {
-    local mib_var=$1  ext_var=$2  dev=$3  dir=$4  cmd_percent=$5  fat_size=$6
-    local percent=${cmd_percent:-100}
+    local mib_var=$1  ext_var=$2  dev=$3  dir=$4  cmd_percent=$5  fat_size=$6  default_size=${7:-100}
+    local percent=${cmd_percent:-$default_size}
 
     local total_size=$(parted $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
 
