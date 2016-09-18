@@ -124,9 +124,9 @@ Options:
   -W --write-config     Write a config file preserving current options
 
 Notes:
-  - short options stack. Example: fixme
+  - short options stack. Example: -pv is the same as --pretend --verbose
   - options can be intermingled with commands and parameters
-  - config file: $CONF_FILE
+  - config file: $CONFIG_FILE
   - the config file will be sourced if it exists
   - it will be created if it doesn't exist
 Usage
