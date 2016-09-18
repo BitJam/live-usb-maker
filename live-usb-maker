@@ -1039,10 +1039,10 @@ clean_up() {
 #
 #------------------------------------------------------------------------------
 load_lib() {
-    local file=$1 path=$2
+    local file=$1  path=$2
     unset FOUND_LIB
 
-    local dir lib found local IFS=:
+    local dir lib found IFS=:
     for dir in $path; do
         lib=$dir/$file
         test -r $lib || continue
