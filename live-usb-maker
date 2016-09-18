@@ -431,7 +431,7 @@ main() {
 
     START_T=$(date +%s)
 
-    need partition && do_partition "$target_dev" "$MSDOS_GPT" $ext_size $mib_size
+    need partition && do_partition "$target_dev" "$MSDOS_GPT" "$ext_size" "$mib_size"
 
     need makefs-ext && do_makefs_ext "$ext_dev" "$EXT4_OPTIONS" "$EXT4_LABEL"
     need makefs-fat && do_makefs_fat $fat_dev
@@ -536,25 +536,25 @@ verify_sizes() {
 
     while true; do
         #--- calculate and show various sizes before we through errors due to size
-        local mib_size=$((total_size * percent / 100 - 1))
-        local ext_size=$((mib_size - fat_size))
-        local total_extra=$((total_size - mib_size))
+        local mib_val=$((total_size * percent / 100 - 1))
+        local ext_val=$((mib_val - fat_size))
+        local total_extra=$((total_size - mib_val))
         local ext_needed=$(du_size $dir/*)
         local fat_needed=$(du_size $dir/{boot,EFI,efi})
-        local ext_extra=$((ext_size - ext_needed))
+        local ext_extra=$((ext_val - ext_needed))
         local fat_extra=$((FAT_SIZE - fat_needed))
 
         local min_percent=$((1 + 100 * (ext_needed + fat_size + EXT_MARGIN + FAT_MARGIN) / total_size))
 
-        usb_stats $"entire drive"    "$total_size" "$mib_size"  "$total_extra" \
-                  $"main partition"  "$ext_size" "$ext_needed"  "$ext_extra" \
+        usb_stats $"entire drive"    "$total_size" "$mib_val"  "$total_extra" \
+                  $"main partition"  "$ext_val" "$ext_needed"  "$ext_extra" \
                   $"uefi partition"  "$fat_size" "$fat_needed"  "$fat_extra" \
 
         check_size ext $ext_extra $EXT_MARGIN warn
         check_size fat $fat_extra $FAT_MARGIN warn
 
-        eval $mib_var=\$mib_size
-        eval $ext_var=\$ext_size
+        eval $mib_var=\$mib_val
+        eval $ext_var=\$ext_val
 
         if [ $min_percent -ge 90 ]; then
             msg $"Already using over 90% of the device"
