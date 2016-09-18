@@ -1,5 +1,14 @@
 # live-usb-maker
 Create an antiX/MX LiveUSB
+### Quick Start
+
+    sudo apt-get update       # if needed
+    sudo apt-get install git  # if needed
+    git clone https://github.com/BitJam/live-usb-maker
+    git clone https://github.com/BitJam/cli-shell-utils
+    cd live-usb-maker
+    sudo ./live-usb-maker
+
 ```
 Usage: live-usb-maker [commands]
 
