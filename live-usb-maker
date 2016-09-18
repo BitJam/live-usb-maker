@@ -45,7 +45,7 @@ MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
          WORK_DIR="/run/$ME"
         LOCK_FILE="/run/lock/$ME"
         SHELL_LIB="cli-shell-utils.bash"
-        CONF_FILE="/root/.config/$ME/$ME.conf"
+      CONFIG_FILE="/root/.config/$ME/$ME.conf"
      THE_LOG_FILE="/var/log/$ME.log"
      THE_ERR_FILE="/var/log/$ME.errors"
          LOG_FILE="/dev/null"
@@ -227,8 +227,8 @@ main() {
     rm -f $ERR_FILE
 
     if [ -z "$IGNORE_CONF" ]; then
-        test -r "$CONF_FILE" && . "$CONF_FILE"
-        test -e "$CONF_FILE" || write_conf "$CONF_FILE"
+        test -r "$CONFIG_FILE" && . "$CONFIG_FILE"
+        test -e "$CONFIG_FILE" || write_conf "$CONFIG_FILE"
     fi
 
     read_all_cmdline_mingled "$@"
