@@ -18,6 +18,7 @@ MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
 
         MSDOS_GPT="gpt"
      DEFAULT_SIZE="100%"
+         CMD_SIZE=""
          FAT_SIZE="50"
        EXT_MARGIN="20"
        FAT_MARGIN="5"
@@ -998,6 +999,7 @@ write_config() {
 
         MSDOS_GPT="$MSDOS_GPT"
      DEFAULT_SIZE="$DEFAULT_SIZE"
+         CMD_SIZE="$CMD_SIZE"
          FAT_SIZE="$FAT_SIZE"
        EXT_MARGIN="$EXT_MARGIN"
        FAT_MARGIN="$FAT_MARGIN"
