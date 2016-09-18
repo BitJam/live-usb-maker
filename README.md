@@ -7,22 +7,29 @@ Create a live-usb from an iso-file, another live-usb, a live-cd/dvd
 or a running live system.  You will be prompted for information that
 is not supplied in the command line options.
 
+Use "default" command for fewer questions.
+Use "expert" for more questions.
+
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
 
-This will destroy any existing information on <usb-device>.
+This will destroy any existing information on <usb-device>.  The default
+partitioning scheme is GPT.  Use --msdos flag to use msdos partitioning
+instead.
 
-  --from="iso-file"    get a menu of iso files
+  --from="iso-file"    Enter an iso file to use as the source
   --from="clone"       clone a running live system.
   --from=clone=<dir>   clone from a mounted live-usb or iso-file.
   --from=<dev>         copy from a livecd/dvd or live-usb
 
 Options:
-  -a --auto             Never ask questions.  Always assume the safe answer
   -c --cheat=xxx        Add these cheatcodes to the live-usb
+                           Use "off" or "no" to disable cheats menu.
+                           Use "on" or "yes"  to show cheat menus without asking
+
+                        Otherwise you will be asked.
      --color=<xxx>      Set color scheme to off|low|high
   -C --clear            Delete files from each partition before copying
-  -d --device=<xxx>
   -D --debug            Pause before cleaning up
   -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
   -E --ext-options=<xx> Use these options when creating the ext4 filesystem
@@ -31,26 +38,28 @@ Options:
                         Use "clone" to clone the current live system or use
                         clone=<xxx> to clone another live-usb
 
-  -F --force=<xxxX>       Force the options specfied:
+  -F --force=<xxx>      Force the options specfied:
                             umount: Allows try to umount all partitions on drive
                                usb: Ignore usb/removable check
                             makefs: Make the ext4 filesystem even if one exists
                               copy: Overwrite ext4 partition even if antiX/ exists
                                all: All of the above (dangerous!)
 
-  -g --gpt              Use gpt partitioning instead of msdos
+  -g --gpt              Use gpt partitioning (default) instead of msdos
   -h --help             Show this usage
-  -i --ignore-config    Ignore the config file
+  -I --ignore-config    Ignore the configuration file
   -L --label=Name       Label ext partition with Name
-  -n --no-cheats        Don't show menus for adding cheat codes
+  -m --msdos            Use msdos partitioning instead of gpt
   -p --pretend          Don't run most commands
   -q --quiet            Print less
-  -s --size=XX          Percent of usb-device to use in (default 100)
+  -R --reset-config     Write a fresh config file with default options
+  -s --size=XX          Percent of usb-device to use (default 100)
+  -t --target=<xxx>     The device to make into a new live-usb
   -v --verbose          Print more, show commands when run
-  -w --write-config     Write a fresh config file
+  -W --write-config     Write a config file preserving current options
 
 Notes:
-  - short options stack. Example: -Ff instead of -F -f
+  - short options stack. Example: -pv is the same as --pretend --verbose
   - options can be intermingled with commands and parameters
   - config file: /root/.config/live-usb-maker/live-usb-maker.conf
   - the config file will be sourced if it exists
