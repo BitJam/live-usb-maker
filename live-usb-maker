@@ -478,7 +478,7 @@ check_from() {
         iso|file|iso-file) eval $var=\$cmd_from ; return 0 ;;
             clone|clone=*) eval $var=\$cmd_from ; return 0 ;;
     esac
-    local from_dev=$(expand_dev "$cmd_from")
+    local from_dev=$(expand_device "$cmd_from")
     if [ ${#from_dev} -gt 0 ]; then
 
         eval "$var=dev=\$from_dev"
