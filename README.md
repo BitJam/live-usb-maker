@@ -16,8 +16,9 @@ Create a live-usb from an iso-file, another live-usb, a live-cd/dvd
 or a running live system.  You will be prompted for information that
 is not supplied in the command line options.
 
-Use "default" command for fewer questions.
-Use "expert" for more questions.
+Use "default" to default "no" to some questions.
+Use "expert"  to default "yes" to some questions.
+use "simple"  to skip some questions
 
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
