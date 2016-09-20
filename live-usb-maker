@@ -577,7 +577,7 @@ verify_sizes() {
         select_partition_size percent "$min_percent" "$total_size"
 
         mib_val=$((total_size * percent / 100 - 1))
-        msg $"Have set size to %s (%s MiB)" "$(nq $percent%)" "$(nq $mib_val)"
+        msg $"Have set size to %s (%s MiB)" "$(hq $percent%)" "$(nq $(add_commas $mib_val | color_commas))"
     done
 
     check_size ext $ext_extra $EXT_MARGIN fatal
