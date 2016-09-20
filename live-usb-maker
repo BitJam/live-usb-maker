@@ -589,7 +589,7 @@ verify_sizes() {
 #------------------------------------------------------------------------------
 select_partition_size() {
     local var=$1  min_size=$2  total_size=$3
-    local title1=$"Please select how large to make the live-usb partition"
+    local title1=$"Please select how large to make the live-usb partitions"
     local menu=$(partition_size_menu "$min_size" "$total_size")
     my_select $var "$title1" "$menu"
 }
@@ -983,7 +983,7 @@ my_exit() {
 #
 #------------------------------------------------------------------------------
 start_log() {
-    local args=$1 cmds=${2# }  iso=$3  dev=$4
+    local args=$1 cmds=${2# }
 
     LOG_FILE=$THE_LOG_FILE
 
@@ -993,9 +993,6 @@ $ME
     started: $(date)
 comand line: $args
   found lib: $FOUND_LIB
-   commands: $cmds
-   iso file: $iso
-     target: $dev
 
 Start_Log
 }
