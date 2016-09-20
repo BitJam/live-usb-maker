@@ -589,7 +589,7 @@ verify_sizes() {
 #------------------------------------------------------------------------------
 select_partition_size() {
     local var=$1  min_size=$2  total_size=$3
-    local title1=$"Please select how large to make the live-usb partitions"
+    local title1=$"Please select how much space to use for the live-usb partitions"
     local menu=$(partition_size_menu "$min_size" "$total_size")
     my_select $var "$title1" "$menu"
 }
