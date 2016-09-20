@@ -267,6 +267,8 @@ main() {
     # Always write a new config file and then exit if requested
     [ "$WRITE_CONFIG" ] && write_config "$CONFIG_FILE" && exit 0
 
+    start_log "$orig_args" "$CMDS"
+
     shout_pretend
 
     mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
@@ -390,10 +392,6 @@ main() {
     yes|on) cheats_menus cheats ;;
          *) cheats=$CHEATS      ;;
     esac
-
-    #--- Okay, now we are ready for final checks and to do the work
-    # We start logging right after we've expanded the target device
-    start_log "$orig_args" "$CMDS" "$from" "$target_dev"
 
     # This are mostly for a manually entered target
     test -e $target_dev || fatal $"Target device %s does not exist" $target_dev
