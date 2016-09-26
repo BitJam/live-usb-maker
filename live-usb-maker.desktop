@@ -4,5 +4,5 @@ Name=Live-USB-Maker
 Type=Application
 Comment=Make a new live-usb
 Terminal=true
-Exec=gksu /usr/local/bin/live-usb-maker --pause
+Exec=sudo /usr/local/bin/live-usb-maker --pause
 Categories=ConsoleOnly;System;
