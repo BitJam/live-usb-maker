@@ -58,6 +58,7 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
    POST_CMDS="uuids cheats install"
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
+   ALL_PAUSE="exit"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
         PATH="$MY_LIB_DIR/bin:$LIB_DIR/bin:$PATH"
@@ -96,7 +97,6 @@ Options:
                         Otherwise you will be asked.
      --color=<xxx>      Set color scheme to off|low|high
   -C --clear            Delete files from each partition before copying
-  -D --debug            Pause before cleaning up
   -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
   -E --ext-options=<xx> Use these options when creating the ext4 filesystem
 
@@ -117,6 +117,7 @@ Options:
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
   -p --pretend          Don't run most commands
+     --pause            Wait for user input before exit
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
@@ -139,6 +140,7 @@ eval_early_argument() {
       -ignore-config|I) IGNORE_CONFIG=true   ;;
        -write-config|W)  WRITE_CONFIG=true   ;;
        -reset_config|R)  RESET_CONFIG=true   ;;
+                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit" ;;
                -help|h) usage                ;;
     esac
 }
@@ -151,7 +153,6 @@ eval_argument() {
              -clear|C)  CLEAR=true                       ;;
                -color)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
-             -debug|D)  DEBUG=true                       ;;
           -esp-size|e)  FAT_SIZE=$val                    ;;
        -ext-options|E)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
@@ -164,6 +165,7 @@ eval_argument() {
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
              -msdos|m)  MSDOS_GPT="msdos"                ;;
+               -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
            -pretend|p)  PRETEND_MODE=true                ;;
              -quiet|q)  QUIET=true                       ;;
               -size|s)  CMD_SIZE=${val%\%}               ;;
@@ -253,6 +255,7 @@ main() {
 
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
+    check_pause PAUSE "$ALL_PAUSE"
 
     local percent_size=${CMD_SIZE%%%}
     case $percent_size in
@@ -970,10 +973,7 @@ my_exit() {
 
     show_elapsed
 
-    if [ "$DEBUG" ]; then
-        echo -n "${green}Press <Enter>$nc_co "
-        read x
-    fi
+    pause exit $"Exit"
 
     Msg "=> cleaning up"
     exit $ret
