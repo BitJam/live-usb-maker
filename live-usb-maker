@@ -179,7 +179,7 @@ eval_argument() {
       -reset-config|R)                                   ;;
       -write-config|W)                                   ;;
 
-               *)  fatal $"Unknown parameter %s" "-$arg" ;;
+               *)  fatal "Unknown parameter %s" "-$arg"  ;;
     esac
 }
 
@@ -261,11 +261,11 @@ main() {
     case $percent_size in
         "") ;;
         [1-9]|[0-9][0-9]|100) ;;
-        *) fatal $"Wrong percentage value '%s'.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
+        *) fatal "Wrong percentage value '%s'.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
     esac
 
-    [ -z "${FAT_SIZE##[0-9]}" ] && fatal $"esp-size must be larger than %s" 9
-    echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal $"esp-size must be an integer larger than %s" 9
+    [ -z "${FAT_SIZE##[0-9]}" ] && fatal "esp-size must be larger than %s" 9
+    echo $FAT_SIZE | egrep -q "^[1-9][0-9]+$" || fatal "esp-size must be an integer larger than %s" 9
 
     # Always write a new config file and then exit if requested
     [ "$WRITE_CONFIG" ] && write_config "$CONFIG_FILE" && exit 0
@@ -275,15 +275,15 @@ main() {
 
     shout_pretend
 
-    mkdir -p $WORK_DIR || fatal $"Could not make a work directory under /tmp"
-    mount -t tmpfs tmpfs $WORK_DIR || fatal $"Could not mount tmpfs at %s" $WORK_DIR
+    mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
+    mount -t tmpfs tmpfs $WORK_DIR || fatal "Could not mount tmpfs at %s" $WORK_DIR
     # Set up our directories.  These a GLOBALS so they can be used in clean_up() on exit
     ISO_DIR=$WORK_DIR/iso
     EXT_DIR=$WORK_DIR/ext
     FAT_DIR=$WORK_DIR/fat
     MNT_DIR=$WORK_DIR/live-dev
 
-    mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal $"Could not make %s subdirectories" "$WORK_DIR"
+    mkdir $ISO_DIR $EXT_DIR $FAT_DIR || fatal "Could not make %s subdirectories" "$WORK_DIR"
 
     #--- Find live boot device if we are running live
 
@@ -314,7 +314,7 @@ main() {
     local from_label from_file from_act=copying
     case $from in
         iso-file|iso|file)
-            cli_get_filename from_file "Please enter the filename" "$ISO_FILE_DIR"
+            cli_get_filename from_file $"Please enter the filename" "$ISO_FILE_DIR"
             from=file=$from_file ;;
 
         clone)
@@ -391,19 +391,19 @@ main() {
 
     local cheats
     case $CHEATS in
-        "") expert_YES_no "Customize language and timezone?"  && cheats_menus cheats ;;
+        "") expert_YES_no $"Customize language and timezone?"  && cheats_menus cheats ;;
     off|no) ;;
     yes|on) cheats_menus cheats ;;
          *) cheats=$CHEATS      ;;
     esac
 
     # This are mostly for a manually entered target
-    test -e $target_dev || fatal $"Target device %s does not exist" $target_dev
-    test -b $target_dev || fatal $"Target device %s is not a block device" $target_dev
+    test -e $target_dev || fatal "Target device %s does not exist" $target_dev
+    test -b $target_dev || fatal "Target device %s is not a block device" $target_dev
 
     # Require that an entire disk device be specified (could relax?)
     local dev_type=$(lsblk -no type --nodeps $target_dev)
-    [ "$dev_type" = "disk" ] || fatal $"Device %s is not a disk device" $target_dev
+    [ "$dev_type" = "disk" ] || fatal "Device %s is not a disk device" $target_dev
 
     # Get first to partitions (lexically only)
     local ext_dev=$(get_partition $target_dev 1)
@@ -412,9 +412,9 @@ main() {
     # fatal "The device %s does not seem to be usb or removable."
     # FIXME: move this to the lib?
     force usb || is_usb_or_removable $target_dev || yes_NO_fatal "usb" \
-        $"Do you want to use it anyway (dangerous)?" \
-        $"Use %s to always ignore this warning"      \
-        $"The device %s does not seem to be usb or removeable."  "$target_dev"
+        "Do you want to use it anyway (dangerous)?" \
+        "Use %s to always ignore this warning"      \
+        "The device %s does not seem to be usb or removeable."  "$target_dev"
 
     local mib_size ext_size
     verify_sizes mib_size ext_size "$target_dev"  "$ISO_DIR" "$percent_size" "$FAT_SIZE" "${DEFAULT_SIZE%%%}"
@@ -532,7 +532,7 @@ select_target_device() {
            eval $var=\$dev
            return ;;
     esac
-    my_select_quit $var "Please select the target usb device" "$menu"
+    my_select_quit $var $"Please select the target usb device" "$menu"
 }
 
 
@@ -652,10 +652,10 @@ mount_iso_file() {
 #------------------------------------------------------------------------------
 clone_directory() {
     local from_dir=$1 targ_dir=$2
-    is_mountpoint "$targ_dir" && fatal $"Directory '%s' is already a mountpoint" "$targ_dir"
+    is_mountpoint "$targ_dir" && fatal "Directory '%s' is already a mountpoint" "$targ_dir"
 
-    test -d "$from_dir"       || fatal $"Clone directory '%s' is not a directory"   "$from_dir"
-    is_mountpoint "$from_dir" || warn  $"Clone directory '%s' is not a mountpoint"  "$from_dir"
+    test -d "$from_dir"       || fatal "Clone directory '%s' is not a directory"   "$from_dir"
+    is_mountpoint "$from_dir" || warn  "Clone directory '%s' is not a mountpoint"  "$from_dir"
 
     # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
     # making directories
@@ -687,7 +687,7 @@ clone_directory() {
         from="$src_root_dir/$dir"
         dest="$targ_dir/$dir"
         test -d "$from" || continue
-        mkdir -p "$dest" || fatal $"Could not create directory %s" "$dest"
+        mkdir -p "$dest" || fatal "Could not create directory %s" "$dest"
         mount --bind "$from" "$dest"
     done <<Clone_Dirs
 $(cd "$src_root_dir" && eval "ls -d $CLONE_DIRS" 2>/dev/null)
@@ -700,8 +700,8 @@ Clone_Dirs
         from="$src_root_dir/$file"
         dest="$targ_dir/$file"
         test -f "$from" || continue
-        mkdir -p "$(dirname "$dest")" || fatal $"Could not mkdir %s" "$(dirname "$dest")"
-        touch "$dest"                 || fatal $"Could not touch file %s" "$dest"
+        mkdir -p "$(dirname "$dest")" || fatal "Could not mkdir %s" "$(dirname "$dest")"
+        touch "$dest"                 || fatal "Could not touch file %s" "$dest"
         mount --bind "$from" "$dest"
     done <<Clone_Files
 $(cd "$src_root_dir" && eval "ls -d $CLONE_FILES" 2>/dev/null)
@@ -714,8 +714,8 @@ Clone_Files
         dest="$targ_dir/${DEF_BOOT_DIR#/}/$file"
 
         test -f "$from" || continue
-        mkdir -p "$(dirname "$dest")" || fatal $"Could not mkdir %s" "$(dirname "$dest")"
-        touch "$dest"                 || fatal $"Could not touch file %s" "$dest"
+        mkdir -p "$(dirname "$dest")" || fatal "Could not mkdir %s" "$(dirname "$dest")"
+        touch "$dest"                 || fatal "Could not touch file %s" "$dest"
         mount --bind "$from" "$dest"
     done <<Clone_Bdir_Files
 $(cd "$full_boot_dir" && eval "ls -d $CLONE_BDIR_FILES" 2>/dev/null)
@@ -732,7 +732,7 @@ do_partition() {
     case $type in
           gpt) boot_flag=legacy_boot ;;
         msdos) boot_flag=boot        ;;
-            *) fatal $"Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
+            *) fatal "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
                ;;
     esac
 
@@ -760,7 +760,7 @@ wait_for_file() {
         test -e $file && return 0
         sleep $delay
     done
-    fatal $"%s does not exist!" "$name $file"
+    fatal "%s does not exist!" "$name $file"
 }
 
 #------------------------------------------------------------------------------
@@ -771,7 +771,7 @@ do_makefs_ext() {
 
     force makefs && force_ext="-F"
     cmd mkfs.ext4 $force_ext $options -L "$label" $dev \
-        || fatal "makefs" $"Could not make %s file system on %s.  Perhaps try %s" "ext4" $ext_dev "--force=makefs"
+        || fatal "makefs" "Could not make %s file system on %s.  Perhaps try %s" "ext4" $ext_dev "--force=makefs"
 }
 
 #------------------------------------------------------------------------------
@@ -780,7 +780,7 @@ do_makefs_ext() {
 do_makefs_fat() {
     local fat_dev=$1
     cmd mkfs.fat -n "LIVE-ESP" $fat_dev \
-        || fatal $"Could not make %s file system on %s" "fat32" "$fat_dev"
+        || fatal "Could not make %s file system on %s" "fat32" "$fat_dev"
 }
 
 #------------------------------------------------------------------------------
@@ -792,8 +792,8 @@ do_copy_ext() {
     [ "$CLEAR" ] && cmd rm -rf $ext_dir/*
 
     if test -d $ext_dir/antiX && ! force copy; then
-        warn $"Not over-writing %s partition due to existing %s directory" ext antiX/
-        warn $"Use %s to overwrite" "--force=copy"
+        warn "Not over-writing %s partition due to existing %s directory" ext antiX/
+        warn "Use %s to overwrite" "--force=copy"
         return
     fi
     msg $"Copying files ..."
@@ -873,11 +873,11 @@ do_uuids() {
         cmd mkdir -p $(dirname $fat_file) || fatal $"Making directory %s failed" "$(dirname $fat_file)"
         cmd write_file $fat_file $fat_uuid
     else
-        warn $"No %s given for %s partition" UUID fat
+        warn "No %s given for %s partition" UUID fat
     fi
 
     if [ ${#ext_uuid} -eq 0 ]; then
-        warn $"No %s given for %s partition" UUID ext4
+        warn "No %s given for %s partition" UUID ext4
         return
     fi
 
@@ -908,7 +908,7 @@ do_install_bootloader() {
     case $type in
           gpt) fname=gptmbr.bin ;;
         msdos) fname=mbr.bin    ;;
-            *) fatal $"Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
+            *) fatal "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
                ;;
     esac
 
@@ -920,7 +920,7 @@ do_install_bootloader() {
     done
 
     [ "$file" ] || fatal $"Could not find file %s" "$fname"
-    cmd dd bs=440 conv=notrunc count=1 if=$file of=$target_dev > /dev/null || fatal $"%s command failed" dd
+    cmd dd bs=440 conv=notrunc count=1 if=$file of=$target_dev > /dev/null || fatal "%s command failed" dd
 
     local sdir idir syslinux_dir isolinux_dir
     for sdir in boot/syslinux syslinux; do
@@ -934,7 +934,7 @@ do_install_bootloader() {
 
             warn $"Create syslinux directory from %s" $idir
             syslinux_dir=$ext_dir/${idir%isolinux}syslinux
-            cmd cp -r $ext_dir/$idir $syslinux_dir || fatal $"Could not copy the isolinux directory"
+            cmd cp -r $ext_dir/$idir $syslinux_dir || fatal "Could not copy the isolinux directory"
             local f
             for f in $(cd $syslinux_dir && ls isolinux.*); do
                 test -e $ext_dir/$sdir/$f || continue
