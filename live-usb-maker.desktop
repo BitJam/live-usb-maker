@@ -1,6 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Name=Live-USB-Maker
+Icon=drive-removable-media-usb
 Type=Application
 Comment=Make a new live-usb
 Terminal=true
