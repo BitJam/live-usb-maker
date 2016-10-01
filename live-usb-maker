@@ -526,7 +526,7 @@ select_target_device() {
     local menu=$(cli_drive_menu "$live_dev" "$from_dev")
     local dev cnt=$(count_lines "$menu")
     case $cnt in
-        0) fatal $"No target usb drives found to create a live-usb on" ;;
+        0) fatal $"No potential target usb drives were found" ;;
         1) dev=$(echo "$menu" | cut -d"$P_IFS" -f1 | head -n1)
             Msg $"Only one target usb device was found: %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
            eval $var=\$dev
