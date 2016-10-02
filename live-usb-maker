@@ -311,14 +311,15 @@ main() {
         select_usb_src from "$TARGET"
     fi
 
-    local from_label from_file from_act=copying
+    # Ready to make live-usb on device X by <copying|cloning> directory Y
+    local from_file from_act=$"copying"
     case $from in
         iso-file|iso|file)
             cli_get_filename from_file $"Please enter the filename" "$ISO_FILE_DIR"
             from=file=$from_file ;;
 
         clone)
-            mk_from_label  $"by cloning live system %s" "$live_dev"
+            #
             from=clone=$LIVE_MP ;;
 
         dev=*|clone=*|file=*)   ;;
@@ -338,20 +339,21 @@ main() {
         file)
             mount_iso_file "$from_value" "$ISO_DIR"
             check_md5 "$from_value"
-            mk_from_label $"from file %s" "$from_value"
-            from_thing=file
+            # What thing we are copying or cloning from: file, device or directory
+            from_thing=$"file"
             ;;
 
         dev)
             mount_device "$from_value" "$ISO_DIR"
-            mk_from_label $"copy device %s" "$from_value"
-            from_thing=device
+            # What thing we are copying or cloning from: file, device or directory
+            from_thing=$"device"
             ;;
 
         clone)
             # First see if we were given a block device to clone
             local from_dev=$(expand_device "$from_value")
-            from_act=cloning
+            # Cloning only copies certain files to make a brand-new live-usb
+            from_act=$"cloning"
 
             # Just clone the directory instead if the device is already mounted
             if is_mounted "$from_dev"; then
@@ -362,15 +364,15 @@ main() {
             fi
 
             if [ ${#from_dev} -gt 0 ]; then
-                mk_from_label $"by cloning device %s" "$from_dev"
                 mount_device    "$from_dev" "$MNT_DIR"
                 clone_directory "$MNT_DIR"  "$ISO_DIR"
-                from_thing=device
+                # What thing we are copying or cloning from: file, device or directory
+                from_thing=$"device"
 
             elif test -d "$from_value"; then
-                mk_from_label $"by cloning directory %s" "$from_value"
                 clone_directory "$from_value" "$ISO_DIR"
-                from_thing=directory
+                # What thing we are copying or cloning from: file, device or directory
+                from_thing=$"directory"
 
             else
                 fatal "Can only clone devices and directories, not '%s" "$from_value"
@@ -496,16 +498,6 @@ check_from() {
     fi
 
 
-}
-
-#------------------------------------------------------------------------------
-# Fill the $from_label variable from a simple printf but ONLY if that
-# variable is empty
-#------------------------------------------------------------------------------
-mk_from_label() {
-    local fmt=$1  what=${2##*/}
-    [ ${#from_label} -gt 0 ] && return
-    from_label=$(printf "$fmt" "$(pqq "$what")")
 }
 
 #------------------------------------------------------------------------------
