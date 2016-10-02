@@ -383,7 +383,8 @@ main() {
             ;;
     esac
 
-    msg "Will use source %s" "$from_thing $(pq $from_value)"
+    # Will use source <file XYZ>
+    msg $"Will use source %s" "$from_thing $(pq $from_value)"
     show_distro_version "$ISO_DIR" # "$from_value"
 
 
@@ -427,6 +428,7 @@ main() {
 
     # Make sure the target is not in use
     umount_all $target_dev
+    # Ready to make live-usb on device X by <cloning|copying directory Y>
     local final_q=$(quest $"Ready to make live-usb on device %s by %s" \
         "$(pqq ${target_dev##*/})" "$from_act $from_thing $(pqq $from_value)")
 
@@ -518,7 +520,7 @@ select_target_device() {
     local menu=$(cli_drive_menu "$live_dev" "$from_dev")
     local dev cnt=$(count_lines "$menu")
     case $cnt in
-        0) fatal $"No potential target usb drives were found" ;;
+        0) fatal $"No available target usb devices were found" ;;
         1) dev=$(echo "$menu" | cut -d"$P_IFS" -f1 | head -n1)
             Msg $"Only one target usb device was found: %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
            eval $var=\$dev
@@ -550,6 +552,7 @@ verify_sizes() {
 
         local min_percent=$((1 + 100 * (ext_needed + fat_size + EXT_MARGIN + FAT_MARGIN) / total_size))
 
+        # Table headers for sizes of: entire drive, main partition, uefi partition
         usb_stats $"entire drive"    "$total_size" "$mib_val"  "$total_extra" \
                   $"main partition"  "$ext_val" "$ext_needed"  "$ext_extra" \
                   $"uefi partition"  "$fat_size" "$fat_needed"  "$fat_extra" \
@@ -573,6 +576,7 @@ verify_sizes() {
         select_partition_size percent "$min_percent" "$total_size"
 
         mib_val=$((total_size * percent / 100 - 1))
+        # Have set the size to <13%> (1,200 MiB)
         msg $"Have set size to %s (%s MiB)" "$(hq $percent%)" "$(nq $(add_commas $mib_val | color_commas))"
     done
 
@@ -616,6 +620,7 @@ mount_device() {
     is_mountpoint "$dir"  && fatal "Directory '%s' is already a mountpoint"   "$dir"
 
     is_mounted "$dev"     && fatal "Device %s is already mounted" "$dev"
+    # [ a 'disc' is cd or dvd]
     [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount disc at %s" "$(pq $dev)"
     always_cmd mount -o ro "$dev" "$dir"
     is_mountpoint "$dir"  || fatal "Failed to mount device %s at %s" "$dev"   "$dir"
@@ -728,6 +733,7 @@ do_partition() {
                ;;
     esac
 
+    # Using <gpt|msdos> partitioning
     msg $"Using %s partitioning" $(pq $type)
 
     # Clear out previous partition table (darned "dd" live-usbs)
@@ -789,7 +795,7 @@ do_copy_ext() {
         return
     fi
     msg $"Copying files ..."
-    cmd cp -a $iso_dir/* $ext_dir/ || fatal $"Error when copying files to live usb"
+    cmd cp -a $iso_dir/* $ext_dir/ || fatal $"Error while copying files to live usb"
     sync
 }
 
@@ -805,7 +811,7 @@ do_copy_fat() {
     for top in $iso_dir/{efi,EFI,boot}; do
         test -e $top || continue
         cmd cp -r $top $fat_dir/ \
-            || warn $"Error when copying %s files to fat partition" "$(basename $top)"
+            || warn $"Error while copying %s files to fat partition" "$(basename $top)"
     done
 }
 
@@ -828,7 +834,7 @@ do_cheats_syslinux() {
         Msg "syslinux params: %s" "$(pq $params $cheats)"
         VERBOSE=$verbose CMDLINE="$params $cheats" cmd gfxsave $ext_dir/boot both
     else
-        warn $"Could not find %s file to update" "$(basename $syslinux_cfg)"
+        warn $"Could not find '%s' file to update" "$(basename $syslinux_cfg)"
     fi
 }
 
@@ -849,7 +855,7 @@ do_cheats_grub() {
         Msg "grub params: %s" "$(pq $params $cheats)"
         cmd grub2-save $fat_dir --no-kernel --cheats="${params% } $cheats"
     else
-        warn $"Could not find %s file to update" $(basename $grub_cfg)
+        warn $"Could not find '%s' file to update" $(basename $grub_cfg)
     fi
 }
 
@@ -862,7 +868,7 @@ do_uuids() {
     local ext_dir=$1  ext_uuid=$2  grub_cfg=$3  fat_uuid=$4
     if [ ${#fat_uuid} -gt 0 ]; then
         local fat_file=$ext_dir/antiX/esp-uuid
-        cmd mkdir -p $(dirname $fat_file) || fatal $"Making directory %s failed" "$(dirname $fat_file)"
+        cmd mkdir -p $(dirname $fat_file) || fatal $"Making directory '%s' failed" "$(dirname $fat_file)"
         cmd write_file $fat_file $fat_uuid
     else
         warn "No %s given for %s partition" UUID fat
@@ -874,7 +880,7 @@ do_uuids() {
     fi
 
     if ! test -e $grub_cfg; then
-        warn $"Could not find %s file" "$(basename $grub_cfg)"
+        warn $"Could not find '%s file" "$(basename $grub_cfg)"
         return
     fi
 
@@ -924,6 +930,7 @@ do_install_bootloader() {
         for idir in boot/isolinux isolinux; do
             test -d $ext_dir/$idir || continue
 
+            # Create syslinux directory from <boot/isolinux>
             warn $"Create syslinux directory from %s" $idir
             syslinux_dir=$ext_dir/${idir%isolinux}syslinux
             cmd cp -r $ext_dir/$idir $syslinux_dir || fatal "Could not copy the isolinux directory"
@@ -935,6 +942,7 @@ do_install_bootloader() {
             break
         done
     fi
+    # [don't translate syslinux or isolinux]
     [ "$syslinux_dir" ] || fatal $"Could not find a syslinux or isolinux directory"
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
@@ -966,6 +974,7 @@ my_exit() {
 
     show_elapsed
 
+    # Pause at '<Exit>'
     pause exit $"Exit"
 
     Msg "=> cleaning up"
