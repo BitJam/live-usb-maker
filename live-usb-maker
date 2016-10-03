@@ -655,7 +655,7 @@ clone_directory() {
     is_mountpoint "$targ_dir" && fatal "Directory '%s' is already a mountpoint" "$targ_dir"
 
     test -d "$from_dir"       || fatal "Clone directory '%s' is not a directory"   "$from_dir"
-    is_mountpoint "$from_dir" || warn  "Clone directory '%s' is not a mountpoint"  "$from_dir"
+    #is_mountpoint "$from_dir" || warn  "Clone directory '%s' is not a mountpoint"  "$from_dir"
 
     # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
     # making directories
