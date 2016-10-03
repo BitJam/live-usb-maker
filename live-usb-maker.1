@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LIVE-USB-MAKER 1"
-.TH LIVE-USB-MAKER 1 "2016-09-20" "Version 2.0.0" "antiX Documentation"
+.TH LIVE-USB-MAKER 1 "2016-10-03" "Version 2.0.0" "antiX Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -147,7 +147,7 @@ an existing live-usb or even a running live system.  Always uses
 an ext4 filesystem for the live-usb but also adds a small fat32
 partition so the new live-usb can boot via legacy or \s-1UEFI.\s0
 .PP
-Offers an option to set the default language and/or default
+Offer an option to set the default language and/or default
 timezone on the new live-usb.
 .SH "BASIC OPERATION"
 .IX Header "BASIC OPERATION"
@@ -156,12 +156,14 @@ let a series of menus guide you or you can mix and match.  You
 will only be prompted for what was not specified on the command
 line.
 .PP
-The first menu will give you a choice of the source to use for
+The first menu will let you choose the target usb device.
+.PP
+The second menu will give you a choice of the source to use for
 the new live-usb.  If you choose to use an iso-file then the
 program will scan for iso-files in likely locations and give you
 a list to choose from.
-.SH "ISO FILE SEARCH"
-.IX Header "ISO FILE SEARCH"
+.SH "ISO FILE SEARCH (not implemented!)"
+.IX Header "ISO FILE SEARCH (not implemented!)"
 You can use wildcard characters such as \fB*\fR in an iso file name
 or directory.  If you do then this will also trigger a search
 based on what you specified.  The directory path and the filename
@@ -181,24 +183,24 @@ be used as the starting point of the search.
 .IX Header "CLONE MODE"
 If the source is the current live system or a live-usb then
 clone-mode will be used automatically.  This will only copy the
-files the are need to make a live-usb.  None of the auxiliary
+files that are needed to make a live-usb.  None of the auxiliary
 files that were created during operation of the source live-usb
 will be copied over.
 .PP
 You can, of course, specify a source live-usb from the command
-line by using \fB\-from=device\fR the device is an device name like
+line by using \fB\-from=device\fR the device is a device name like
 \&\fBsdd1\fR.   If you don't specify the partition then we will assume
-you mean the first partition (I think).   Invoked in this way,
-all files from the source live-usb will be copied over.  This
-may be usful for distros other than \s-1MX\s0 and antiX.  If you want
-to enable clone mode then use \fB\-\-from=clone=device\fR instead.
+you mean the first partition.  Invoked in this way, all files
+from the source live-usb will be copied over.  This may be usful
+for distros other than \s-1MX\s0 and antiX.  If you want to enable clone
+mode then use \fB\-\-from=clone=device\fR instead.
 .SH "CLONING A FRUGAL INSTALL"
 .IX Header "CLONING A FRUGAL INSTALL"
 The only way to make a live-usb from a Frugal install is if you
 use clone mode (see above).  This will only work incompletely on
-Frugal installs created before \s-1MX\-16. \s0 The \f(CW\*(C`/efi\*(C'\fR directory will
+Frugal installs created before \s-1MX\-16. \s0 The \f(CW\*(C`/EFI\*(C'\fR directory will
 be missing so legacy boot will work on the new live-usb but \s-1UEFI\s0
-booting won't.   Starting in \s-1MX\-16,\s0 the \f(CW\*(C`/efi\*(C'\fR directory (along
+booting won't.  Starting in \s-1MX\-16,\s0 the \f(CW\*(C`/EFI\*(C'\fR directory (along
 with the \f(CW\*(C`version\*(C'\fR and \f(CW\*(C`cdrom.ico\*(C'\fR files will be copied into
 the frugal directory during the frugal install).
 .SH "COMMANDS"
