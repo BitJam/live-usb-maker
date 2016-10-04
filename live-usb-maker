@@ -499,10 +499,8 @@ check_from() {
         eval "$var=clone=\$cmd_from"
         return 0
     else
-        fatal "The --from parameter '%s' was not recognized" "$cmd_from"
+        fatal $"The --from parameter '%s' was not recognized" "$cmd_from"
     fi
-
-
 }
 
 #------------------------------------------------------------------------------
