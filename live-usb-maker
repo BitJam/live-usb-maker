@@ -659,6 +659,8 @@ clone_directory() {
     # making directories
     mount -t tmpfs tmpfs "$targ_dir"
 
+    from_dir=$(readlink -f "$from_dir")
+
     # FIXME: should this error message have a device, not a directory?
     local boot_dir
     find_live_boot_dir boot_dir "$from_dir" "$LINUXFS_NAME" \
