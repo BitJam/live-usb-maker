@@ -43,7 +43,6 @@ MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
 #== END_CONFIG
 
          WORK_DIR="/run/$ME"
-        LOCK_FILE="/run/lock/$ME"
         SHELL_LIB="cli-shell-utils.bash"
       CONFIG_FILE="/root/.config/$ME/$ME.conf"
      THE_LOG_FILE="/var/log/$ME.log"
@@ -226,7 +225,7 @@ main() {
 
     trap clean_up EXIT
 
-    do_flock $LOCK_FILE $ME
+    do_flock
 
     rm -f $ERR_FILE
 
@@ -1074,7 +1073,7 @@ Config_File
 clean_up() {
     umount_work_dir
     test -d $WORK_DIR && rmdir $WORK_DIR
-    rm -f $LOCK_FILE
+    unflock
 }
 
 #------------------------------------------------------------------------------
