@@ -7,8 +7,6 @@ MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
 
 #== BEGIN_CONFIG
 
-          NO_QUIT="true"  # for testing part of the UI
-
      ISO_FILE_DIR="%USER_HOME%"
     ISO_FILE_SPEC="*.iso"
       SEARCH_DIRS="%USER_HOME% /media /root"
@@ -509,7 +507,7 @@ select_usb_src() {
     local var=$1  exclude=$2
     local title=$"Please select the source for the new live-usb"
     local menu=$(cli_live_usb_src_menu "$exclude")
-    my_select_quit "$var" "$title" "$menu"
+    my_select "$var" "$title" "$menu"
 }
 
 #------------------------------------------------------------------------------
@@ -526,7 +524,7 @@ select_target_device() {
            eval $var=\$dev
            return ;;
     esac
-    my_select_quit $var $"Please select the target usb device" "$menu"
+    my_select $var $"Please select the target usb device" "$menu"
 }
 
 
@@ -1030,8 +1028,6 @@ write_config() {
     msg "Writing config file %s" "$(pq "$file")"
 
     cat<<Config_File >"$file"
-          NO_QUIT="$NO_QUIT"  # for testing part of the UI
-
      ISO_FILE_DIR="$ISO_FILE_DIR"
     ISO_FILE_SPEC="$ISO_FILE_SPEC"
       SEARCH_DIRS="$SEARCH_DIRS"
