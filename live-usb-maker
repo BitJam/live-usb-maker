@@ -570,7 +570,7 @@ verify_sizes() {
 
         # Only offer to change if a size was not given on the cmdline
         [ ${#cmd_percent} -gt 0 ] && break
-        expert_YES_no $"Do you want change how much of the device is used?" || break
+        expert_YES_no $"Do you want to change how much of the device is used?" || break
         select_partition_size percent "$min_percent" "$total_size"
 
         mib_val=$((total_size * percent / 100 - 1))
@@ -618,8 +618,7 @@ mount_device() {
     is_mountpoint "$dir"  && fatal "Directory '%s' is already a mountpoint"   "$dir"
 
     is_mounted "$dev"     && fatal "Device %s is already mounted" "$dev"
-    # [ a 'disc' is cd or dvd]
-    [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount disc at %s" "$(pq $dev)"
+    [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount optical disc at %s" "$(pq $dev)"
     always_cmd mount -o ro "$dev" "$dir"
     is_mountpoint "$dir"  || fatal "Failed to mount device %s at %s" "$dev"   "$dir"
 }
@@ -660,6 +659,7 @@ clone_directory() {
 
     # FIXME: should this error message have a device, not a directory?
     local boot_dir
+    # No <file-name> file found in any directory on clone device at <root-directory>
     find_live_boot_dir boot_dir "$from_dir" "$LINUXFS_NAME" \
         || fatal $"No '%s' file found in any directory on clone device at '%s'" "$LINUXFS_NAME" "$from_dir"
 
@@ -810,6 +810,7 @@ do_copy_fat() {
     local top
     for top in $iso_dir/{efi,EFI,boot}; do
         test -e $top || continue
+        # Error while copying <EFI|efi|boot> files to fat partition
         cmd cp -r $top $fat_dir/ \
             || warn $"Error while copying %s files to fat partition" "$(basename $top)"
     done
@@ -855,6 +856,7 @@ do_cheats_grub() {
         Msg "grub params: %s" "$(pq $params $cheats)"
         cmd grub2-save $fat_dir --no-kernel --cheats="${params% } $cheats"
     else
+        # Could not find '<grub.cfg>' file to update
         warn $"Could not find '%s' file to update" $(basename $grub_cfg)
     fi
 }
