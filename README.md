@@ -38,8 +38,7 @@ Options:
                            Use "on" or "yes"  to show cheat menus without asking
 
                         Otherwise you will be asked.
-     --color=<xxx>      Set color scheme to off|low|high
-  -C --clear            Delete files from each partition before copying
+  -C --color=<xxx>      Set color scheme to off|low|low2|bw|high
   -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
   -E --ext-options=<xx> Use these options when creating the ext4 filesystem
 
