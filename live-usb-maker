@@ -92,8 +92,7 @@ Options:
                            Use "on" or "yes"  to show cheat menus without asking
 
                         Otherwise you will be asked.
-     --color=<xxx>      Set color scheme to off|low|high
-  -C --clear            Delete files from each partition before copying
+  -C --color=<xxx>      Set color scheme to off|low|low2|bw|high
   -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
   -E --ext-options=<xx> Use these options when creating the ext4 filesystem
 
@@ -147,8 +146,7 @@ eval_argument() {
         case $arg in
              -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
-             -clear|C)  CLEAR=true                       ;;
-               -color)  COLOR_SCHEME=$val                ;;
+             -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
           -esp-size|e)  FAT_SIZE=$val                    ;;
        -ext-options|E)  EXT4_OPTIONS=$val                ;;
@@ -193,6 +191,7 @@ assign_parameter() {
 takes_param() {
     case $1 in
        -cheat|c) return 0 ;;
+       -color|C) return 0 ;;
     -esp-size|e) return 0 ;;
         -from|f) return 0 ;;
        -force|F) return 0 ;;
@@ -787,8 +786,6 @@ do_makefs_fat() {
 do_copy_ext() {
     local iso_dir=$1  ext_dir=$2
 
-    [ "$CLEAR" ] && cmd rm -rf $ext_dir/*
-
     if test -d $ext_dir/antiX && ! force copy; then
         warn "Not over-writing %s partition due to existing %s directory" ext antiX/
         warn "Use %s to overwrite" "--force=copy"
@@ -804,8 +801,6 @@ do_copy_ext() {
 #------------------------------------------------------------------------------
 do_copy_fat() {
     local iso_dir=$1  fat_dir=$2
-
-    [ "$CLEAR" ] && cmd rm -rf $fat_dir/* 2>/dev/null
 
     local top
     for top in $iso_dir/{efi,EFI,boot}; do
