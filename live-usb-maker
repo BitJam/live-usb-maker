@@ -881,7 +881,7 @@ do_uuids() {
     fi
 
     if ! test -e $grub_cfg; then
-        warn $"Could not find '%s file" "$(basename $grub_cfg)"
+        warn $"Could not find '%s' file" "$(basename $grub_cfg)"
         return
     fi
 
