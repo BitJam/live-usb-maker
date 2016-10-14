@@ -5,6 +5,10 @@
 MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
    LIB_DIR="/usr/local/lib/cli-shell-utils"
 
+export TEXTDOMAIN="cli-shell-utils"
+domain_dir="$MY_DIR/../cli-shell-utils/locale"
+test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
+
 #== BEGIN_CONFIG
 
      ISO_FILE_DIR="%USER_HOME%"
@@ -988,10 +992,12 @@ start_log() {
 
     cat <<Start_Log >> $LOG_FILE
 ---------------------------------------------------------------------
-$ME
-    started: $(date)
-comand line: $args
-  found lib: $FOUND_LIB
+$0
+        started: $(date)
+    comand line: $args
+      found lib: $FOUND_LIB
+     TEXTDOMAIN: $TEXTDOMAIN
+  TEXTDOMAINDIR: $TEXTDOMAINDIR
 
 Start_Log
 }
