@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LIVE-USB-MAKER 1"
-.TH LIVE-USB-MAKER 1 "2016-10-03" "Version 2.0.0" "antiX Documentation"
+.TH LIVE-USB-MAKER 1 "2016-10-14" "Version 2.0.0" "antiX Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -147,7 +147,7 @@ an existing live-usb or even a running live system.  Always uses
 an ext4 filesystem for the live-usb but also adds a small fat32
 partition so the new live-usb can boot via legacy or \s-1UEFI.\s0
 .PP
-Offer an option to set the default language and/or default
+Provides options to set the default language and/or default
 timezone on the new live-usb.
 .SH "BASIC OPERATION"
 .IX Header "BASIC OPERATION"
@@ -191,7 +191,7 @@ You can, of course, specify a source live-usb from the command
 line by using \fB\-from=device\fR the device is a device name like
 \&\fBsdd1\fR.   If you don't specify the partition then we will assume
 you mean the first partition.  Invoked in this way, all files
-from the source live-usb will be copied over.  This may be usful
+from the source live-usb will be copied over.  This may be useful
 for distros other than \s-1MX\s0 and antiX.  If you want to enable clone
 mode then use \fB\-\-from=clone=device\fR instead.
 .SH "CLONING A FRUGAL INSTALL"
@@ -203,6 +203,18 @@ be missing so legacy boot will work on the new live-usb but \s-1UEFI\s0
 booting won't.  Starting in \s-1MX\-16,\s0 the \f(CW\*(C`/EFI\*(C'\fR directory (along
 with the \f(CW\*(C`version\*(C'\fR and \f(CW\*(C`cdrom.ico\*(C'\fR files will be copied into
 the frugal directory during the frugal install).
+.SH "UPDATE INITRD ONLY ACTION"
+.IX Header "UPDATE INITRD ONLY ACTION"
+This action will update the initrd using a template found at the
+default location \fI/usr/lib/iso\-template/template\-initrd.gz\fR.
+You can specify a different location with the \fB\-\-initrd=xxxx\fR
+command line option.  This action is typically used to upgrade to
+a new live initrd or to to test a bug fix.
+.SH "UPDATE MODULES"
+.IX Header "UPDATE MODULES"
+The \fB\-\-modules=list\fR option will add the kernel modules in
+the list to the current initrd.gz.  This would typically be
+used during testing.
 .SH "COMMANDS"
 .IX Header "COMMANDS"
 You can have fine control over which operations get performed
