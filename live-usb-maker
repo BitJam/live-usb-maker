@@ -980,7 +980,7 @@ my_exit() {
     # Pause at '<Exit>'
     pause exit $"Exit"
 
-    Msg "=> cleaning up"
+    # Msg "=> cleaning up"
     exit $ret
 }
 
