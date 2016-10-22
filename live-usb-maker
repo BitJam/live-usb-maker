@@ -473,6 +473,8 @@ main() {
 
     need install && do_install_bootloader $target_dev $EXT_DIR $MSDOS_GPT
 
+    sync; sync
+
     my_exit 0
 }
 
