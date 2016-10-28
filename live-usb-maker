@@ -52,6 +52,8 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
          LOG_FILE="/dev/null"
          ERR_FILE="/dev/null"
 
+    EXT4_NO_64BIT="-O ^64bit"
+
 ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
@@ -773,7 +775,7 @@ do_makefs_ext() {
     local dev=$1  options=$2  label=$3  force_ext
 
     force makefs && force_ext="-F"
-    cmd mkfs.ext4 $force_ext -O "^64bit" $options -L "$label" $dev \
+    cmd mkfs.ext4 $force_ext $EXT4_NO_64BIT $options -L "$label" $dev \
         || fatal "makefs" "Could not make %s file system on %s.  Perhaps try %s" "ext4" $ext_dev "--force=makefs"
 }
 
