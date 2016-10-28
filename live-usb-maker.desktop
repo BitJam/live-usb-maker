@@ -26,5 +26,5 @@ Comment[sv]=Skapa en live-usb med alla möjligheter
 Icon=drive-removable-media-usb
 Type=Application
 Terminal=true
-Exec=sudo /usr/local/bin/live-usb-maker --pause
+Exec=sudo /usr/local/bin/live-usb-maker --pause simple
 Categories=ConsoleOnly;System;MX-Live;
