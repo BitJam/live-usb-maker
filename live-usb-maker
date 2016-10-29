@@ -231,11 +231,6 @@ main() {
 
     rm -f $ERR_FILE
 
-    if [ -z "$IGNORE_CONF" ]; then
-        test -r "$CONFIG_FILE" && . "$CONFIG_FILE"
-        test -e "$CONFIG_FILE" || write_conf "$CONFIG_FILE"
-    fi
-
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
 
