@@ -10,7 +10,6 @@ domain_dir="$MY_DIR/../cli-shell-utils/locale"
 test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
 #== BEGIN_CONFIG
-
      ISO_FILE_DIR="%USER_HOME%"
     ISO_FILE_SPEC="*.iso"
       SEARCH_DIRS="%USER_HOME% /media /root"
@@ -1035,6 +1034,8 @@ write_config() {
     msg "Writing config file %s" "$(pq "$file")"
 
     cat<<Config_File >"$file"
+$(config_header "$file" $ME)
+
      ISO_FILE_DIR="$ISO_FILE_DIR"
     ISO_FILE_SPEC="$ISO_FILE_SPEC"
       SEARCH_DIRS="$SEARCH_DIRS"
@@ -1065,6 +1066,8 @@ write_config() {
            CHEATS=""
      COLOR_SCHEME="$COLOR_SCHEME"
     QUESTION_MODE="$QUESTION_MODE"
+
+$(config_footer)
 Config_File
 
     return 0
