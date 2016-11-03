@@ -58,6 +58,7 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
+   FROM_CMDS="all copy copy-ext copy-fat"  # Commands that need a --from
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
    ALL_PAUSE="exit"
@@ -299,8 +300,12 @@ main() {
     fi
     msg "Will use target device %s" "$(pq $TARGET)"
 
-    local from
-    if [ ${#FROM} -gt 0 ]; then
+    local from no_from
+    has_item_in_list "$CMDS" "$FROM_CMDS" || no_from=true
+
+    if [ "$no_from" ]; then
+        from="null=null"
+    elif [ ${#FROM} -gt 0 -a -n "$no_from" ]; then
         check_from from "$FROM" "$TARGET"
     else
     #--- Select source of live-usb if one was not given
@@ -319,6 +324,7 @@ main() {
             from=clone=$LIVE_MP ;;
 
         dev=*|clone=*|file=*)   ;;
+        null=*)                 ;;
 
         *) test -f "$from" && from=file=$from ;;
     esac
@@ -356,7 +362,6 @@ main() {
                 from_value=$(grep "^$from_dev " /proc/mounts | cut -d" " -f2 | head -n1)
                 msg "Will trying cloning directory %s" "$(pq "$from_value")"
                 from_dev=
-
             fi
 
             if [ ${#from_dev} -gt 0 ]; then
@@ -374,6 +379,8 @@ main() {
                 fatal "Can only clone devices and directories, not '%s" "$from_value"
             fi
             ;;
+
+        null) ;;
         *)
             fatal "Internal error 2.  Bad from variable '%s" "$from"
             ;;
@@ -527,7 +534,6 @@ select_target_device() {
     esac
     my_select $var $"Please select the target usb device" "$menu"
 }
-
 
 #------------------------------------------------------------------------------
 #
@@ -966,6 +972,19 @@ check_size() {
     local type=$1  extra=$2  margin=$3  action=${4:-fatal}
     [ $extra -lt 0 ]       && $action $"Not enough space on %s partition" "$type"
     [ $extra -lt $margin ] && $action $"Less than %s MiB would remain on %s partition" "$margin" "$type"
+}
+
+#------------------------------------------------------------------------------
+# Return true if any cmd in $cmds is in $all
+#------------------------------------------------------------------------------
+has_item_in_list() {
+    local cmds=$1  all=$2  cmd
+    for cmd in $cmds; do
+        case " $all " in
+            *" $cmd "*) return 0 ;;
+        esac
+    done
+    return 1
 }
 
 my_exit() {
