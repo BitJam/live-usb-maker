@@ -56,8 +56,6 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
-    PRE_CMDS="partition makefs"
-   POST_CMDS="uuids cheats install"
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
    ALL_PAUSE="exit"
