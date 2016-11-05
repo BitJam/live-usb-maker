@@ -58,7 +58,6 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
     PRE_CMDS="partition makefs"
    POST_CMDS="uuids cheats install"
-   FROM_CMDS="all copy copy-ext copy-fat"  # Commands that need a --from
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
    ALL_PAUSE="exit"
@@ -301,7 +300,7 @@ main() {
     msg "Will use target device %s" "$(pq $TARGET)"
 
     local from no_from
-    has_item_in_list "$CMDS" "$FROM_CMDS" || no_from=true
+    need_q copy || no_from=true
 
     if [ "$no_from" ]; then
         from="null=null"
@@ -396,12 +395,14 @@ main() {
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
     local cheats
-    case $CHEATS in
-        "") expert_YES_no $"Customize language and timezone?"  && cheats_menus cheats ;;
-    off|no) ;;
-    yes|on) cheats_menus cheats ;;
-         *) cheats=$CHEATS      ;;
-    esac
+    if need_q cheats; then
+        case $CHEATS in
+            "") expert_YES_no $"Customize language and timezone?"  && cheats_menus cheats ;;
+        off|no) ;;
+        yes|on) cheats_menus cheats ;;
+             *) cheats=$CHEATS      ;;
+        esac
+    fi
 
     # This are mostly for a manually entered target
     test -e $target_dev || fatal "Target device %s does not exist" $target_dev
@@ -423,7 +424,7 @@ main() {
         "The device %s does not seem to be usb or removeable."  "$target_dev"
 
     local mib_size ext_size
-    verify_sizes mib_size ext_size "$target_dev"  "$ISO_DIR" "$percent_size" "$FAT_SIZE" "${DEFAULT_SIZE%%%}"
+    need_q makefs && verify_sizes mib_size ext_size "$target_dev"  "$ISO_DIR" "$percent_size" "$FAT_SIZE" "${DEFAULT_SIZE%%%}"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
     # Bail early if only size info is requested
@@ -972,19 +973,6 @@ check_size() {
     local type=$1  extra=$2  margin=$3  action=${4:-fatal}
     [ $extra -lt 0 ]       && $action $"Not enough space on %s partition" "$type"
     [ $extra -lt $margin ] && $action $"Less than %s MiB would remain on %s partition" "$margin" "$type"
-}
-
-#------------------------------------------------------------------------------
-# Return true if any cmd in $cmds is in $all
-#------------------------------------------------------------------------------
-has_item_in_list() {
-    local cmds=$1  all=$2  cmd
-    for cmd in $cmds; do
-        case " $all " in
-            *" $cmd "*) return 0 ;;
-        esac
-    done
-    return 1
 }
 
 my_exit() {
