@@ -432,9 +432,13 @@ main() {
 
     # Make sure the target is not in use
     umount_all $target_dev
+
     # Ready to make live-usb on device X by <cloning|copying directory Y>
     local final_q=$(quest $"Ready to make live-usb on device %s by %s" \
         "$(pqq ${target_dev##*/})" "$from_act $from_thing $(pqq $from_value)")
+
+    [ "$CMDS" != "all" ] \
+        && final_q=$(printf "Ready to perform %s action(s) on %s" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
 
     final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
 
