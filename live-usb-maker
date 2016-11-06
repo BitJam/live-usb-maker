@@ -515,7 +515,7 @@ check_from() {
 
 overall_mode_menu() {
     local fmt="%s$P_IFS%s\n"
-    printf "$fmt" simple  $"Make a simple live-usb"
+    printf "$fmt" simple  $"Make a full-featured live-usb"
     printf "$fmt" default $"Make a customized live-usb"
     printf "$fmt" uuids   $"Update UUIDS on existing live-usb"
     printf "$fmt" cheats  $"Update boot parameters on existing live-usb"
@@ -527,7 +527,7 @@ overall_mode_menu() {
 #------------------------------------------------------------------------------
 select_overall_mode() {
     local cmd_var=$1 q_var=$2 ans cmd_val q_val
-    local title=$"Please select what you want to do"
+    local title=$"Please select what action to perform"
     local menu=$(overall_mode_menu)
     my_select "ans" "$title" "$menu"
     case $ans in
