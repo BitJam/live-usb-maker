@@ -297,7 +297,7 @@ main() {
     fi
     msg "Will use target device %s" "$(pq $TARGET)"
 
-    [ ${#CMD_CMDS} -eq 0 -a "$QUESTION_MODE" != "simple" ] && select_overall_mode CMDS
+    [ ${#CMD_CMDS} -eq 0 -a "$QUESTION_MODE" != "simple" ] && select_overall_mode CMDS QUESTION_MODE
 
     local from no_from
     need_q copy || no_from=true
@@ -515,7 +515,8 @@ check_from() {
 
 overall_mode_menu() {
     local fmt="%s$P_IFS%s\n"
-    printf "$fmt" simple  $"Make a live-usb"
+    printf "$fmt" simple  $"Make a simple live-usb"
+    printf "$fmt" default $"Make a customized live-usb"
     printf "$fmt" uuids   $"Update UUIDS on existing live-usb"
     printf "$fmt" cheats  $"Update boot parameters on existing live-usb"
     printf "$fmt" install $"Reinstall legacy bootloader on existing live-usb"
@@ -525,16 +526,18 @@ overall_mode_menu() {
 #
 #------------------------------------------------------------------------------
 select_overall_mode() {
-    local cmd_var=$1  ans cmd_val
+    local cmd_var=$1 q_var=$2 ans cmd_val q_val
     local title=$"Please select what you want to do"
     local menu=$(overall_mode_menu)
     my_select "ans" "$title" "$menu"
     case $ans in
-                          simple) q_val=$ans   ;;
-            uuids|cheats|install) cmd_val=$ans ;;
+           default|simple) q_val=$ans                      ;;
+            uuids|install) cmd_val=$ans                    ;;
+                   cheats) cmd_val=$ans ; : ${CHEATS:=yes} ;;
     esac
 
     [ ${#cmd_val} -gt 0 ] && eval $cmd_var=\$cmd_val
+    [ ${#q_val}   -gt 0 ] && eval $q_var=\$q_val
 }
 
 #------------------------------------------------------------------------------
