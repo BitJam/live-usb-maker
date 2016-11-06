@@ -184,10 +184,10 @@ eval_argument() {
 assign_parameter() {
     local cnt=$1 param=$2
    case $param in
-       default) QUESTION_MODE=default  ;;
-        expert) QUESTION_MODE=expert   ;;
-        simple) QUESTION_MODE=simple   ;;
-             *) CMDS="$CMDS $param"    ;;
+       default) QUESTION_MODE=default          ;;
+        expert) QUESTION_MODE=expert           ;;
+        simple) QUESTION_MODE=simple           ;;
+             *) CMD_CMDS="$CMD_CMDS $param"    ;;
     esac
 }
 
@@ -245,7 +245,7 @@ main() {
     #--    : #CHEATS=yes
     #-- fi
 
-    : ${CMDS:=all}
+    CMDS=${CMD_CMDS:-all}
 
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
@@ -296,6 +296,8 @@ main() {
         check_target "$TARGET" "$live_dev"
     fi
     msg "Will use target device %s" "$(pq $TARGET)"
+
+    [ ${#CMD_CMDS} -eq 0 -a "$QUESTION_MODE" != "simple" ] && select_overall_mode CMDS
 
     local from no_from
     need_q copy || no_from=true
@@ -509,6 +511,30 @@ check_from() {
     else
         fatal $"The --from parameter '%s' was not recognized" "$cmd_from"
     fi
+}
+
+overall_mode_menu() {
+    local fmt="%s$P_IFS%s\n"
+    printf "$fmt" simple  $"Make a live-usb"
+    printf "$fmt" uuids   $"Update UUIDS on existing live-usb"
+    printf "$fmt" cheats  $"Update boot parameters on existing live-usb"
+    printf "$fmt" install $"Reinstall legacy bootloader on existing live-usb"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+select_overall_mode() {
+    local cmd_var=$1  ans cmd_val
+    local title=$"Please select what you want to do"
+    local menu=$(overall_mode_menu)
+    my_select "ans" "$title" "$menu"
+    case $ans in
+                          simple) q_val=$ans   ;;
+            uuids|cheats|install) cmd_val=$ans ;;
+    esac
+
+    [ ${#cmd_val} -gt 0 ] && eval $cmd_var=\$cmd_val
 }
 
 #------------------------------------------------------------------------------
