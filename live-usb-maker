@@ -305,7 +305,6 @@ main() {
     if [ "$no_from" ]; then
         from="null=null"
     elif [ ${#FROM} -gt 0 -a -z "$no_from" ]; then
-        echo got here
         check_from from "$FROM" "$TARGET"
     else
     #--- Select source of live-usb if one was not given
