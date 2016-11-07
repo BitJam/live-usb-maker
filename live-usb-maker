@@ -286,10 +286,9 @@ main() {
 
     [ ${#CMD_CMDS} -eq 0 -a "$QUESTION_MODE" != "simple" ] && select_overall_mode CMDS QUESTION_MODE
 
-    local from no_from
-    need_q copy || no_from=true
+    local from
 
-    if [ "$no_from" ]; then
+    if ! need_q copy; then
         from="null=null"
     elif [ ${#FROM} -gt 0 ]; then
         check_from from "$FROM" "$TARGET"
