@@ -232,19 +232,6 @@ main() {
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
 
-    #-- if [ -z "$QUESTION_MODE" ]; then
-    #--     QUESTION_MODE=expert
-    #--     YES_no $"Use default mode (fewer questions)?" && QUESTION_MODE=default
-    #--     msg "Using %s mode" "$(pq $QUESTION_MODE)"
-    #-- fi
-
-    #-- if [ "$QUESTION_MODE" = default ]; then
-    #--     CMD_SIZE=100
-    #--     CHEATS=no
-    #-- else
-    #--    : #CHEATS=yes
-    #-- fi
-
     CMDS=${CMD_CMDS:-all}
 
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
