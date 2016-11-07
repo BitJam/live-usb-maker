@@ -269,7 +269,7 @@ main() {
 
     shout_pretend
 
-    mkdir -p $WORK_DIR || fatal "Could not make a work directory under /tmp"
+    mkdir -p $WORK_DIR || fatal "Could not make a work directory under %s" "$(dirname "$WORK_DIR")"
     mount -t tmpfs tmpfs $WORK_DIR || fatal "Could not mount tmpfs at %s" $WORK_DIR
     # Set up our directories.  These a GLOBALS so they can be used in clean_up() on exit
     ISO_DIR=$WORK_DIR/iso
