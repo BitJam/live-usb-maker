@@ -136,10 +136,13 @@ Usage
 }
 
 eval_early_argument() {
+    local val=${1#*=}
     case $1 in
       -ignore-config|I) IGNORE_CONFIG=true   ;;
        -write-config|W)  WRITE_CONFIG=true   ;;
        -reset-config|R)  RESET_CONFIG=true   ;;
+              -force|F)  FORCE="$FORCE,$val" ;;
+              -force=*)  FORCE="$FORCE,$val" ;;
                 -pause)  PAUSE="$PAUSE${PAUSE:+,}exit" ;;
                -help|h) usage                ;;
     esac
@@ -158,8 +161,6 @@ eval_argument() {
           -esp-size=*)  FAT_SIZE=$val                    ;;
               -from|f)  FROM=$val                        ;;
               -from=*)  FROM=$val                        ;;
-             -force|F)  FORCE="$FORCE,$val"              ;;
-             -force=*)  FORCE="$FORCE,$val"              ;;
                -gpt|g)  MSDOS_GPT="gpt"                  ;;
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
@@ -174,6 +175,9 @@ eval_argument() {
            -verbose|v)  BE_VERBOSE=true                  ;;
 
        # These are read early.  They are not unknown
+
+             -force|F)                                   ;;
+             -force=*)                                   ;;
      -ignore-config|I)                                   ;;
       -reset-config|R)                                   ;;
       -write-config|W)                                   ;;
@@ -224,11 +228,8 @@ main() {
     read_reset_config_file "$CONFIG_FILE"
 
     ERR_FILE=$THE_ERR_FILE
-
     trap clean_up EXIT
-
     do_flock
-
     rm -f $ERR_FILE
 
     read_all_cmdline_mingled "$@"
