@@ -488,10 +488,11 @@ main() {
     [ ${#cheats} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $EXT_DIR "$cheats"
     [ ${#cheats} -gt 0 ] && need cheats-grub     && do_cheats_grub     $FAT_DIR "$cheats"
 
-    need install && do_install_bootloader $target_dev $EXT_DIR $MSDOS_GPT
+    need install $"install" && do_install_bootloader $target_dev $EXT_DIR $MSDOS_GPT
 
     sync; sync
 
+    msg "=> %s" $"done"
     my_exit 0
 }
 
