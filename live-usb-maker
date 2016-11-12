@@ -73,9 +73,10 @@ Create a live-usb from an iso-file, another live-usb, a live-cd/dvd
 or a running live system.  You will be prompted for information that
 is not supplied in the command line options.
 
-Use "default" to default "no" to some questions.
-Use "expert"  to default "yes" to some questions.
-use "simple"  to skip some questions
+    default:  default "no" to some questions.
+     expert:  default "yes" to some questions.
+     simple:  skip some questions
+        gui:  non-interactive
 
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
@@ -187,6 +188,7 @@ assign_parameter() {
        default) QUESTION_MODE=default          ;;
         expert) QUESTION_MODE=expert           ;;
         simple) QUESTION_MODE=simple           ;;
+           gui) QUESTION_MODE=gui              ;;
              *) CMD_CMDS="$CMD_CMDS $param"    ;;
     esac
 }
@@ -251,6 +253,12 @@ main() {
     # Always write a new config file and then exit if requested
     [ "$WRITE_CONFIG" ] && write_config "$CONFIG_FILE" && exit 0
 
+    # Make sure we have a --from and a --target
+    if q_mode gui; then
+       fatal_z "$FROM"    "No --from was given while in %s mode" gui
+       fatal_z "$TARGET"  "No --target was given while in %s mode" gui
+    fi
+
     msg $"Starting %s" "$ME"
     start_log "$orig_args" "$CMDS"
 
@@ -284,7 +292,7 @@ main() {
     fi
     msg "Will use target device %s" "$(pq $TARGET)"
 
-    [ ${#CMD_CMDS} -eq 0 -a "$QUESTION_MODE" != "simple" ] && select_overall_mode CMDS QUESTION_MODE
+    [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui && select_overall_mode CMDS QUESTION_MODE
 
     local from
 
@@ -426,10 +434,14 @@ main() {
     [ "$CMDS" != "all" ] \
         && final_q=$(printf "Ready to perform %s action(s) on %s" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
 
-    final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
-
     #--- One last check with the user before we start doing the work
-    YES_no_pretend "$final_q" || my_exit
+    if q_mode gui; then
+        msg "$final_q"
+    else
+
+        final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
+        YES_no_pretend "$final_q" || my_exit
+    fi
 
     START_T=$(date +%s)
 
