@@ -47,7 +47,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
         SHELL_LIB="cli-shell-utils.bash"
       CONFIG_FILE="/root/.config/$ME/$ME.conf"
      THE_LOG_FILE="/var/log/$ME.log"
-     THE_ERR_FILE="/var/log/$ME.errors"
+     THE_ERR_FILE="/var/log/$ME.error"
          LOG_FILE="/dev/null"
          ERR_FILE="/dev/null"
 
