@@ -48,8 +48,10 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
       CONFIG_FILE="/root/.config/$ME/$ME.conf"
      THE_LOG_FILE="/var/log/$ME.log"
      THE_ERR_FILE="/var/log/$ME.error"
+    THE_PROG_FILE="/var/log/$ME.progress"
          LOG_FILE="/dev/null"
          ERR_FILE="/dev/null"
+        PROG_FILE="/dev/null"
 
     EXT4_NO_64BIT="-O ^64bit"
 
@@ -118,6 +120,7 @@ Options:
   -m --msdos            Use msdos partitioning instead of gpt
   -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
+  -P --progress         Created $THE_PROG_FILE progress file
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
@@ -143,6 +146,7 @@ eval_early_argument() {
        -reset-config|R)  RESET_CONFIG=true   ;;
               -force|F)  FORCE="$FORCE,$val" ;;
               -force=*)  FORCE="$FORCE,$val" ;;
+           -progress|P)  PROGRESS=true       ;;
                 -pause)  PAUSE="$PAUSE${PAUSE:+,}exit" ;;
                -help|h) usage                ;;
     esac
@@ -167,6 +171,7 @@ eval_argument() {
              -msdos|m)  MSDOS_GPT="msdos"                ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
            -pretend|p)  PRETEND_MODE=true                ;;
+          -progress|P)  PROGRESS=true                    ;;
              -quiet|q)  QUIET=true                       ;;
               -size|s)  CMD_SIZE=${val%\%}               ;;
               -size=*)  CMD_SIZE=${val%\%}               ;;
@@ -212,7 +217,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cCDeEfFghILmpqRstvW"
+    local SHIFT SHORT_STACK="cCDeEfFghILmpPqRstvW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
     local START_T=0
     set_colors
@@ -230,6 +235,7 @@ main() {
     ERR_FILE=$THE_ERR_FILE
     trap clean_up EXIT
     do_flock
+
     rm -f $ERR_FILE
 
     read_all_cmdline_mingled "$@"
@@ -253,6 +259,10 @@ main() {
 
     # Always write a new config file and then exit if requested
     [ "$WRITE_CONFIG" ] && write_config "$CONFIG_FILE" && exit 0
+
+    q_mode gui && PROGRESS=true
+    [ "$PROGRESS" ] && PROG_FILE=$THE_PROG_FILE
+
 
     # Make sure we have a --from and a --target
     if q_mode gui; then
