@@ -451,7 +451,6 @@ main() {
     if q_mode gui; then
         msg "$final_q"
     else
-
         final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
         YES_no_pretend "$final_q" || my_exit
     fi
@@ -498,9 +497,10 @@ main() {
     my_exit 0
 }
 
+#===== End of Main ============================================================
 
 #------------------------------------------------------------------------------
-#
+# Validate --from parameter give on command line
 #------------------------------------------------------------------------------
 check_from() {
     local var=$1  cmd_from=$2  exclude=$3
@@ -525,6 +525,9 @@ check_from() {
     fi
 }
 
+#------------------------------------------------------------------------------
+# Pretty much WYSIWYG
+#------------------------------------------------------------------------------
 overall_mode_menu() {
     local fmt="%s$P_IFS%s\n"
     printf "$fmt" simple  $"Make a full-featured live-usb"
@@ -535,7 +538,7 @@ overall_mode_menu() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Decide what to do.  May need to set CMD and/or QUESTION_MODE
 #------------------------------------------------------------------------------
 select_overall_mode() {
     local cmd_var=$1 q_var=$2 ans cmd_val q_val
@@ -553,7 +556,7 @@ select_overall_mode() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Wrapper around cli_live_usb_src_menu() from the lib
 #------------------------------------------------------------------------------
 select_usb_src() {
     local var=$1  exclude=$2
@@ -563,7 +566,7 @@ select_usb_src() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Simple menu of usb devices minus the running live-usb device
 #------------------------------------------------------------------------------
 select_target_device() {
     local var=$1  live_dev=$2  from_dev=$3
@@ -580,17 +583,20 @@ select_target_device() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Work out sizes of the two partitions based on size of device and the user
+# parameter cmd_percent.  Allow user to change the size once so we go through
+# the loop at most twice.
 #------------------------------------------------------------------------------
 verify_sizes() {
     local mib_var=$1  ext_var=$2  dev=$3  dir=$4  cmd_percent=$5  fat_size=$6  default_size=${7:-100}
     local percent=${cmd_percent:-$default_size}
 
+    # Get total size of target live-usb device
     local total_size=$(parted --script $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
 
     local did_size
     while true; do
-        #--- calculate and show various sizes before we through errors due to size
+        #--- simple arithmetic ...
         local mib_val=$((total_size * percent / 100 - 1))
         local ext_val=$((mib_val - fat_size))
         local total_extra=$((total_size - mib_val))
@@ -634,7 +640,7 @@ verify_sizes() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Wrapper around partition_size_menu() in the lib
 #------------------------------------------------------------------------------
 select_partition_size() {
     local var=$1  min_size=$2  total_size=$3
@@ -644,7 +650,7 @@ select_partition_size() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Text menus for language and timezone.  Should we add more??
 #------------------------------------------------------------------------------
 cheats_menus() {
     local var=$1
@@ -660,7 +666,7 @@ cheats_menus() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Mount a device or know the reason why.  Should go in lib?
 #------------------------------------------------------------------------------
 mount_device() {
     local dev=$(expand_device "$1")  dir=$2
@@ -675,7 +681,9 @@ mount_device() {
 }
 
 #------------------------------------------------------------------------------
-#
+# When cloning a live-usb, we only want to copy certain files and ignore all
+# others.  We do this by bind mounting only the files and directories we want
+# and then copying that over to the target device. White-list not black-list.
 #------------------------------------------------------------------------------
 clone_directory() {
     local from_dir=$1 targ_dir=$2
@@ -752,6 +760,8 @@ $(cd "$full_boot_dir" && eval "ls -d $CLONE_BDIR_FILES" 2>/dev/null)
 Clone_Bdir_Files
 }
 
+#===== "REAL" WORK STARTS HERE ================================================
+
 #------------------------------------------------------------------------------
 # Partition the target usb device
 #------------------------------------------------------------------------------
@@ -782,7 +792,9 @@ do_partition() {
 }
 
 #------------------------------------------------------------------------------
-#
+# There were some problems early in testing when the nearly partitioned devs
+# seemed to appear and then disappear and then reappear.  This seems to have
+# fixed them.
 #------------------------------------------------------------------------------
 wait_for_file() {
     local file=$1  name={$2:-Device}  delay=${3:-.1}  total=${4:-40}
@@ -978,6 +990,11 @@ do_install_bootloader() {
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
 
+#===== Here come the utilities! ===============================================
+
+#------------------------------------------------------------------------------
+# Make sure --target device is valid.
+#------------------------------------------------------------------------------
 check_target() {
     local target=$1  live_dev=$2
 
@@ -992,7 +1009,8 @@ check_target() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Make sure we have enough left over space on a partition.  Can generate
+# warnings or fatal errors depending on $action.
 #------------------------------------------------------------------------------
 check_size() {
     local type=$1  extra=$2  margin=$3  action=${4:-fatal}
@@ -1000,6 +1018,9 @@ check_size() {
     [ $extra -lt $margin ] && $action $"Less than %s MiB would remain on %s partition" "$margin" "$type"
 }
 
+#------------------------------------------------------------------------------
+# A catch-all for things to be done right before exiting
+#------------------------------------------------------------------------------
 my_exit() {
     local ret=${1:-0}
 
@@ -1013,7 +1034,7 @@ my_exit() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Start logging by appending a simple header
 #------------------------------------------------------------------------------
 start_log() {
     local args=$1 cmds=${2# }
@@ -1033,7 +1054,7 @@ Start_Log
 }
 
 #------------------------------------------------------------------------------
-#
+# This may be over-kill.  Seems reliable though ...
 #------------------------------------------------------------------------------
 umount_work_dir() {
     local dir=${1:-$WORK_DIR}
@@ -1052,7 +1073,8 @@ umount_work_dir() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Write a config file using the current variables so users can easily put
+# command line parameters into the config file.
 #------------------------------------------------------------------------------
 write_config() {
     local file=${1:-$CONFIG_FILE}
@@ -1101,7 +1123,8 @@ Config_File
 }
 
 #------------------------------------------------------------------------------
-#
+# This routine is trapped on the EXIT signal.  So we always do this stuff.
+# It should *not* be interactive.
 #------------------------------------------------------------------------------
 clean_up() {
     umount_work_dir
@@ -1110,7 +1133,7 @@ clean_up() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Load the lib either for a neighboring repo or from the standard location.
 #------------------------------------------------------------------------------
 load_lib() {
     local file=$1  path=$2
@@ -1135,9 +1158,9 @@ load_lib() {
 }
 
 #===== Start Here =============================================================
+
 load_lib "$SHELL_LIB" "$LIB_PATH"
 
 set_colors
 
 main "$@"
-
