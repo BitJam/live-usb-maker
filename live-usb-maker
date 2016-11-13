@@ -429,7 +429,8 @@ main() {
         "The device %s does not seem to be usb or removeable."  "$target_dev"
 
     local mib_size ext_size
-    need_q partition && verify_sizes mib_size ext_size "$target_dev" "$ISO_DIR" "$percent_size" "$FAT_SIZE" "${DEFAULT_SIZE%%%}"
+    need_q partition && verify_sizes mib_size ext_size "$target_dev" \
+        "$ISO_DIR" "$percent_size" "$FAT_SIZE" "${DEFAULT_SIZE%%%}"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
     # Bail early if only size info is requested
