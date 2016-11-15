@@ -833,8 +833,8 @@ do_copy_ext() {
     local iso_dir=$1  ext_dir=$2
 
     if test -d $ext_dir/antiX && ! force copy; then
-        warn "Not over-writing %s partition due to existing %s directory" ext antiX/
-        warn "Use %s to overwrite" "--force=copy"
+        pwarn "Not over-writing %s partition due to existing %s directory" ext antiX/
+        pwarn "Use %s to overwrite" "--force=copy"
         return
     fi
     msg $"Copying files ..."
@@ -876,7 +876,7 @@ do_cheats_syslinux() {
         Msg "syslinux params: %s" "$(pq $params $cheats)"
         VERBOSE=$verbose CMDLINE="$params $cheats" cmd gfxsave $ext_dir/boot both
     else
-        warn $"Could not find '%s' file to update" "$(basename $syslinux_cfg)"
+        pwarn $"Could not find '%s' file to update" "$(basename $syslinux_cfg)"
     fi
 }
 
@@ -898,7 +898,7 @@ do_cheats_grub() {
         cmd grub2-save $fat_dir --no-kernel --cheats="${params% } $cheats"
     else
         # Could not find '<grub.cfg>' file to update
-        warn $"Could not find '%s' file to update" $(basename $grub_cfg)
+        pwarn $"Could not find '%s' file to update" $(basename $grub_cfg)
     fi
 }
 
@@ -923,7 +923,7 @@ do_uuids() {
     fi
 
     if ! test -e $grub_cfg; then
-        warn $"Could not find '%s' file" "$(basename $grub_cfg)"
+        pwarn $"Could not find '%s' file" "$(basename $grub_cfg)"
         return
     fi
 
@@ -985,8 +985,13 @@ do_install_bootloader() {
             break
         done
     fi
-    # [don't translate syslinux or isolinux]
-    [ "$syslinux_dir" ] || fatal $"Could not find a syslinux or isolinux directory"
+
+    if [ -z "$syslinux_dir" ]; then
+        # [don't translate syslinux or isolinux]
+        pwarn $"Could not find a syslinux or isolinux directory"
+        return
+    fi
+
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
 
