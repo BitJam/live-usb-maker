@@ -986,11 +986,10 @@ do_install_bootloader() {
         done
     fi
 
-    if [ -z "$syslinux_dir" ]; then
-        # [don't translate syslinux or isolinux]
-        pwarn $"Could not find a syslinux or isolinux directory"
-        return
-    fi
+    [ "$PRETEND_MODE" ] && return
+
+     # [don't translate syslinux or isolinux]
+    [ -z "$syslinux_dir" ] && fatal $"Could not find a syslinux or isolinux directory"
 
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
