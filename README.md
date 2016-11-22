@@ -59,8 +59,10 @@ Options:
   -I --ignore-config    Ignore the configuration file
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
+  -n --no-progess       Don't show progress bar when copying
   -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
+  -P --progress         Created /var/log/live-usb-maker.progress progress file
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
