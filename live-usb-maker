@@ -477,7 +477,7 @@ main() {
     if [ "$QUIET" ]; then
         (echo; df -Tm $EXT_DIR $FAT_DIR; echo) >> $LOG_FILE
     else
-        (echo; df -Tm $EXT_DIR $FAT_DIR; echo) | tee -a $LOG_FILE
+        (echo; df -Tm $EXT_DIR $FAT_DIR; echo) | tee -a $LOG_FILE | sed -r "s/^(Filesystem.*)/$m_co\1$nc_co/"
     fi
 
     need copy-ext && do_copy_ext $ISO_DIR $EXT_DIR
