@@ -118,6 +118,7 @@ Options:
   -I --ignore-config    Ignore the configuration file
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
+  -n --no-progess       Don't show progress bar when copying
   -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
   -P --progress         Created $THE_PROG_FILE progress file
@@ -169,6 +170,7 @@ eval_argument() {
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
              -msdos|m)  MSDOS_GPT="msdos"                ;;
+       -no-progress|n)  NO_PROGRESS=true                 ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
            -pretend|p)  PRETEND_MODE=true                ;;
           -progress|P)  PROGRESS=true                    ;;
@@ -837,8 +839,16 @@ do_copy_ext() {
         pwarn "Use %s to overwrite" "--force=copy"
         return
     fi
+    local err_msg=$"Error while copying files to live usb"
+
     msg $"Copying files ..."
-    cmd cp -a $iso_dir/* $ext_dir/ || fatal $"Error while copying files to live usb"
+
+    if q_mode gui || [ "$NO_PROGRESS" ]; then
+        cmd cp -a $iso_dir/* $ext_dir/ || fatal "$err_msg"
+    else
+        [ -z "$PRETEND" ] && prog_copy $iso_dir $ext_dir "$err_msg"
+    fi
+
     sync
 }
 
@@ -1131,7 +1141,16 @@ Config_File
 # It should *not* be interactive.
 #------------------------------------------------------------------------------
 clean_up() {
+
+    # Kill off background copy process
+    [ "$COPY_PID" ] && test -d /proc/$COPY_PID && kill_pids $COPY_PID
+
+    # Kill the children
+    pkill -P $$
+
+    # Try to umount everything
     umount_work_dir
+
     test -d $WORK_DIR && rmdir $WORK_DIR
     unflock
 }
