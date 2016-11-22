@@ -1079,7 +1079,7 @@ umount_work_dir() {
 
     local try
     for try in $(seq 1 30); do
-        umount --recursive "$dir"
+        umount --recursive "$dir"  2>/dev/null
         is_mountpoint "$dir" || return 0
         sleep .1
     done
