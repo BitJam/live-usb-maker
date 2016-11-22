@@ -609,10 +609,13 @@ verify_sizes() {
 
         local min_percent=$((1 + 100 * (ext_needed + fat_size + EXT_MARGIN + FAT_MARGIN) / total_size))
 
+        log_it_q echo
         # Table headers for sizes of: entire drive, main partition, uefi partition
-        log_it usb_stats $"entire drive"    "$total_size" "$mib_val"     "$total_extra" \
+        log_it_q usb_stats $"entire drive"    "$total_size" "$mib_val"     "$total_extra" \
                   $"main partition"  "$ext_val"    "$ext_needed"  "$ext_extra"   \
                   $"uefi partition"  "$fat_size"   "$fat_needed"  "$fat_extra"
+
+        echo >>$LOG_FILE
 
         check_size ext $ext_extra $EXT_MARGIN warn
         check_size fat $fat_extra $FAT_MARGIN warn
