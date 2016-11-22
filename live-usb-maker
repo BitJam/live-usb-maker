@@ -411,7 +411,7 @@ main() {
         esac
     fi
 
-    # This are mostly for a manually entered target
+    # These are mostly for a manually entered target
     test -e $target_dev || fatal "Target device %s does not exist" $target_dev
     test -b $target_dev || fatal "Target device %s is not a block device" $target_dev
 
@@ -419,7 +419,7 @@ main() {
     local dev_type=$(lsblk -no type --nodeps $target_dev)
     [ "$dev_type" = "disk" ] || fatal "Device %s is not a disk device" $target_dev
 
-    # Get first to partitions (lexically only)
+    # Get first two partitions (lexically only)
     local ext_dev=$(get_partition $target_dev 1)
     local fat_dev=$(get_partition $target_dev 2)
 
