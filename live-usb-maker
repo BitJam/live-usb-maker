@@ -663,15 +663,15 @@ select_partition_size() {
 #------------------------------------------------------------------------------
 cheats_menus() {
     local var=$1
-    local tz_cheat cheats
-    cli_text_menu cheats lang "Select default Language for the live-usb" \
+    local tz_cheat _cheats
+    cli_text_menu _cheats lang "Select default Language for the live-usb" \
         "Language implies timezone and other things"
 
     local blurb=$(printf "Timezones are listed by longitude. %s denotes daylight savings time" "$(pqq "*")")
     cli_text_menu tz_cheat tz "Select Default Timezone for the live-usb" "$blurb"
 
-    [ "$tz_cheat" ] && cheats="$cheats${cheats:+ }$tz_cheat"
-    eval $var=\$cheats
+    [ "$tz_cheat" ] && _cheats="$_cheats${_cheats:+ }$tz_cheat"
+    eval $var=\$_cheats
 }
 
 #------------------------------------------------------------------------------
