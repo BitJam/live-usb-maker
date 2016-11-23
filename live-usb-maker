@@ -596,6 +596,12 @@ verify_sizes() {
 
     # Get total size of target live-usb device
     local total_size=$(parted --script $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    local ext_needed=$(du_size $dir/*)
+    local fat_needed=$(du_size $dir/{boot,EFI,efi})
+
+    if [ $fat_size -lt $((fat_needed + FAT_MARGIN + 1)) ]; then
+        fat_size=$((fat_needed + FAT_MARGIN + 1))
+    fi
 
     local did_size
     while true; do
@@ -603,11 +609,8 @@ verify_sizes() {
         local mib_val=$((total_size * percent / 100 - 1))
         local ext_val=$((mib_val - fat_size))
         local total_extra=$((total_size - mib_val))
-        local ext_needed=$(du_size $dir/*)
-        local fat_needed=$(du_size $dir/{boot,EFI,efi})
         local ext_extra=$((ext_val - ext_needed))
-        local fat_extra=$((FAT_SIZE - fat_needed))
-
+        local fat_extra=$((fat_size - fat_needed))
         local min_percent=$((1 + 100 * (ext_needed + fat_size + EXT_MARGIN + FAT_MARGIN) / total_size))
 
         log_it_q echo
