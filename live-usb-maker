@@ -299,7 +299,7 @@ main() {
 
     # Check cmdline target *before* the first menu
     if [ ${#TARGET} -eq 0 ]; then
-        select_target_device TARGET "$live_dev"
+        select_target_device TARGET "$live_dev" "$FROM"
     else
         check_target "$TARGET" "$live_dev"
     fi
@@ -571,7 +571,8 @@ select_usb_src() {
 # Simple menu of usb devices minus the running live-usb device
 #------------------------------------------------------------------------------
 select_target_device() {
-    local var=$1  live_dev=$2  from_dev=$3
+    local var=$1  live_dev=$2  from_dev=${3#clone=}
+
     local menu=$(cli_drive_menu "$live_dev" "$from_dev")
     local dev cnt=$(count_lines "$menu")
     case $cnt in
