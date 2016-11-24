@@ -1,5 +1,13 @@
 #!/bin/bash
 
+#==============================================================================
+# live-usb-maker
+# A fast and robust program to make full featured antiX/MX live-usbs
+#
+# (C) 2016 BitJam for antiX <antiX@operamail.com>
+# License: GPLv3 or later
+#==============================================================================
+
         ME=${0##*/}
     MY_DIR=$(dirname "$(readlink -f $0)")
 MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
