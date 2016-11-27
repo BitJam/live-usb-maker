@@ -1164,8 +1164,7 @@ Config_File
 #------------------------------------------------------------------------------
 clean_up() {
 
-    # Kill off background copy process
-    [ "$COPY_PID" ] && test -d /proc/$COPY_PID && kill_pids $COPY_PID
+    lib_clean_up
 
     # Kill the children
     pkill -P $$
