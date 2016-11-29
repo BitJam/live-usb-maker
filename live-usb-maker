@@ -821,7 +821,7 @@ do_partition() {
 # fixed them.
 #------------------------------------------------------------------------------
 wait_for_file() {
-    local file=$1  name={$2:-Device}  delay=${3:-.1}  total=${4:-40}
+    local file=$1  name=${2:-Device}  delay=${3:-.1}  total=${4:-40}
     local i
     for i in $(seq 1 $total); do
         test -e $file && return 0
