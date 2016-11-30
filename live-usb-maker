@@ -8,6 +8,9 @@
 # License: GPLv3 or later
 #==============================================================================
 
+      VERSION="0.90.01"
+ VERSION_DATE="Tue Nov 29 17:52:01 MST 2016"
+
         ME=${0##*/}
     MY_DIR=$(dirname "$(readlink -f $0)")
 MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
@@ -63,7 +66,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
     EXT4_NO_64BIT="-O ^64bit"
 
-ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
+ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat made_by"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
 
@@ -72,6 +75,8 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
         PATH="$MY_LIB_DIR/bin:$LIB_DIR/bin:$PATH"
+
+MADE_BY_FILE="made-by-live-usb-maker"
 
 usage() {
     local ret=${1:-0}
@@ -134,7 +139,8 @@ Options:
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
   -t --target=<xxx>     The device to make into a new live-usb
-  -v --verbose          Print more, show commands when run
+  -v --version          Show version information
+  -V --verbose          Print more, show commands when run
   -W --write-config     Write a config file preserving current options
 
 Notes:
@@ -151,13 +157,14 @@ eval_early_argument() {
     local val=${1#*=}
     case $1 in
       -ignore-config|I) IGNORE_CONFIG=true   ;;
-       -write-config|W)  WRITE_CONFIG=true   ;;
-       -reset-config|R)  RESET_CONFIG=true   ;;
-              -force|F)  FORCE="$FORCE,$val" ;;
-              -force=*)  FORCE="$FORCE,$val" ;;
-           -progress|P)  PROGRESS=true       ;;
-                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit" ;;
+       -write-config|W) WRITE_CONFIG=true    ;;
+       -reset-config|R) RESET_CONFIG=true    ;;
+              -force|F) FORCE="$FORCE,$val"  ;;
+              -force=*) FORCE="$FORCE,$val"  ;;
+           -progress|P) PROGRESS=true        ;;
+                -pause) PAUSE="$PAUSE${PAUSE:+,}exit" ;;
                -help|h) usage                ;;
+            -version|v) show_version         ;;
     esac
 }
 
@@ -227,7 +234,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cCDeEfFghILmpPqRstvW"
+    local SHIFT SHORT_STACK="cCDeEfFghILmnpPqRstvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
     local START_T=0
     set_colors
@@ -500,6 +507,8 @@ main() {
     [ ${#cheats} -gt 0 ] && need cheats-grub     && do_cheats_grub     $FAT_DIR "$cheats"
 
     need install $"install" && do_install_bootloader $target_dev $EXT_DIR $MSDOS_GPT
+
+    need made_by && do_made_by $EXT_DIR "$MADE_BY_FILE"
 
     sync; sync
 
@@ -1026,6 +1035,19 @@ do_install_bootloader() {
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
 
+#------------------------------------------------------------------------------
+# Create a small made-by-live-usb-maker file on the live-usb
+#------------------------------------------------------------------------------
+do_made_by() {
+    local dir=$1  file=${2:-$MADE_BY_FILE}
+    local full=$dir/$file
+    cmd cat<<Made_By > $dir/$file
+     created: $(date)
+     program: $(basename $0)
+     version: $VERSION ($VERSION_DATE)
+Made_By
+}
+
 #===== Here come the utilities! ===============================================
 
 #------------------------------------------------------------------------------
@@ -1081,6 +1103,7 @@ start_log() {
 ---------------------------------------------------------------------
 $0
         started: $(date)
+        version: $VERSION ($VERSION_DATE)
     comand line: $args
       found lib: $FOUND_LIB
      TEXTDOMAIN: $TEXTDOMAIN
@@ -1106,6 +1129,14 @@ umount_work_dir() {
         sleep .1
     done
     rmdir "$dir"
+}
+
+#------------------------------------------------------------------------------
+# Show version information and then exit
+#------------------------------------------------------------------------------
+show_version() {
+    printf "%s version %s (%s)\n" "$ME" "$VERSION" "$VERSION_DATE"
+    exit 0
 }
 
 #------------------------------------------------------------------------------
