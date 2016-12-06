@@ -131,7 +131,7 @@ Options:
   -I --ignore-config    Ignore the configuration file
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
-  -n --no-progess       Don't show progress bar when copying
+  -n --no-prog-bar      Don't show progress *bar* when copying
   -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
   -P --progress         Created $THE_PROG_FILE progress file
@@ -185,7 +185,7 @@ eval_argument() {
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
              -msdos|m)  MSDOS_GPT="msdos"                ;;
-       -no-progress|n)  NO_PROGRESS=true                 ;;
+       -no-prog-bar|n)  NO_PROGRESS_BAR=true             ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
            -pretend|p)  PRETEND_MODE=true                ;;
           -progress|P)  PROGRESS=true                    ;;
@@ -194,7 +194,7 @@ eval_argument() {
               -size=*)  CMD_SIZE=${val%\%}               ;;
             -target|t)  TARGET=$val                      ;;
             -target=*)  TARGET=$val                      ;;
-           -verbose|v)  BE_VERBOSE=true                  ;;
+           -verbose|V)  BE_VERBOSE=true                  ;;
 
        # These are read early.  They are not unknown
 
@@ -874,7 +874,7 @@ do_copy_ext() {
 
     msg $"Copying files ..."
 
-    if q_mode gui || [ "$NO_PROGRESS" ]; then
+    if q_mode gui || [ "$NO_PROGRESS_BAR" ]; then
         cmd cp -a $iso_dir/* $ext_dir/ || fatal "$err_msg"
     else
         [ -z "$PRETEND" ] && prog_copy $iso_dir $ext_dir "$err_msg"
