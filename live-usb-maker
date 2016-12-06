@@ -66,7 +66,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
     EXT4_NO_64BIT="-O ^64bit"
 
-ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat made_by"
+ORDERED_CMDS="partition makefs makefs-ext makefs-fat copy copy-ext copy-fat"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
 
@@ -508,7 +508,7 @@ main() {
 
     need install $"install" && do_install_bootloader $target_dev $EXT_DIR $MSDOS_GPT
 
-    need made_by && do_made_by $EXT_DIR "$MADE_BY_FILE"
+    do_made_by $EXT_DIR "$MADE_BY_FILE"
 
     sync; sync
 
