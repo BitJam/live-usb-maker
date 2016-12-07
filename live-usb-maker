@@ -283,15 +283,16 @@ main() {
     # Always write a new config file and then exit if requested
     [ "$WRITE_CONFIG" ] && write_config "$CONFIG_FILE" && exit 0
 
+    need_prog extlinux
     q_mode gui && PROGRESS=true
     [ "$PROGRESS" ] && PROG_FILE=$THE_PROG_FILE
-
 
     # Make sure we have a --from and a --target
     if q_mode gui; then
        fatal_z "$FROM"    "No --from was given while in %s mode" gui
        fatal_z "$TARGET"  "No --target was given while in %s mode" gui
     fi
+
 
     msg $"Starting %s" "$ME"
     start_log "$orig_args" "$CMDS"
