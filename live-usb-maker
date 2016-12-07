@@ -1015,7 +1015,7 @@ do_install_bootloader() {
     done
 
     [ "$file" ] || fatal $"Could not find file %s" "$fname"
-    cmd dd bs=440 conv=notrunc count=1 if=$file of=$target_dev > /dev/null || fatal "%s command failed" dd
+    cmd dd bs=440 conv=notrunc count=1 if=$file of=$target_dev  || fatal "%s command failed" dd
 
     local sdir idir syslinux_dir isolinux_dir
     for sdir in boot/syslinux syslinux; do
