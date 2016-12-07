@@ -78,6 +78,10 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
 
 MADE_BY_FILE="made-by-live-usb-maker"
 
+SYSLINUX_FILES="chain.c32 gfxboot.c32 vesamenu.c32 ldlinux.c32 libcom32.c32"
+SYSLINUX_FILES="$SYSLINUX_FILES libmenu.c32 libutil.c32 linux.c32 menu.c32"
+   SYSLINUX_RM="*.c32 ldlinux.sys syslinux.bin isolinux.bin version"
+
 usage() {
     local ret=${1:-0}
 
@@ -129,6 +133,7 @@ Options:
   -g --gpt              Use gpt partitioning (default) instead of msdos
   -h --help             Show this usage
   -I --ignore-config    Ignore the configuration file
+  -k --keep-syslinux    Don't replace the syslinux files
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
   -n --no-prog-bar      Don't show progress *bar* when copying
@@ -182,6 +187,7 @@ eval_argument() {
               -from|f)  FROM=$val                        ;;
               -from=*)  FROM=$val                        ;;
                -gpt|g)  MSDOS_GPT="gpt"                  ;;
+     -keep-syslinux|k)  KEEP_SYSLINUX=true               ;;
              -label|L)  EXT4_LABEL=$val                  ;;
              -label=*)  EXT4_LABEL=$val                  ;;
              -msdos|m)  MSDOS_GPT="msdos"                ;;
@@ -234,7 +240,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHORT_STACK="cCDeEfFghILmnpPqRstvVW"
+    local SHIFT SHORT_STACK="cCDeEfFghIkLmnpPqRstvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
     local START_T=0
     set_colors
@@ -1031,12 +1037,44 @@ do_install_bootloader() {
         done
     fi
 
+    [ "$KEEP_SYSLINUX" ] || update_syslinux $ext_dir/$sdir "$SYSLINUX_FILES" "$SYSLINUX_RM"
+
     [ "$PRETEND_MODE" ] && return
 
      # [don't translate syslinux or isolinux]
     [ -z "$syslinux_dir" ] && fatal $"Could not find a syslinux or isolinux directory"
 
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
+}
+
+update_syslinux() {
+    local to_dir=$1  xfer_files=$2  rm_files=$3
+    local fname=gfxboot.c32  file  pre  post
+    for pre in /usr/share/syslinux /usr/lib/syslinux; do
+        for post in "/" /modules/bios/; do
+            test -e $pre$post$fname || continue
+            file=$pre$post$fname
+            break
+        done
+    done
+    [ "$file" ] || fatal $"Could not find file %s" "$fname"
+    local from_dir=$(dirname $file)
+
+    if test -e $to_dir/ldlinux.sys && which chattr &>/dev/null; then
+        cmd chattr -i $to_dir/ldlinux.sys
+    fi
+
+    while read fname; do
+        test -e $to_dir/$fname && cmd rm -f $to_dir/$fname
+    done<<Syslinux_Rm
+$(cd $to_dir && ls -d $rm_files 2>/dev/null)
+Syslinux_Rm
+
+    for fname in $xfer_files; do
+        test -e $from_dir/$fname && cmd cp $from_dir/$fname $to_dir/
+    done
+
+    cmd write_file $to_dir/version $(get_extlinux_version)
 }
 
 #------------------------------------------------------------------------------
@@ -1053,6 +1091,10 @@ Made_By
 }
 
 #===== Here come the utilities! ===============================================
+
+get_extlinux_version() {
+    extlinux -v 2>&1 | sed -r "s/^[a-z]+\s+([0-9.]+).*/\1/g"
+}
 
 #------------------------------------------------------------------------------
 # Make sure --target device is valid.
