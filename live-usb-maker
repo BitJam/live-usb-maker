@@ -997,6 +997,8 @@ do_uuids() {
 do_install_bootloader() {
     local target_dev=$1  ext_dir=$2  type=$3
 
+    msg "extlinux version %s" "$(pq $(get_extlinux_version))"
+
     local fname
     case $type in
           gpt) fname=gptmbr.bin ;;
