@@ -86,7 +86,7 @@ usage() {
     local ret=${1:-0}
 
 cat<<Usage
-Usage: $ME [commands]
+Usage: $ME [<options>] [default|expert|simple|gui]
 
 Create a live-usb from an iso-file, another live-usb, a live-cd/dvd
 or a running live system.  You will be prompted for information that
@@ -95,7 +95,7 @@ is not supplied in the command line options.
     default:  default "no" to some questions.
      expert:  default "yes" to some questions.
      simple:  skip some questions
-        gui:  non-interactive
+        gui:  non-interactive, disable progress bar, enable progress file
 
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
@@ -113,7 +113,6 @@ Options:
   -c --cheat=xxx        Add these cheatcodes to the live-usb
                            Use "off" or "no" to disable cheats menu.
                            Use "on" or "yes"  to show cheat menus without asking
-
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
   -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
@@ -139,7 +138,7 @@ Options:
   -n --no-prog-bar      Don't show progress *bar* when copying
   -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
-  -P --progress         Created $THE_PROG_FILE progress file
+  -P --progress         Create $THE_PROG_FILE progress file
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
