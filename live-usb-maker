@@ -847,11 +847,13 @@ do_partition() {
 # fixed them.
 #------------------------------------------------------------------------------
 wait_for_file() {
-    local file=$1  name=${2:-Device}  delay=${3:-.1}  total=${4:-40}
-    local i
+    local file=$1  name=${2:-Device}  delay=${3:-.05}  total=${4:-40}
+    local i  cnt=0  max=3
     for i in $(seq 1 $total); do
-        test -e $file && return 0
         sleep $delay
+        test -e $file || cnt=0
+        cnt=$((cnt + 1))
+        test $cnt -ge $max && return 0
     done
     fatal "%s does not exist!" "$name $file"
 }
