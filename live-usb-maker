@@ -52,6 +52,9 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
      COLOR_SCHEME="high"
     QUESTION_MODE="default"
 
+          ENCRYPT=""
+      PASS_PHRASE="random"
+
 #== END_CONFIG
 
          WORK_DIR="/run/$ME"
@@ -115,6 +118,8 @@ Options:
                            Use "on" or "yes"  to show cheat menus without asking
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
+  --encrypt             Set up to boot from an encrypted partition
+  --encrypt=<phrase>    Use <phrase> to encrypt the partition
   -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
   -E --ext-options=<xx> Use these options when creating the ext4 filesystem
 
@@ -179,6 +184,8 @@ eval_argument() {
              -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
+             -encrypt)  ENCRYPT=true                     ;;
+           -encrypt=*)  ENCRYPT=true ; PASS_PHRASE=$val  ;;
           -esp-size|e)  FAT_SIZE=$val                    ;;
        -ext-options|E)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
@@ -240,7 +247,7 @@ takes_param() {
 
 main() {
     local SHIFT SHORT_STACK="cCDeEfFghIkLmnpPqRstvVW"
-    local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT
+    local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local START_T=0
     set_colors
 
@@ -430,6 +437,10 @@ main() {
         yes|on) cheats_menus cheats ;;
              *) cheats=$CHEATS      ;;
         esac
+    fi
+
+    if need_q copy && [ -z [ "$ENCRYPT" ]; then
+        expert_yes_NO $"Encrypt the live-usb?" && ENCRYPT=true
     fi
 
     # These are mostly for a manually entered target
@@ -1230,6 +1241,9 @@ $(config_header "$file" $ME)
            CHEATS=""
      COLOR_SCHEME="$COLOR_SCHEME"
     QUESTION_MODE="$QUESTION_MODE"
+
+          ENCRYPT="$ENCRYPT"
+      PASS_PHRASE="$PASS_PHRASE"
 
 $(config_footer)
 Config_File
