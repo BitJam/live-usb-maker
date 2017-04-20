@@ -860,7 +860,7 @@ encrypt_partition() {
     cat $file | cryptsetup luksFormat --key-file - $dev \
         || fatal "Failed to create encrypted device"
 
-    cryptsetup open --type luks --key-file $file /dev/sdd2 $name \
+    cryptsetup open --type luks --key-file $file $dev $name \
         || fatal "Failed to open encrypted device"
 
     msg "Encryption successful"
