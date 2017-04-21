@@ -1127,7 +1127,8 @@ enable_initrd_encryption() {
 
     if [ -n "$mod_dir" ]; then
         msg "add %s modules to initrd" "$(pq encryption)"
-        cmd copy-initrd-modules --quiet --crypt --from=$mod_dir --to=$dir
+        cmd copy-initrd-modules --quiet --crypt --from=$mod_dir --to=$dir \
+            || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
     fi
 
     cmd unpack-initrd -f $to_file -d $dir --repack || fatal "An error occurred repacking the initrd"
