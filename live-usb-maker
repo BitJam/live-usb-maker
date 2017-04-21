@@ -529,12 +529,17 @@ main() {
         # Write phrase and signal file *before* encrypting
         my_mount $BIOS_DEV $BIOS_DIR
         local phrase_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$PHRASE_FNAME
+        local encrypt_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$ENCRYPT_FNAME
+
         [ "$PASS_PHRASE" = "random" ] && PASS_PHRASE=$(random_phrase 30)
-        write_phrase_file "$PASS_PHRASE" $phrase_file $ENCRYPT_FNAME
+        write_phrase_file "$PASS_PHRASE" $phrase_file
         sync
 
         encrypt_partition $MAIN_DEV "$LUKS_NAME" $phrase_file
         do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS"
+
+        local main_uuid=$(lsblk -no uuid $MAIN_DEV)
+        cmd write_file $encrypt_file "$main_uuid"
 
         sync
 
@@ -840,11 +845,10 @@ setup_devices() {
 #
 #------------------------------------------------------------------------------
 write_phrase_file() {
-    local phrase=$1  pfile=$2  ename=$3
+    local phrase=$1  pfile=$2
     local dir=$(dirname $pfile)
     cmd mkdir -p $dir
     [ "$PRETEND_MODE" ] || echo -n "$phrase" > $pfile
-    [ -n "$ename" ] && cmd touch $dir/$ename
 }
 
 #------------------------------------------------------------------------------
