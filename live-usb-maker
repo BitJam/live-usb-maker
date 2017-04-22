@@ -797,7 +797,7 @@ cheats_menus() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Guess if the target device is an encrypted live-usb or a normal one
 #------------------------------------------------------------------------------
 guess_partitioning() {
     local drive=$1
@@ -823,7 +823,8 @@ random_phrase() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Different actions take place on different partitions depending on if we are
+# making an encrypted live-usb or not.
 #------------------------------------------------------------------------------
 setup_devices() {
     local drive=$1
@@ -851,7 +852,8 @@ setup_devices() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Write the passphrase to the passphrase file.  The write_file() routine would
+# leave the passphrase in the log file.
 #------------------------------------------------------------------------------
 write_phrase_file() {
     local phrase=$1  pfile=$2
@@ -985,7 +987,9 @@ Clone_Bdir_Files
 #===== "REAL" WORK STARTS HERE ================================================
 
 #------------------------------------------------------------------------------
-# Partition the target usb device
+# Partition the target usb device.  Will make either 3 or 2 partitions
+# depending on whether encryption is used as signaled by the zero size of the
+# bios partition.
 #------------------------------------------------------------------------------
 do_partition() {
     local drive=$1  type=${2:-msdos}  bios_size=${3:-0}  main_size=$4  alloc_size=$5
@@ -1112,7 +1116,7 @@ Copy_Files_Spec
 }
 
 #------------------------------------------------------------------------------
-# Add cryptsetup and dmsetup to the initrd
+# Add cryptsetup and dmsetup to the initrd.  Also add kernel modules.
 #------------------------------------------------------------------------------
 enable_initrd_encryption() {
     local from_file=${1:-$2}  to_file=$2  dir=${3:-$INITRD_DIR}  mod_dir=$4
@@ -1130,21 +1134,24 @@ enable_initrd_encryption() {
         full=$(find_bin $mod_dir $prog)
         [ -n "$full" ] || fatal "Could not find program %s to include in initrd" $prog
         cmd cp $mod_dir$full $dir/bin/
-        msg "Copy libs for %s" "$(pq $full)"
+        #msg "Copy libs for %s" "$(pq $prog)"
         cmd grab-libs --output=$dir/lib/ --prefix=$mod_dir $full
     done
 
-    if [ -n "$mod_dir" ]; then
-        msg "add %s modules to initrd" "$(pq encryption)"
-        cmd copy-initrd-modules --quiet --crypt --from=$mod_dir --to=$dir \
-            || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
-    fi
+    #-- if [ -n "$mod_dir" ]; then
+    #--     msg "add %s modules to initrd" "$(pq encryption)"
+    #--     cmd copy-initrd-modules --quiet --crypt --from=$mod_dir --to=$dir \
+    #--         || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
+    #-- fi
 
     cmd unpack-initrd -f $to_file -d $dir --repack || fatal "An error occurred repacking the initrd"
     local md5_sum=$(cd $(dirname $to_file) && md5sum $(basename $to_file))
     cmd write_file "$to_file".md5 "$md5_sum"
 }
 
+#------------------------------------------------------------------------------
+# Find a binary program on a mounted file system such as a squashfs.
+#------------------------------------------------------------------------------
 find_bin() {
     local dir=$1 name=$2 path=${3:-$PATH}
     local p
@@ -1155,7 +1162,6 @@ find_bin() {
     done
     return 1
 }
-
 
 #------------------------------------------------------------------------------
 # Use the gfxsave script to add chaats to the gfxboot/syslinux bootladers
@@ -1367,9 +1373,8 @@ check_target() {
     [ "$live_drive" = "$targ_drive" ] && fatal "Target '%s' cannot be on the live device '%s'" "$target" "$live_drive"
 }
 
-
 #------------------------------------------------------------------------------
-#
+# Convenience routine to save a little typing
 #------------------------------------------------------------------------------
 encrypt() {  [ "$ENCRYPT" ]; return $?; }
 #------------------------------------------------------------------------------
