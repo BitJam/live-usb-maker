@@ -506,7 +506,7 @@ main() {
     [ "$CMDS" != "all" ] \
         && final_q=$(printf "Ready to perform %s action(s) on %s" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
 
-    encrypt && shout "\n===> ENCRYPTED <==="
+    encrypt && shout "\n===> %s <===" "Encrypted live-usb"
 
     if q_mode gui; then
         msg "$final_q"
@@ -546,6 +546,8 @@ main() {
         cmd write_file $encrypt_file "$main_uuid"
 
         sync
+
+        DID_ENCRYPT=true
 
         umount $BIOS_DEV # FIXME???
         my_mount $LUKS_DEV $MAIN_DIR
@@ -599,6 +601,9 @@ main() {
     sync; sync
 
     msg "=> %s" $"done"
+
+    [ -n "$DID_ENCRYPT" ] && shout "You will be asked to create your own passphrase on the first boot"
+
     my_exit 0
 }
 
