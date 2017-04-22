@@ -835,8 +835,6 @@ setup_devices() {
         MAIN_DEV=$(get_partition $drive 2)
         UEFI_DEV=$(get_partition $drive 3)
 
-        BIOS_MARGIN=0       # for now FIXME
-
     else
 
         # Get first two partitions (lexically only)
