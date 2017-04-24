@@ -196,6 +196,7 @@ eval_argument() {
     local arg=$1  val=$2
         case $arg in
          -bios-size|b)  BIOS_SIZE=$val                   ;;
+         -bios-size=*)  BIOS_SIZE=$val                   ;;
              -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -color|C)  COLOR_SCHEME=$val                ;;
