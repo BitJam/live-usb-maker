@@ -597,7 +597,7 @@ main() {
     local bios_uuid=$(lsblk -no uuid $BIOS_DEV)
     local uefi_uuid=$(lsblk -no uuid $UEFI_DEV)
 
-    need uuids && do_uuids $BIOS_DIR "$bios_uuid" "$UEFI_DIR/$GRUB_CONF" "$uefi_uuid"
+    need uuids && do_uuids $BIOS_DIR "$bios_uuid" "$UEFI_DIR/$GRUB_CONF" "$uefi_uuid" "$UEFI_PART"
 
     [ ${#cheats} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $BIOS_DIR "$cheats"
     [ ${#cheats} -gt 0 ] && need cheats-grub     && do_cheats_grub     $UEFI_DIR "$cheats"
@@ -714,7 +714,8 @@ verify_sizes() {
     local percent=${cmd_percent:-$default_size}
 
     # Get total size of target live-usb device
-    local total_size=$(parted --script $dev unit MiB print | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    local total_size=$(parted --script $target_dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+
     local main_needed=$(du_ap_size_spec $dir "*")
     local uefi_needed=$(du_ap_size_spec $dir "$UEFI_FILES")
     local bios_needed=$(du_ap_size_spec $dir "$BIOS_FILES")
@@ -838,12 +839,14 @@ setup_devices() {
     local drive=$1
 
     if encrypt; then
+        UEFI_PART=3
+
         # Get first three partitions (lexically only)
         BIOS_DEV=$(get_partition $drive 1)
         MAIN_DEV=$(get_partition $drive 2)
         UEFI_DEV=$(get_partition $drive 3)
-
     else
+        UEFI_PART=2
 
         # Get first two partitions (lexically only)
         MAIN_DEV=$(get_partition $drive 1)
@@ -1240,7 +1243,7 @@ do_cheats_grub() {
 # user to be amble to save their  boot parameter selections.
 #------------------------------------------------------------------------------
 do_uuids() {
-    local bios_dir=$1  bios_uuid=$2  grub_cfg=$3  uefi_uuid=$4
+    local bios_dir=$1  bios_uuid=$2  grub_cfg=$3  uefi_uuid=$4  uefi_part=$5
     if [ ${#uefi_uuid} -gt 0 ]; then
         local uefi_file=$bios_dir/antiX/esp-uuid
         cmd mkdir -p $(dirname $uefi_file) || fatal $"Making directory '%s' failed" "$(dirname $uefi_file)"
@@ -1273,6 +1276,10 @@ do_uuids() {
     # Remove #--esp comment to point memtest back to fat32 partition
     cmd sed -ri "s/^#-+esp\s*//" $grub_cfg \
         || fatal "sed on %s failed" "$(basename $grub_cfg)"
+
+    cmd sed -ri "s/(root=\(hd0,)2\)/\1$uefi_part)/" $grub_cfg \
+        || fatal "sed on %s failed" "$(basename $grub_cfg)"
+
 }
 
 #------------------------------------------------------------------------------
