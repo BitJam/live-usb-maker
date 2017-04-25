@@ -8,8 +8,8 @@
 # License: GPLv3 or later
 #==============================================================================
 
-      VERSION="2.00.03"
- VERSION_DATE="Sat Apr 22 15:44:04 MDT 2017"
+      VERSION="2.00.04"
+ VERSION_DATE="Mon Apr 24 11:53:13 MDT 2017"
 
         ME=${0##*/}
     MY_DIR=$(dirname "$(readlink -f $0)")
@@ -50,7 +50,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
  CLONE_BDIR_FILES="{vmlinuz,vmlinuz1,initrd.gz,linuxfs}{,.md5}"
 
        UEFI_FILES="EFI boot/{grub,uefi-mt}"
-       BIOS_FILES="boot/{syslinux,memtest} antiX/{vmlinuz,initrd}*"
+       BIOS_FILES="boot/{syslinux,memtest,grub} antiX/{vmlinuz,initrd}*"
 
         GRUB_CONF="boot/grub/grub.cfg"
            CHEATS=""

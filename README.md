@@ -10,7 +10,7 @@ Create an antiX/MX LiveUSB
     sudo ./live-usb-maker
 
 ```
-Usage: live-usb-maker [commands]
+Usage: live-usb-maker [<options>] [default|expert|simple|gui]
 
 Create a live-usb from an iso-file, another live-usb, a live-cd/dvd
 or a running live system.  You will be prompted for information that
@@ -19,7 +19,7 @@ is not supplied in the command line options.
     default:  default "no" to some questions.
      expert:  default "yes" to some questions.
      simple:  skip some questions
-        gui:  non-interactive
+        gui:  non-interactive, disable progress bar, enable progress file
 
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
@@ -34,13 +34,15 @@ instead.
   --from=<dev>         copy from a livecd/dvd or live-usb
 
 Options:
+  -b --bios-size=<xx>   Size of BIOS boot partition when using encryption
   -c --cheat=xxx        Add these cheatcodes to the live-usb
                            Use "off" or "no" to disable cheats menu.
                            Use "on" or "yes"  to show cheat menus without asking
-
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
-  -e --esp-size=<xx>    Size of ESP (fat) partition in MiB (default 50)
+  --encrypt             Set up to boot from an encrypted partition
+  --encrypt=<phrase>    Use <phrase> to encrypt the partition
+  -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   -E --ext-options=<xx> Use these options when creating the ext4 filesystem
 
   -f --from=<xxx>       The device, cdrom, or file to make the live-usb from
@@ -56,18 +58,22 @@ Options:
 
   -g --gpt              Use gpt partitioning (default) instead of msdos
   -h --help             Show this usage
+  -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
   -I --ignore-config    Ignore the configuration file
+  -k --keep-syslinux    Don't replace the syslinux files
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
-  -n --no-progess       Don't show progress bar when copying
+  -n --no-prog-bar      Don't show progress *bar* when copying
   -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
-  -P --progress         Created /var/log/live-usb-maker.progress progress file
+     --pause=initrd     Pause after unpacking the initrd.gz file
+  -P --progress         Create /var/log/live-usb-maker.progress progress file
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
   -t --target=<xxx>     The device to make into a new live-usb
-  -v --verbose          Print more, show commands when run
+  -v --version          Show version information
+  -V --verbose          Print more, show commands when run
   -W --write-config     Write a config file preserving current options
 
 Notes:
@@ -76,6 +82,8 @@ Notes:
   - config file: /root/.config/live-usb-maker/live-usb-maker.conf
   - the config file will be sourced if it exists
   - it will be created if it doesn't exist
+  - If encryption is enabled, the user will be prompted to enter a new
+    passphrase on the first boot of the live-usb
 ```
 
 The Script
