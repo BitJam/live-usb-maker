@@ -540,7 +540,10 @@ main() {
         local phrase_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$PHRASE_FNAME
         local encrypt_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$ENCRYPT_FNAME
 
-        [ "$PASS_PHRASE" = "random" ] && PASS_PHRASE=$(random_phrase 30)
+        [ "$PASS_PHRASE" = "random" ] && PASS_PHRASE=$(random_phrase 10)
+
+        msg "Using passphrase %s" "$(pq "$PASS_PHRASE")"
+
         write_phrase_file "$PASS_PHRASE" $phrase_file
         sync
 
