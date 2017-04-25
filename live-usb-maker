@@ -489,6 +489,7 @@ main() {
         "The device %s does not seem to be usb or removeable."  "$target_dev"
 
     local alloc_size main_size
+
     need_q partition && verify_sizes alloc_size main_size bios_size "$target_dev" \
         "$ISO_DIR" "$percent_size" "$UEFI_SIZE" "$BIOS_SIZE" "${DEFAULT_SIZE%%%}"
 
@@ -518,7 +519,10 @@ main() {
 
     START_T=$(date +%s)
 
-    need partition && do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$alloc_size"
+    if need partition; then
+        clear_partition "$target_dev"
+        do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$alloc_size"
+    fi
 
     sync; sync
 
@@ -985,6 +989,29 @@ Clone_Bdir_Files
 
 #===== "REAL" WORK STARTS HERE ================================================
 
+
+#------------------------------------------------------------------------------
+# Clear out previous partition tables.
+#------------------------------------------------------------------------------
+clear_partition() {
+    local dev=$1
+    local total=$(parted --script $dev unit KiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)kiB$/\1/ip")
+
+    msg "Clear previous partitioning"
+
+    # Clear out previous primary partition table
+    cmd dd if=/dev/zero of=$dev bs=1K count=17
+
+    # Clear out sneaky iso-hybrid partition table
+    cmd dd if=/dev/zero of=$dev bs=1K count=17 seek=32
+
+    [ -n "$total" ] || return
+    local offset=$((total - 17))
+
+    # Clear out secondary gpt partition table
+    cmd dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
+}
+
 #------------------------------------------------------------------------------
 # Partition the target usb device.  Will make either 3 or 2 partitions
 # depending on whether encryption is used as signaled by the zero size of the
@@ -1003,9 +1030,6 @@ do_partition() {
 
     # Using <gpt|msdos> partitioning
     msg $"Using %s partitioning" $(pq $type)
-
-    # Clear out previous partition table (darned "dd" live-usbs)
-    cmd dd if=/dev/zero of=$drive count=1 bs=512
 
     local preamb="parted --script --align optimal $target_dev unit MiB"
     cmd $preamb mklabel $type || fatal $"Partitioning failed"
