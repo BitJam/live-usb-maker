@@ -50,7 +50,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
  CLONE_BDIR_FILES="{vmlinuz,vmlinuz1,initrd.gz,linuxfs}{,.md5}"
 
        UEFI_FILES="EFI boot/{grub,uefi-mt}"
-       BIOS_FILES="boot/{syslinux,memtest,grub} antiX/{vmlinuz,initrd}*"
+       BIOS_FILES="EFI boot/{syslinux,grub,memtest} antiX/{vmlinuz,initrd}*"
 
         GRUB_CONF="boot/grub/grub.cfg"
            CHEATS=""
