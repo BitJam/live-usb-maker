@@ -608,7 +608,7 @@ main() {
 
     display_df_output $mp_list
 
-    msg "=> %s" $"done"
+    msg '%s %s' "$(bq "=>")" $"done"
 
     [ -n "$DID_ENCRYPT" ] && shout "You will be asked to create your own passphrase on the first boot"
 
