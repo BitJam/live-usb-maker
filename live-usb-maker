@@ -79,7 +79,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
     EXT4_NO_64BIT="-O ^64bit"
 
-ORDERED_CMDS="partition makefs makefs-main makefs-bios makefs-uefi copy copy-main copy-bios copy-uefi"
+ORDERED_CMDS="clear-partition make-partition makefs makefs-main makefs-bios makefs-uefi copy copy-main copy-bios copy-uefi"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
     ALL_CMDS="sizes all $ORDERED_CMDS"
 
@@ -323,7 +323,7 @@ main() {
        fatal_z "$TARGET"  "No --target was given while in %s mode" gui
     fi
 
-    msg $"Starting %s" "$ME"
+    shout $"Starting %s" "$ME"
     start_log "$orig_args" "$CMDS"
 
     shout_pretend
@@ -490,7 +490,7 @@ main() {
 
     local alloc_size main_size
 
-    need_q partition && verify_sizes alloc_size main_size bios_size "$target_dev" \
+    need_q make-partition && verify_sizes alloc_size main_size bios_size "$target_dev" \
         "$ISO_DIR" "$percent_size" "$UEFI_SIZE" "$BIOS_SIZE" "${DEFAULT_SIZE%%%}"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
@@ -519,10 +519,8 @@ main() {
 
     START_T=$(date +%s)
 
-    if need partition; then
-        clear_partition "$target_dev"
-        do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$alloc_size"
-    fi
+    need clear-partition && clear_partition "$target_dev"
+    need make-partition  && do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$alloc_size"
 
     sync; sync
 
@@ -574,11 +572,7 @@ main() {
     local mp_list="$BIOS_DIR $UEFI_DIR"
     encrypt && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
 
-    if [ "$QUIET" ]; then
-        (echo; df -PTh $mp_list; echo) >> $LOG_FILE
-    else
-        (echo; df -PTh $mp_list; echo) | tee -a $LOG_FILE | sed -r "s/^(Filesystem.*)/$m_co\1$nc_co/"
-    fi
+    display_df_output $mp_list
 
     if encrypt && need copy-bios; then
         copy_files_spec $ISO_DIR "$BIOS_FILES" "$BIOS_DIR" bios
@@ -610,6 +604,8 @@ main() {
     do_made_by $BIOS_DIR "$MADE_BY_FILE"
 
     sync; sync
+
+    display_df_output $mp_list
 
     msg "=> %s" $"done"
 
@@ -864,6 +860,18 @@ setup_devices() {
 }
 
 #------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+display_df_output() {
+
+    if [ "$QUIET" ]; then
+        (echo; df -PTh "$@"; echo) >> $LOG_FILE
+    else
+        (echo; df -PTh "$@"; echo) | tee -a $LOG_FILE | sed -r "s/^(Filesystem.*)/$m_co\1$nc_co/"
+    fi
+}
+
+#------------------------------------------------------------------------------
 # Write the passphrase to the passphrase file.  The write_file() routine would
 # leave the passphrase in the log file.
 #------------------------------------------------------------------------------
@@ -1005,8 +1013,6 @@ Clone_Bdir_Files
 clear_partition() {
     local dev=$1
     local total=$(parted --script $dev unit KiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)kiB$/\1/ip")
-
-    msg "Clear previous partitioning"
 
     # Clear out previous primary partition table
     cmd dd if=/dev/zero of=$dev bs=1K count=17
