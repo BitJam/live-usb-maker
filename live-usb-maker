@@ -49,8 +49,8 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
       CLONE_FILES="cdrom.ico version"
  CLONE_BDIR_FILES="{vmlinuz,vmlinuz1,initrd.gz,linuxfs}{,.md5}"
 
-       UEFI_FILES="EFI boot/{grub,uefi-mt}"
-       BIOS_FILES="EFI boot/{syslinux,grub,memtest} antiX/{vmlinuz,initrd}*"
+       UEFI_FILES="[Ee][Ff][Ii] boot/{grub,uefi-mt} version"
+       BIOS_FILES="[Ee][Ff][Ii] boot/{syslinux,grub,memtest} antiX/{vmlinuz,initrd}* version"
 
         GRUB_CONF="boot/grub/grub.cfg"
            CHEATS=""
