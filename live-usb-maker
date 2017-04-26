@@ -648,7 +648,7 @@ check_from() {
 #------------------------------------------------------------------------------
 overall_mode_menu() {
     local fmt="%s$P_IFS%s\n"
-    printf "$fmt" simple  $"Make a full-featured live-usb"
+    encrypt || printf "$fmt" simple  $"Make a full-featured live-usb"
     printf "$fmt" encrypt $"Make an encrypted full-featured live-usb"
     printf "$fmt" default $"Make a customized live-usb"
     printf "$fmt" uuids   $"Update UUIDS on existing live-usb"
