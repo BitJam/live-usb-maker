@@ -489,6 +489,7 @@ main() {
 
     local alloc_size main_size
 
+    encrypt && shout "\n%s" "Encryption enabled"
     need_q make-partition && verify_sizes alloc_size main_size bios_size "$target_dev" \
         "$ISO_DIR" "$percent_size" "$UEFI_SIZE" "$BIOS_SIZE" "${DEFAULT_SIZE%%%}"
 
@@ -499,15 +500,16 @@ main() {
     # Make sure the target is not in use
     umount_all $target_dev
 
+    local encrypted_lab=""
+    encrypt && encrypted_lab="$(bqq "encrypted") "
+
     local new_line=$(printf "$nc_co\n$quest_co...")
     # Ready to make live-usb on device X by <cloning|copying directory Y>
-    local final_q=$(quest $"Ready to make live-usb on device %s by %s" \
+    local final_q=$(quest $"Ready to make %s on device %s by %s" "${encrypted_lab}$(pqq live-usb)" \
         "$(pqq ${target_dev##*/})$new_line" "$from_act $from_thing $(pqq $from_value)")
 
     [ "$CMDS" != "all" ] \
         && final_q=$(printf "Ready to perform %s action(s) on %s" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
-
-    encrypt && shout "\n===> %s <===" "Encrypted live-usb"
 
     if q_mode gui; then
         msg "$final_q"
