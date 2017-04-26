@@ -571,10 +571,13 @@ main() {
     my_mount $BIOS_DEV $BIOS_DIR
     my_mount $UEFI_DEV $UEFI_DIR
 
+    local mp_list="$BIOS_DIR $UEFI_DIR"
+    encrypt && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
+
     if [ "$QUIET" ]; then
-        (echo; df -PTm $BIOS_DIR $UEFI_DIR; echo) >> $LOG_FILE
+        (echo; df -PTh $mp_list; echo) >> $LOG_FILE
     else
-        (echo; df -PTm $BIOS_DIR $UEFI_DIR; echo) | tee -a $LOG_FILE | sed -r "s/^(Filesystem.*)/$m_co\1$nc_co/"
+        (echo; df -PTh $mp_list; echo) | tee -a $LOG_FILE | sed -r "s/^(Filesystem.*)/$m_co\1$nc_co/"
     fi
 
     if encrypt && need copy-bios; then
