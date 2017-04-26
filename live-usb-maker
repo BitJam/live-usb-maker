@@ -80,7 +80,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
     EXT4_NO_64BIT="-O ^64bit"
 
 ORDERED_CMDS="clear-partition make-partition makefs makefs-main makefs-bios makefs-uefi copy copy-main copy-bios copy-uefi"
-ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install"
+ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all $ORDERED_CMDS"
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
@@ -530,7 +530,7 @@ main() {
     cmd wait_for_file "$UEFI_DEV"
     need makefs-uefi && do_makefs_uefi $UEFI_DEV
 
-    if encrypt && need makefs-main; then
+    if need encrypt-main; then
         wait_for_file "$MAIN_DEV"
 
         # Write phrase and signal file *before* encrypting
@@ -546,7 +546,8 @@ main() {
         sync
 
         encrypt_partition $MAIN_DEV "$LUKS_NAME" $phrase_file
-        do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS"
+
+        need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS"
 
         local main_uuid=$(lsblk -no uuid $MAIN_DEV)
         cmd write_file $encrypt_file "$main_uuid"
@@ -581,8 +582,9 @@ main() {
         local linuxfs_full=$ISO_DIR/${DEF_BOOT_DIR#/}/$LINUXFS_NAME
         my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
 
-        enable_initrd_encryption "$INITRD_FILE" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" \
-            "$INITRD_DIR" "$LINUX_DIR" "$LINUX_DIR"
+        need encryption-initrd \
+            && enable_initrd_encryption "$INITRD_FILE" \
+            "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR" "$LINUX_DIR" "$LINUX_DIR"
 
         umount $LINUX_DIR ; rmdir $LINUX_DIR
     fi
