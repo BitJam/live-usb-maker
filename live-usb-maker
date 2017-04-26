@@ -379,7 +379,6 @@ main() {
         select_usb_src from "$TARGET"
     fi
 
-    # Ready to make live-usb on device X by <copying|cloning> directory Y
     local from_file from_act=$"copying"
     case $from in
         iso-file|iso|file)
@@ -556,12 +555,10 @@ main() {
 
         DID_ENCRYPT=true
 
-        umount $BIOS_DEV # FIXME???
+        umount $BIOS_DEV
         my_mount $LUKS_DEV $MAIN_DIR
 
     fi
-
-    # FIXME: check to see if we partitioned.  If not, figure out if encrypted or not and so on.
 
     [ -z "$DID_PARTITION" ] && guess_partitioning $target_dev
 
