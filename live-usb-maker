@@ -1113,21 +1113,23 @@ do_makefs_uefi() {
 # Copy from mounted source (or the clone) to the ext4 partition
 #------------------------------------------------------------------------------
 do_copy_main() {
-    local iso_dir=$1  main_dir=$2
+    local iso_dir=$1  main_dir=$2  files="*"
 
     if test -d $main_dir/antiX && ! force copy; then
         pwarn "Not over-writing %s partition due to existing %s directory" ext antiX/
         pwarn "Use %s to overwrite" "--force=copy"
         return
     fi
+
     local err_msg=$"Error while copying files to live usb"
 
-    msg $"Copying files ..."
+    msg "copy files from %s to %s partition" "$(pq $(basename $iso_dir))" "$(pq $(basename $main_dir))"
+    msg "files: %s" "$(pq "$files")"
 
     if q_mode gui || [ "$NO_PROGRESS_BAR" ]; then
-        cmd cp -a $iso_dir/* $main_dir/ || fatal "$err_msg"
+        cmd cp -a $iso_dir/$files $main_dir/ || fatal "$err_msg"
     else
-        [ -z "$PRETEND" ] && prog_copy $iso_dir $main_dir "$err_msg"
+        [ -z "$PRETEND" ] && prog_copy "$iso_dir" "$main_dir" "$err_msg"
     fi
 
     sync
@@ -1141,9 +1143,11 @@ copy_files_spec() {
     local src=$1  spec=$2  targ=$3  type=${4:-unknown}
     local file from dir
 
-    test -z "$spec" && fatal "Missing list of files to copy to %s" "$(pqw $src)"
+    test -z "$spec" && fatal "Missing list of files to copy to %s" "$(pqw $targ)"
 
-    msg "copy <%s> files from %s to %s" "$(pq $spec)" "$(pq $(basename $src))" "$(pq $(basename $targ))"
+    msg "copy files from %s to %s partition" "$(pq $(basename $src))" "$(pq $(basename $targ))"
+    msg "files: %s" "$(pq $spec)"
+
     while read file; do
         test -z "$file" && continue
         dir=$targ/$(dirname $file)
@@ -1169,7 +1173,7 @@ enable_initrd_encryption() {
 
     local prog full
     for prog in $CRYPT_PROGS; do
-        msg "Add program %s to initrd" "$(pq $prog)"
+        msg "Add program %s to %""$(pq $prog)" "$(pq initrd)"
         full=$(find_bin $mod_dir $prog)
         [ -n "$full" ] || fatal "Could not find program %s to include in initrd" $prog
         cmd cp $mod_dir$full $dir/bin/
