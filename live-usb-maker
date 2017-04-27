@@ -8,8 +8,8 @@
 # License: GPLv3 or later
 #==============================================================================
 
-      VERSION="2.00.07"
- VERSION_DATE="Wed Apr 26 16:30:15 MDT 2017"
+      VERSION="2.00.08"
+ VERSION_DATE="Wed Apr 26 18:48:34 MDT 2017"
 
         ME=${0##*/}
     MY_DIR=$(dirname "$(readlink -f $0)")
@@ -1173,7 +1173,7 @@ enable_initrd_encryption() {
 
     local prog full
     for prog in $CRYPT_PROGS; do
-        msg "Add program %s to %""$(pq $prog)" "$(pq initrd)"
+        msg "Add program %s to %s" "$(pq $prog)" "$(pq initrd)"
         full=$(find_bin $mod_dir $prog)
         [ -n "$full" ] || fatal "Could not find program %s to include in initrd" $prog
         cmd cp $mod_dir$full $dir/bin/
