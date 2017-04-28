@@ -59,7 +59,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
           ENCRYPT=""
       PASS_PHRASE="random"
-        LUKS_NAME="live"
+        LUKS_NAME="live-usb-maker"
 
 #== END_CONFIG
 
