@@ -1583,7 +1583,7 @@ clean_up() {
 }
 
 #------------------------------------------------------------------------------
-# Load the lib either for a neighboring repo or from the standard location.
+# Load the lib either from a neighboring repo or from the standard location.
 #------------------------------------------------------------------------------
 load_lib() {
     local file=$1  path=$2
