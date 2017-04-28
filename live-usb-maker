@@ -607,7 +607,7 @@ main() {
 
     display_df_output $mp_list
 
-    msg '%s %s' "$(bq "=>")" $"done"
+    msg "$(bq "=>") %s" $"done"
 
     [ -n "$DID_ENCRYPT" ] && shout "You will be asked to create your own passphrase on the first boot"
 
@@ -1423,6 +1423,7 @@ check_target() {
 # Convenience routine to save a little typing
 #------------------------------------------------------------------------------
 encrypt() {  [ "$ENCRYPT" ]; return $?; }
+
 #------------------------------------------------------------------------------
 # Make sure we have enough left over space on a partition.  Can generate
 # warnings or fatal errors depending on $action.
