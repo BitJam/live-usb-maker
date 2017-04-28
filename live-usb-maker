@@ -1577,7 +1577,7 @@ clean_up() {
 
     test -d $WORK_DIR && rmdir $WORK_DIR
 
-    [ -n "$LUKS_DEV" ] && test -b $LUKS_DEV && cryptsetup close $LUKS_NAME
+    luks_close $LUKS_NAME
 
     unflock
 }
