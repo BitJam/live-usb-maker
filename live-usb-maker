@@ -531,7 +531,7 @@ main() {
     cmd wait_for_file "$UEFI_DEV"
     need makefs-uefi && do_makefs_uefi $UEFI_DEV
 
-    if need encrypt-main; then
+    if encrypt && need encrypt-main; then
         wait_for_file "$MAIN_DEV"
 
         # Write phrase and signal file *before* encrypting
@@ -581,9 +581,8 @@ main() {
         local linuxfs_full=$ISO_DIR/${DEF_BOOT_DIR#/}/$LINUXFS_NAME
         my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
 
-        need encryption-initrd \
-            && enable_initrd_encryption "$INITRD_FILE" \
-            "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR" "$LINUX_DIR" "$LINUX_DIR"
+        need encryption-initrd && enable_initrd_encryption \
+            "$INITRD_FILE" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR" "$LINUX_DIR"
 
         umount $LINUX_DIR ; rmdir $LINUX_DIR
     fi
