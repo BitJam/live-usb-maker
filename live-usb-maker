@@ -719,9 +719,18 @@ verify_sizes() {
     local uefi_needed=$(du_ap_size_spec $dir "$UEFI_FILES")
     local bios_needed=$(du_ap_size_spec $dir "$BIOS_FILES")
 
-    if [ $uefi_size -lt $((uefi_needed + UEFI_MARGIN + 1)) ]; then
-        uefi_size=$((uefi_needed + UEFI_MARGIN + 1))
+    if [ $uefi_size -lt $((uefi_needed + UEFI_MARGIN)) ]; then
+        local old=$uefi_size
+        uefi_size=$((uefi_needed + UEFI_MARGIN))
+        warn "uefi size increased from %s to %s MiB" "$(pnh $old)" "$(pnh $uefi_size)"
     fi
+
+    if [ $BIOS_MARGIN -gt 0 -a $bios_size -lt $((bios_needed + BIOS_MARGIN)) ]; then
+        local old=$bios_size
+        bios_size=$((bios_needed + BIOS_MARGIN))
+        warn "bios size increased from %s to %s MiB" "$(pnh $old)" "$(pnh $bios_size)"
+    fi
+
 
     local did_size
     while true; do
