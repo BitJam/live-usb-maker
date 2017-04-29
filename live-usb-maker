@@ -708,8 +708,8 @@ select_target_device() {
 # the loop at most twice.
 #------------------------------------------------------------------------------
 verify_sizes() {
-    local alloc_var=$1     main_var=$2   bios_var=$3  dev=$4  dir=$5
-    local cmd_percent=$6   uefi_size=$7  bios_size=${8:-0}  default_size=${10:-100}
+    local alloc_var=$1  main_var=$2  bios_var=$3  dev=$4  dir=$5
+    local cmd_percent=$6  uefi_size=$7  bios_size=${8:-0}  default_size=${10:-100}
     local percent=${cmd_percent:-$default_size}
 
     # Get total size of target live-usb device
