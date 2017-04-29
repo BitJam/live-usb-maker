@@ -79,9 +79,9 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
     EXT4_NO_64BIT="-O ^64bit"
 
-ORDERED_CMDS="clear-partition make-partition makefs makefs-main makefs-bios makefs-uefi copy copy-main copy-bios copy-uefi"
+ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main copy-bios copy-uefi"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
-    ALL_CMDS="sizes all $ORDERED_CMDS"
+    ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
    ALL_PAUSE="exit,initrd"
@@ -490,7 +490,7 @@ main() {
     local alloc_size main_size
 
     encrypt && shout "\n%s" "Encryption enabled"
-    need_q make-partition && verify_sizes alloc_size main_size bios_size "$target_dev" \
+    need_q partition-make && verify_sizes alloc_size main_size bios_size "$target_dev" \
         "$ISO_DIR" "$percent_size" "$UEFI_SIZE" "$BIOS_SIZE" "${DEFAULT_SIZE%%%}"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
@@ -520,8 +520,8 @@ main() {
 
     START_T=$(date +%s)
 
-    need clear-partition && clear_partition "$target_dev"
-    need make-partition  && do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$alloc_size"
+    need partition-clear && clear_partition "$target_dev"
+    need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$alloc_size"
 
     sync; sync
 
