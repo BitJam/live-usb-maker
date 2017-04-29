@@ -1056,22 +1056,22 @@ do_partition() {
     msg $"Using %s partitioning" $(pq $type)
 
     local preamb="parted --script --align optimal $target_dev unit MiB"
-    cmd $preamb mklabel $type || fatal $"Partitioning failed"
+    cmd $preamb mklabel $type || fatal $"Partitioning failed at %s" start
 
     local main_start=1  main_end=$main_size  main_fs=ext4  uefi_part=2
     if [ $bios_size -gt 0 ]; then
 
-        cmd $preamb mkpart primary ext4 1 $bios_size || fatal $"Partitioning failed"
+        cmd $preamb mkpart primary ext4 1 $bios_size || fatal $"Partitioning failed at %s" bios
 
-        main_start=$((1 + bios_size))
+        main_start=$((bios_size))
         main_end=$((main_size + bios_size))
         uefi_part=3
         main_fs=
     fi
 
-    cmd $preamb mkpart primary $main_fs $main_start  $main_end || fatal $"Partitioning failed"
-    cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal $"Partitioning failed"
-    cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal $"Partitioning failed"
+    cmd $preamb mkpart primary $main_fs $main_start  $main_end || fatal $"Partitioning failed %s" main
+    cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal $"Partitioning failed %s" uefi
+    cmd $preamb set 1 $boot_flag on set $main_end esp on       || fatal $"Partitioning failed %s" flags
 
     DID_PARTITION=true
 }
