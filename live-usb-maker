@@ -129,10 +129,10 @@ Options:
                            Use "on" or "yes"  to show cheat menus without asking
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
-  --encrypt             Set up to boot from an encrypted partition
+  -E --encrypt          Set up to boot from an encrypted partition
   --encrypt=<phrase>    Use <phrase> to encrypt the partition
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
-  -E --ext-options=<xx> Use these options when creating the ext4 filesystem
+  --ext-options=<xx>    Use these options when creating the ext4 filesystem
 
   -f --from=<xxx>       The device, cdrom, or file to make the live-usb from
                         Use "clone" to clone the current live system or use
@@ -201,10 +201,10 @@ eval_argument() {
              -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
-             -encrypt)  ENCRYPT=true                     ;;
+           -encrypt|E)  ENCRYPT=true                     ;;
            -encrypt=*)  ENCRYPT=true ; PASS_PHRASE=$val  ;;
           -esp-size|e)  UEFI_SIZE=$val                   ;;
-       -ext-options|E)  EXT4_OPTIONS=$val                ;;
+         -ext-options)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
           -esp-size=*)  UEFI_SIZE=$val                   ;;
               -from|f)  FROM=$val                        ;;
