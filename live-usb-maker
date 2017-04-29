@@ -1299,7 +1299,7 @@ do_uuids() {
     cmd sed -ri "s/^#-+esp\s*//" $grub_cfg \
         || fatal "sed on %s failed" "$(basename $grub_cfg)"
 
-    cmd sed -ri "s/(root=\(hd0,)2\)/\1$uefi_part)/" $grub_cfg \
+    cmd sed -ri "s/(root=\(hd0,)[0-9]\)/\1$uefi_part)/" $grub_cfg \
         || fatal "sed on %s failed" "$(basename $grub_cfg)"
 
 }
