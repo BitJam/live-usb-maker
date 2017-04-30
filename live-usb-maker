@@ -1137,7 +1137,7 @@ do_copy_main() {
     if q_mode gui || [ "$NO_PROGRESS_BAR" ]; then
         cmd cp -a $iso_dir/$files $main_dir/ || fatal "$err_msg"
     else
-        [ -z "$PRETEND" ] && prog_copy "$iso_dir" "$main_dir" "$err_msg"
+        [ -z "$PRETEND" ] && progbar_copy "$iso_dir" "$main_dir" "$err_msg"
     fi
 
     sync
