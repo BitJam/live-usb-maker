@@ -613,7 +613,7 @@ main() {
 
     sync; sync
 
-    display_df_output $mp_list
+    need_q copy && display_df_output $mp_list
 
     msg "$(bq "=>") %s" $"done"
 
@@ -877,14 +877,23 @@ setup_devices() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Show fancy df output of list of mountpoints.  Things that aren't mountpoints
+# are silently dropped from the list.  The WORK_DIR is removed from the
+# mountpoints shown on the screen.
 #------------------------------------------------------------------------------
 display_df_output() {
+    local mp  real_list
+    for mp; do
+        is_mountpoint $mp && real_list="$real_list $mp"
+    done
+
+    [ -z "$real_list" ] && return
 
     if [ "$QUIET" ]; then
-        (echo; df -PTh "$@"; echo) >> $LOG_FILE
+        (echo; df -PTh $real_list; echo) >> $LOG_FILE
     else
-        (echo; df -PTh "$@"; echo) | tee -a $LOG_FILE | sed -r "s/^(Filesystem.*)/$m_co\1$nc_co/"
+        (echo; df -PTh $real_list; echo) | tee -a $LOG_FILE \
+           | sed -r -e "s/^(Filesystem.*)/$m_co\1$nc_co/" -e "s|$WORK_DIR/||"
     fi
 }
 
