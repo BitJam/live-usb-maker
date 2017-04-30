@@ -40,10 +40,10 @@ Options:
                            Use "on" or "yes"  to show cheat menus without asking
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
-  --encrypt             Set up to boot from an encrypted partition
+  -E --encrypt          Set up to boot from an encrypted partition
   --encrypt=<phrase>    Use <phrase> to encrypt the partition
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
-  -E --ext-options=<xx> Use these options when creating the ext4 filesystem
+  --ext-options=<xx>    Use these options when creating the ext4 filesystem
 
   -f --from=<xxx>       The device, cdrom, or file to make the live-usb from
                         Use "clone" to clone the current live system or use
@@ -55,7 +55,8 @@ Options:
                             makefs: Make the ext4 filesystem even if one exists
                               copy: Overwrite ext4 partition even if antiX/ exists
                                all: All of the above (dangerous!)
-
+  -- --gui-progress     All remaining args are used as a gui progress bar program
+                        Example: --gui-progress yad --progress --auto-close
   -g --gpt              Use gpt partitioning (default) instead of msdos
   -h --help             Show this usage
   -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
