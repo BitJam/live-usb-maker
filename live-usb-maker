@@ -1129,7 +1129,7 @@ do_copy_main() {
         return
     fi
 
-    local err_msg=$"Error while copying files to live usb"
+    local err_msg=$"Error while copying files to main partition of live usb"
 
     msg "copy files from %s to %s partition" "$(pq $(basename $iso_dir))" "$(pq $(basename $main_dir))"
     msg "files: %s" "$(pq "$files")"
