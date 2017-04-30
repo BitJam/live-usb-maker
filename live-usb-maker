@@ -8,8 +8,8 @@
 # License: GPLv3 or later
 #==============================================================================
 
-      VERSION="2.00.08"
- VERSION_DATE="Wed Apr 26 18:48:34 MDT 2017"
+      VERSION="2.02.01"
+ VERSION_DATE="Sun Apr 30 13:30:53 MDT 2017"
 
         ME=${0##*/}
     MY_DIR=$(dirname "$(readlink -f $0)")
