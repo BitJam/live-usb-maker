@@ -1073,9 +1073,9 @@ do_partition() {
 
     # Using <gpt|msdos> partitioning
     msg $"Using %s partitioning" $(pq $type)
-
+    local err_msg=$"Partitioning failed at %s"
     local preamb="parted --script --align optimal $target_dev unit MiB"
-    cmd $preamb mklabel $type || fatal $"Partitioning failed at %s" start
+    cmd $preamb mklabel $type || fatal "$err_msg" start
 
     local main_start=1  main_end=$main_size  main_fs=ext4  uefi_part=2
     if [ $bios_size -gt 0 ]; then
@@ -1088,9 +1088,9 @@ do_partition() {
         main_fs=
     fi
 
-    cmd $preamb mkpart primary $main_fs $main_start  $main_end || fatal $"Partitioning failed %s" main
-    cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal $"Partitioning failed %s" uefi
-    cmd $preamb set 1 $boot_flag on set $main_end esp on       || fatal $"Partitioning failed %s" flags
+    cmd $preamb mkpart primary $main_fs $main_start  $main_end || fatal "$err_msg" main
+    cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal "$err_msg" uefi
+    cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal "$err_msg" flags
 
     DID_PARTITION=true
 }
