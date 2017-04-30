@@ -918,6 +918,8 @@ encrypt_partition() {
 
     msg "About to encrypt device %s" "$(pq $dev)"
 
+    [ "$PRETEND_MODE" ] && return
+
     cat $file | cryptsetup luksFormat --key-file - $dev \
         || fatal "Failed to create encrypted device"
 
