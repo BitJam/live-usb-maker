@@ -330,8 +330,8 @@ main() {
 
     shift $SHIFT_2
     if [ $# -gt 0 ]; then
-        echo "Will use progress program: $*" >> $LOG_FILE
-        which "$1" &>/dev/null || fatal "Could not find progress program %s" "$(pqh $1)"
+        type "$1" &>/dev/null || fatal "Could not find progress program %s" "$(pqh $1)"
+        printf "Will use progress %s: $*\n" "$(my_type $1)" >> $LOG_FILE
     fi
 
     shout_pretend
