@@ -1243,9 +1243,6 @@ find_bin() {
 #------------------------------------------------------------------------------
 # Kludge to get uefi memtest to work.  Strange but true.  Hope there is a fix
 # soon.
-# FIXME: unfortunately if I copy bootx64.efi to fallback.efi then it no longer
-# boot via uefi!! So for now, no fallback.efi and we get the error message.
-# *** sigh ***
 #------------------------------------------------------------------------------
 fix_uefi_memtest() {
     local dir=$1/EFI/BOOT
