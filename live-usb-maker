@@ -1135,7 +1135,7 @@ do_makefs_ext() {
 #------------------------------------------------------------------------------
 do_makefs_uefi() {
     local uefi_dev=$1
-    cmd mkfs.fat -n "LIVE-ESP" $uefi_dev \
+    cmd mkfs.vfat -n "LIVE-ESP" $uefi_dev \
         || fatal "Could not make %s file system on %s" "fat32" "$uefi_dev"
 }
 
