@@ -163,7 +163,8 @@ Options:
   -s --size=XX          Percent of usb-device to use (default 100)
   -t --target=<xxx>     The device to make into a new live-usb
   -v --version          Show version information
-  -V --verbose          Print more, show commands when run
+  -V --verbose          Print more, show command outputs
+  -VV --very-verbose    Also show commands
   -W --write-config     Write a config file preserving current options
 
 Notes:
@@ -227,7 +228,8 @@ eval_argument() {
               -size=*)  CMD_SIZE=${val%\%}               ;;
             -target|t)  TARGET=$val                      ;;
             -target=*)  TARGET=$val                      ;;
-           -verbose|V)  BE_VERBOSE=true                  ;;
+           -verbose|V)  VERBOSITY=$((VERBOSITY + 1))     ;;
+        -very-verbose)  VERBOSITY=$((VERBOSITY + 2))     ;;
 
        # These are read early.  They are not unknown
 
@@ -271,6 +273,7 @@ takes_param() {
 main() {
     local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFghIkLmnpPqRstvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
+    local VERY_VERBOSE VERBOSITY=0
     local START_T=0
     set_colors
 
@@ -292,6 +295,12 @@ main() {
 
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
+
+    case $VERBOSITY in
+        0) ;;
+        1) BE_VERBOSE=true                     ;;
+        *) BE_VERBOSE=true ; VERY_VERBOSE=true ;;
+    esac
 
     CMDS=${CMD_CMDS:-all}
 
