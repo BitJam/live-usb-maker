@@ -595,7 +595,10 @@ main() {
         umount $LINUX_DIR ; rmdir $LINUX_DIR
     fi
 
-    need copy-uefi && copy_files_spec $ISO_DIR "$UEFI_FILES" "$UEFI_DIR" uefi
+    if need copy-uefi; then
+        copy_files_spec $ISO_DIR "$UEFI_FILES" "$UEFI_DIR" uefi
+        fix_uefi_memtest $UEFI_DIR
+    fi
 
     need copy-main && do_copy_main $ISO_DIR $MAIN_DIR  "$@"
 
@@ -1235,6 +1238,26 @@ find_bin() {
         return 0
     done
     return 1
+}
+
+#------------------------------------------------------------------------------
+# Kludge to get uefi memtest to work.  Strange but true.  Hope there is a fix
+# soon.
+# FIXME: unfortunately if I copy bootx64.efi to fallback.efi then it no longer
+# boot via uefi!! So for now, no fallback.efi and we get the error message.
+# *** sigh ***
+#------------------------------------------------------------------------------
+fix_uefi_memtest() {
+    local dir=$1/EFI/BOOT
+    test -d "$dir" || return
+    msg "Fixing uefi memtest bug"
+    local fallback=$dir/fallback.efi
+    local grubx64=$dir/grubx64.efi
+    if test -e $fallback; then
+        cmd rm -f $fallback
+    else
+        cmd cp $grubx64 $fallback
+    fi
 }
 
 #------------------------------------------------------------------------------
