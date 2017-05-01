@@ -1246,6 +1246,7 @@ find_bin() {
 #------------------------------------------------------------------------------
 fix_uefi_memtest() {
     local dir=$1/EFI/BOOT
+    test -d "$dir" || dir=$1/efi/boot
     test -d "$dir" || return
     msg "Fixing uefi memtest bug"
     local fallback=$dir/fallback.efi
