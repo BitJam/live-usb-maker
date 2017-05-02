@@ -360,6 +360,7 @@ main() {
     MNT_DIR=$WORK_DIR/live-dev
 
     mkdir $ISO_DIR $BIOS_DIR $MAIN_DIR $UEFI_DIR || fatal "Could not make %s subdirectories" "$WORK_DIR"
+    echo $$ > $WORK_DIR/pid
 
     #--- Find live boot device if we are running live
 
@@ -1663,6 +1664,7 @@ clean_up() {
     # Try to umount everything
     umount_work_dir
 
+    rm -f $WORK_DIR/pid
     test -d $WORK_DIR && rmdir $WORK_DIR
 
     luks_close $LUKS_NAME
