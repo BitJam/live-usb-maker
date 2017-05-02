@@ -1274,6 +1274,11 @@ fix_uefi_memtest() {
 
     test -e $grubx64 || return
 
+    # the fallback file needs to be the last one added to the directory.  But
+    # erasing it and adding it back doesn't work so we make a new directory
+    # without it and then remove the old one, rename then new one and then do
+    # the copy.  *** sigh ***
+
     if test -e $fallback; then
         cmd rm -f $fallback
         local flag
