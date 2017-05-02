@@ -38,7 +38,8 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
       UEFI_MARGIN="5"
 
      EXT4_OPTIONS="-m0 -i100000 -J size=32"
-       BIOS_LABEL="LiveUSB"
+       BIOS_LABEL="Live-usb"
+        ESP_LABEL="Live-esp"
 
           LIVE_MP="/live/boot-dev"
      LINUXFS_NAME="linuxfs"
@@ -302,6 +303,8 @@ main() {
         *) BE_VERBOSE=true ; VERY_VERBOSE=true ;;
     esac
 
+    [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
+
     CMDS=${CMD_CMDS:-all}
 
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
@@ -473,6 +476,12 @@ main() {
     msg $"Will use source %s" "$from_thing $(pq $from_value)"
     show_distro_version "$ISO_DIR" # "$from_value"
 
+    local distro_name=$(get_distro_name "$ISO_DIR/version")
+    if [ -n "$distro_name" ]; then
+        BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
+        ESP_LABEL=$(make_label 11 - "$distro_name" esp)
+    fi
+
     # Make sure our target is a real device
     local target_dev=$(expand_device $TARGET)
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
@@ -535,6 +544,8 @@ main() {
         YES_no_pretend "$final_q" || my_exit
     fi
 
+    [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
+
     START_T=$(date +%s)
 
     need partition-clear && clear_partition "$target_dev"
@@ -546,7 +557,7 @@ main() {
     need makefs-bios && do_makefs_ext "$BIOS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
     cmd wait_for_file "$UEFI_DEV"
-    need makefs-uefi && do_makefs_uefi $UEFI_DEV
+    need makefs-uefi && do_makefs_uefi "$UEFI_DEV" "$ESP_LABEL"
 
     if encrypt && need encrypt-main; then
         wait_for_file "$MAIN_DEV"
@@ -565,7 +576,7 @@ main() {
 
         encrypt_partition $MAIN_DEV "$LUKS_NAME" $phrase_file
 
-        need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS"
+        need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
         local main_uuid=$(lsblk -no uuid $MAIN_DEV)
         cmd write_file $encrypt_file "$main_uuid"
@@ -1136,15 +1147,15 @@ do_makefs_ext() {
     cmd mkfs.ext4 $force_ext $EXT4_NO_64BIT $options $dev \
         || fatal "makefs" "Could not make %s file system on %s.  Perhaps try %s" "ext4" $dev "--force=makefs"
 
-    [ -n "$lablel" ] && tune2fs -L "$label" $dev
+    [ -n "$label" ] && cmd tune2fs -L "${label:0:16}" $dev
 }
 
 #------------------------------------------------------------------------------
 # Make the fat32 file system
 #------------------------------------------------------------------------------
 do_makefs_uefi() {
-    local uefi_dev=$1
-    cmd mkfs.vfat -n "LIVE-ESP" $uefi_dev \
+    local uefi_dev=$1  label=${2:-live-esp}
+    cmd mkfs.vfat -n "${label:0:11}" $uefi_dev \
         || fatal "Could not make %s file system on %s" "fat32" "$uefi_dev"
 }
 
@@ -1593,6 +1604,7 @@ $(config_header "$file" $ME)
 
      EXT4_OPTIONS="$EXT4_OPTIONS"
        BIOS_LABEL="$BIOS_LABEL"
+        ESP_LABEL="$ESP_LABEL"
 
           LIVE_MP="$LIVE_MP"
      LINUXFS_NAME="$LINUXFS_NAME"
