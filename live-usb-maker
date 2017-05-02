@@ -1271,11 +1271,20 @@ fix_uefi_memtest() {
     msg "Fixing uefi memtest bug"
     local fallback=$dir/fallback.efi
     local grubx64=$dir/grubx64.efi
+
+    test -e $grubx64 || return
+
     if test -e $fallback; then
         cmd rm -f $fallback
-    else
-        cmd cp $grubx64 $fallback
+        local flag
+        [ "$PRETEND_MODE" ] && flag="--dry-run"
+        local temp=$(mktemp -p $(dirname $dir) -d $flag)
+        cmd cp $dir/* $temp/
+        cmd rm -r $dir
+        cmd mv $temp $dir
     fi
+
+    cmd cp $grubx64 $fallback
 }
 
 #------------------------------------------------------------------------------
