@@ -39,7 +39,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
      EXT4_OPTIONS="-m0 -i100000 -J size=32"
        BIOS_LABEL="Live-usb"
-        ESP_LABEL="Live-esp"
+        ESP_LABEL="Live-uefi"
 
           LIVE_MP="/live/boot-dev"
      LINUXFS_NAME="linuxfs"
@@ -479,7 +479,7 @@ main() {
     local distro_name=$(get_distro_name "$ISO_DIR/version")
     if [ -n "$distro_name" ]; then
         BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
-        ESP_LABEL=$(make_label 11 - "$distro_name" esp)
+        ESP_LABEL=$(make_label 11 - "$distro_name" uefi)
     fi
 
     # Make sure our target is a real device
