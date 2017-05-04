@@ -1121,14 +1121,14 @@ do_partition() {
 
     # Using <gpt|msdos> partitioning
     msg $"Using %s partitioning" $(pq $type)
-    local err_msg=$"Partitioning failed at %s"
+    local err_msg="Partitioning failed at %s"
     local preamb="parted --script --align optimal $target_dev unit MiB"
     cmd $preamb mklabel $type || fatal "$err_msg" start
 
     local main_start=1  main_end=$main_size  main_fs=ext4  uefi_part=2
     if [ $bios_size -gt 0 ]; then
 
-        cmd $preamb mkpart primary ext4 1 $bios_size || fatal $"Partitioning failed at %s" bios
+        cmd $preamb mkpart primary ext4 1 $bios_size || fatal "$err_msg" bios
 
         main_start=$((bios_size))
         main_end=$((main_size + bios_size))
