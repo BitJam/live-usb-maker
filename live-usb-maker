@@ -556,7 +556,7 @@ main() {
     START_T=$(date +%s)
 
     need partition-clear && clear_partition "$target_dev"
-    need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$uefi_size"
+    need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$bios_size" "$main_size" "$uefi_size"
 
     sync; sync
 
