@@ -155,10 +155,11 @@ Options:
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning instead of gpt
   -n --no-prog-bar      Don't show progress *bar* when copying
-  -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
      --pause=initrd     Pause after unpacking the initrd.gz file
-  -P --progress         Create $THE_PROG_FILE progress file
+     --percent-prog     Show progress percentage but no bar
+  -p --pretend          Don't run commands that affect the usb device
+  -P --progress         Create $THE_PROG_FILE progress *file*
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
@@ -222,6 +223,7 @@ eval_argument() {
        -no-prog-bar|n)  NO_PROGRESS_BAR=true             ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
              -pause=*)  PAUSE="$PAUSE${PAUSE:+,}$val"    ;;
+        -percent-prog) PERCENT_PROG=true                 ;;
            -pretend|p)  PRETEND_MODE=true                ;;
           -progress|P)  PROGRESS=true                    ;;
              -quiet|q)  QUIET=true                       ;;
@@ -1183,8 +1185,11 @@ do_copy_main() {
     elif q_mode gui || [ "$NO_PROGRESS_BAR" ]; then
         cmd cp -a $from/* $to/ || fatal "$err_msg"
 
+    elif [ "$PERCENT_PROG" ]; then
+        copy_with_progress "$from/*" "$to" "$err_msg" percent_progress
+
     else
-        copy_with_progress "$from/*" "$to" "$err_msg" text_progress
+        copy_with_progress "$from/*" "$to" "$err_msg" text_progress_bar
     fi
 
     sync
