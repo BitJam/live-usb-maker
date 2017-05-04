@@ -967,6 +967,7 @@ encrypt_partition() {
 
     msg $"About to encrypt device %s" "$(pq $dev)"
 
+    LUKS_DEV=/dev/mapper/$name
     [ "$PRETEND_MODE" ] && return
 
     cat $file | cryptsetup luksFormat --key-file - $dev \
@@ -976,7 +977,6 @@ encrypt_partition() {
         || fatal "Failed to open encrypted device"
 
     msg $"Encryption successful"
-    LUKS_DEV=/dev/mapper/$name
 }
 
 #------------------------------------------------------------------------------
