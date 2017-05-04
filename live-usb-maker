@@ -677,7 +677,7 @@ check_from() {
         eval "$var=clone=\$cmd_from"
         return 0
     else
-        fatal $"The --from parameter '%s' was not recognized" "$cmd_from"
+        fatal "The --from parameter '%s' was not recognized" "$cmd_from"
     fi
 }
 
@@ -688,10 +688,10 @@ overall_mode_menu() {
     local fmt="%s$P_IFS%s\n"
     encrypt || printf "$fmt" simple  $"Make a full-featured live-usb"
     printf "$fmt" encrypt $"Make an encrypted full-featured live-usb"
-    printf "$fmt" default $"Make a customized live-usb"
-    printf "$fmt" uuids   $"Update UUIDS on existing live-usb"
-    printf "$fmt" cheats  $"Update boot parameters on existing live-usb"
-    printf "$fmt" install $"Reinstall legacy bootloader on existing live-usb"
+    printf "$fmt" default $"Make a customized live-usb (includes encryption option)"
+    printf "$fmt" uuids   $"Update UUIDS on an existing live-usb"
+    printf "$fmt" cheats  $"Update boot parameters on an existing live-usb"
+    printf "$fmt" install $"Reinstall legacy bootloader on an existing live-usb"
 }
 
 #------------------------------------------------------------------------------
@@ -1018,9 +1018,9 @@ clone_directory() {
     local ret=$?
     case $ret in
         0) ;;
-        1) fatal $"No '%s' file found in any directory on clone device at '%s'" "$LINUXFS_NAME" "$from_dir" ;;
-        2) fatal $"No live-boot directory found on clone device at '%s'"          "$from_dir" ;;
-        3) fatal $"Multiple live-boot directories found on clone device at '%s'"  "$from_dir" ;;
+        1) fatal "No '%s' file found in any directory on clone device at '%s'"   "$LINUXFS_NAME" "$from_dir" ;;
+        2) fatal "No live-boot directory found on clone device at '%s'"          "$from_dir" ;;
+        3) fatal "Multiple live-boot directories found on clone device at '%s'"  "$from_dir" ;;
         *) fatal "Internal error in find_live_boot_dir()"
     esac
 
@@ -1339,7 +1339,7 @@ do_cheats_syslinux() {
         Msg "syslinux params: %s" "$(pq $params $cheats)"
         VERBOSE=$verbose CMDLINE="$params $cheats" cmd gfxsave $bios_dir/boot both
     else
-        pwarn $"Could not find '%s' file to update" "$(basename $syslinux_cfg)"
+        pwarn "Could not find '%s' file to update" "$(basename $syslinux_cfg)"
     fi
 }
 
@@ -1361,7 +1361,7 @@ do_cheats_grub() {
         cmd grub2-save $uefi_dir --no-kernel --cheats="${params% } $cheats"
     else
         # Could not find '<grub.cfg>' file to update
-        pwarn $"Could not find '%s' file to update" $(basename $grub_cfg)
+        pwarn "Could not find '%s' file to update" $(basename $grub_cfg)
     fi
 }
 
@@ -1387,7 +1387,7 @@ do_uuids() {
 
     if ! test -e $grub_cfg; then
         # Could not find <grub.cfg> file
-        pwarn $"Could not find %s file" "$(basename $grub_cfg)"
+        pwarn "Could not find %s file" "$(basename $grub_cfg)"
         return
     fi
 
@@ -1434,7 +1434,7 @@ do_install_bootloader() {
         break
     done
 
-    [ "$file" ] || fatal $"Could not find file %s" "$fname"
+    [ "$file" ] || fatal "Could not find file %s" "$fname"
     cmd dd bs=440 conv=notrunc count=1 if=$file of=$target_dev  || fatal "%s command failed" dd
 
     local sdir idir syslinux_dir isolinux_dir
@@ -1465,7 +1465,7 @@ do_install_bootloader() {
     [ "$PRETEND_MODE" ] && return
 
      # [don't translate syslinux or isolinux]
-    [ -z "$syslinux_dir" ] && fatal $"Could not find a syslinux or isolinux directory"
+    [ -z "$syslinux_dir" ] && fatal "Could not find a syslinux or isolinux directory"
 
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
@@ -1480,7 +1480,7 @@ update_syslinux() {
             break
         done
     done
-    [ "$file" ] || fatal $"Could not find file %s" "$fname"
+    [ "$file" ] || fatal "Could not find file %s" "$fname"
     local from_dir=$(dirname $file)
 
     if test -e $to_dir/ldlinux.sys && which chattr &>/dev/null; then
@@ -1528,7 +1528,7 @@ check_target() {
     # Make sure our target is a real device
     local target_dev=$(expand_device $target)
 
-    [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$target"
+    [ ${#target_dev} -gt 0 ] || fatal "Could not find device %s" "$target"
     [ ${#live_dev}   -gt 0 ] || return
     local live_drive=$(get_drive ${live_dev##*/} )
     local targ_drive=$(get_drive ${target##*/}   )
