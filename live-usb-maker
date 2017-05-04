@@ -520,11 +520,11 @@ main() {
         "Use %s to always ignore this warning"      \
         "The device %s does not seem to be usb or removeable."  "$target_dev"
 
-    local alloc_size main_size
+    local bios_size  main_size  uefi_size
 
     encrypt && shout "\n%s" $"Encryption enabled"
-    need_q partition-make && verify_sizes alloc_size main_size bios_size "$target_dev" \
-        "$ISO_DIR" "$percent_size" "$UEFI_SIZE" "$BIOS_SIZE" "${DEFAULT_SIZE%%%}"
+    need_q partition-make && verify_sizes bios_size main_size uefi_size "$target_dev" \
+        "$ISO_DIR" "$percent_size" "$BIOS_SIZE" "$UEFI_SIZE" "${DEFAULT_SIZE%%%}"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats: %s" "$(pq $cheats)"
     # Bail early if only size info is requested
@@ -556,7 +556,7 @@ main() {
     START_T=$(date +%s)
 
     need partition-clear && clear_partition "$target_dev"
-    need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$alloc_size"
+    need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$BIOS_SIZE" "$main_size" "$uefi_size"
 
     sync; sync
 
@@ -747,8 +747,8 @@ select_target_device() {
 # the loop at most twice.
 #------------------------------------------------------------------------------
 verify_sizes() {
-    local alloc_var=$1  main_var=$2  bios_var=$3  dev=$4  dir=$5
-    local cmd_percent=$6  uefi_size=$7  bios_size=${8:-0}  default_size=${10:-100}
+    local bios_var=$1  main_var=$2  uefi_var=$3  dev=$4  dir=$5
+    local cmd_percent=$6  bios_val=${7:-0}  uefi_val=$8  default_size=${10:-100}
     local percent=${cmd_percent:-$default_size}
 
     # Get total size of target live-usb device
@@ -758,44 +758,44 @@ verify_sizes() {
     local uefi_needed=$(du_ap_size_spec $dir "$UEFI_FILES")
     local bios_needed=$(du_ap_size_spec $dir "$BIOS_FILES")
 
-    if [ $uefi_size -lt $((uefi_needed + UEFI_MARGIN)) ]; then
-        local old=$uefi_size
-        uefi_size=$((uefi_needed + UEFI_MARGIN))
-        warn "uefi size increased from %s to %s MiB" "$(pnh $old)" "$(pnh $uefi_size)"
+    if [ $uefi_val -lt $((uefi_needed + UEFI_MARGIN)) ]; then
+        local old=$uefi_val
+        uefi_val=$((uefi_needed + UEFI_MARGIN))
+        warn "uefi size increased from %s to %s MiB" "$(pnh $old)" "$(pnh $uefi_val)"
     fi
 
-    if [ $BIOS_MARGIN -gt 0 -a $bios_size -lt $((bios_needed + BIOS_MARGIN)) ]; then
-        local old=$bios_size
-        bios_size=$((bios_needed + BIOS_MARGIN))
-        warn "bios size increased from %s to %s MiB" "$(pnh $old)" "$(pnh $bios_size)"
+    if [ $BIOS_MARGIN -gt 0 -a $bios_val -lt $((bios_needed + BIOS_MARGIN)) ]; then
+        local old=$bios_val
+        bios_val=$((bios_needed + BIOS_MARGIN))
+        warn "bios size increased from %s to %s MiB" "$(pnh $old)" "$(pnh $bios_val)"
     fi
 
     local did_size
     while true; do
         #--- simple arithmetic ...
         local alloc_val=$((total_size * percent / 100 - 1))
-        local main_val=$((alloc_val - uefi_size - bios_size))
+        local main_val=$((alloc_val - uefi_val - bios_val))
         local total_extra=$((total_size - alloc_val))
 
         local main_needed2=$((main_needed + $(ext_overhead $main_val) ))
 
         local main_extra=$((main_val - main_needed2 - main_overhead))
-        local uefi_extra=$((uefi_size - uefi_needed))
-        local bios_extra=$((bios_size - bios_needed))
-        local min_percent=$((1 + 100 * (main_needed2 + uefi_size + bios_size + MAIN_MARGIN + UEFI_MARGIN + BIOS_MARGIN)
+        local uefi_extra=$((uefi_val - uefi_needed))
+        local bios_extra=$((bios_val - bios_needed))
+        local min_percent=$((1 + 100 * (main_needed2 + uefi_val + bios_val + MAIN_MARGIN + UEFI_MARGIN + BIOS_MARGIN)
             / total_size))
 
         log_it_q echo
         # Table headers for sizes of: entire drive, [bios partition], main partition, uefi partition
-        if [ $bios_size -gt 0 ]; then
+        if [ $bios_val -gt 0 ]; then
             log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
                                $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
-                               $"bios partition"  "$bios_size"  "$bios_needed"   "$bios_extra"   \
-                               $"uefi partition"  "$uefi_size"  "$uefi_needed"   "$uefi_extra"
+                               $"bios partition"  "$bios_val"   "$bios_needed"   "$bios_extra"   \
+                               $"uefi partition"  "$uefi_val"   "$uefi_needed"   "$uefi_extra"
         else
             log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
                                $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
-                               $"uefi partition"  "$uefi_size"  "$uefi_needed"   "$uefi_extra"
+                               $"uefi partition"  "$uefi_val"   "$uefi_needed"   "$uefi_extra"
         fi
         echo >>$LOG_FILE
 
@@ -803,8 +803,9 @@ verify_sizes() {
         check_size uefi $uefi_extra $UEFI_MARGIN warn
         check_size bios $bios_extra $BIOS_MARGIN warn
 
-        eval $alloc_var=\$alloc_val
+        eval $bios_var=\$bios_val
         eval $main_var=\$main_val
+        eval $uefi_var=\$uefi_val
 
         [ "$did_size" ] && break
         did_size=true
@@ -1109,7 +1110,8 @@ clear_partition() {
 # bios partition.
 #------------------------------------------------------------------------------
 do_partition() {
-    local drive=$1  type=${2:-msdos}  bios_size=${3:-0}  main_size=$4  alloc_size=$5
+    local drive=$1  type=${2:-msdos}  bios_size=${3:-0}  main_size=$4  uefi_size=$5
+    local alloc_size=$((bios_size + main_size + uefi_size))
 
     local boot_flag
     case $type in
