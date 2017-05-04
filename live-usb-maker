@@ -1509,12 +1509,9 @@ Syslinux_Rm
 #------------------------------------------------------------------------------
 do_made_by() {
     local dir=$1  file=${2:-$MADE_BY_FILE}
-    local full=$dir/$file
-    cmd cat<<Made_By > $dir/$file
-     created: $(date)
-     program: $(basename $0)
-     version: $VERSION ($VERSION_DATE)
-Made_By
+    always_cmd write_file $dir/$file "  created: $(date)
+  program: $(basename $0)
+  version: $VERSION ($VERSION_DATE)"
 }
 
 #===== Here come the utilities! ===============================================
