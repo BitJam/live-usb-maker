@@ -62,7 +62,11 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
       PASS_PHRASE="random"
         LUKS_NAME="live-usb-maker"
 
+EXT_OVERHEAD_FORM="* 26 / 10000 - 2"
+ EXT_OVERHEAD_MAX=44
+
 #== END_CONFIG
+
 
       CRYPT_PROGS="cryptsetup dmsetup"
      PHRASE_FNAME=".passphrase"
@@ -635,8 +639,6 @@ main() {
 
     need install $"install" && do_install_bootloader $target_dev $BIOS_DIR $MSDOS_GPT
 
-    do_made_by $BIOS_DIR "$MADE_BY_FILE"
-
     sync; sync
 
     need_q copy && display_df_output $mp_list
@@ -765,30 +767,32 @@ verify_sizes() {
         warn "bios size increased from %s to %s MiB" "$(pnh $old)" "$(pnh $bios_size)"
     fi
 
-
     local did_size
     while true; do
         #--- simple arithmetic ...
         local alloc_val=$((total_size * percent / 100 - 1))
         local main_val=$((alloc_val - uefi_size - bios_size))
         local total_extra=$((total_size - alloc_val))
-        local main_extra=$((main_val - main_needed))
+
+        local main_needed2=$((main_needed + $(ext_overhead $main_val) ))
+
+        local main_extra=$((main_val - main_needed2 - main_overhead))
         local uefi_extra=$((uefi_size - uefi_needed))
         local bios_extra=$((bios_size - bios_needed))
-        local min_percent=$((1 + 100 * (main_needed + uefi_size + bios_size + MAIN_MARGIN + UEFI_MARGIN + BIOS_MARGIN)
+        local min_percent=$((1 + 100 * (main_needed2 + uefi_size + bios_size + MAIN_MARGIN + UEFI_MARGIN + BIOS_MARGIN)
             / total_size))
 
         log_it_q echo
         # Table headers for sizes of: entire drive, [bios partition], main partition, uefi partition
         if [ $bios_size -gt 0 ]; then
-            log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"    "$total_extra"  \
-                               $"main partition"  "$main_val"   "$main_needed"  "$main_extra"   \
-                               $"bios partition"  "$bios_size"  "$bios_needed"  "$bios_extra"   \
-                               $"uefi partition"  "$uefi_size"  "$uefi_needed"  "$uefi_extra"
+            log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
+                               $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
+                               $"bios partition"  "$bios_size"  "$bios_needed"   "$bios_extra"   \
+                               $"uefi partition"  "$uefi_size"  "$uefi_needed"   "$uefi_extra"
         else
-            log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"    "$total_extra"  \
-                               $"main partition"  "$main_val"   "$main_needed"  "$main_extra"   \
-                               $"uefi partition"  "$uefi_size"  "$uefi_needed"  "$uefi_extra"
+            log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
+                               $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
+                               $"uefi partition"  "$uefi_size"  "$uefi_needed"   "$uefi_extra"
         fi
         echo >>$LOG_FILE
 
@@ -819,6 +823,21 @@ verify_sizes() {
     check_size ext $main_extra $MAIN_MARGIN fatal
     check_size uefi $uefi_extra $UEFI_MARGIN fatal
     check_size bios $bios_extra $BIOS_MARGIN fatal
+}
+
+#------------------------------------------------------------------------------
+# Rough, empirical forumula for calculating the overhead of the ext4 filesystem
+# using our default ext4 settings.
+#------------------------------------------------------------------------------
+ext_overhead() {
+    local size=$1
+    local max=$EXT_OVERHEAD_MAX
+
+    local overhead=$(($size $EXT_OVERHEAD_FORM))
+    [ $overhead -gt $max ] && overhead=$max
+    [ $overhead -lt  0 ] && overhead=0
+    echo "Estimated extfs overhead for ${size}M is ${overhead}M" >> $LOG_FILE
+    echo $overhead
 }
 
 #------------------------------------------------------------------------------
@@ -1646,6 +1665,9 @@ $(config_header "$file" $ME)
           ENCRYPT="$ENCRYPT"
       PASS_PHRASE="$PASS_PHRASE"
         LUKS_NAME="$LUKS_NAME"
+
+EXT_OVERHEAD_FORM="$EXT_OVERHEAD_FORM"
+ EXT_OVERHEAD_MAX="$EXT_OVERHEAD_MAX"
 
 $(config_footer)
 Config_File
