@@ -89,7 +89,7 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install enc
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
    ALL_FORCE="copy,flock,makefs,umount,usb"
-   ALL_PAUSE="exit,initrd"
+   ALL_PAUSE="exit,initrd,copy"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
         PATH="$MY_LIB_DIR/bin:$LIB_DIR/bin:$PATH"
@@ -1205,19 +1205,20 @@ do_copy_main() {
     local err_msg=$"Error while copying files to main partition of live usb"
 
     if [ $# -gt 0 ]; then
-        copy_with_progress "$from/*" "$to" "$err_msg" "$@"
+        copy_with_progress "$from" "$to" "$err_msg" "$@"
 
     elif q_mode gui || [ "$NO_PROGRESS_BAR" ]; then
         cmd cp -a $from/* $to/ || fatal "$err_msg"
 
     elif [ "$PERCENT_PROG" ]; then
-        copy_with_progress "$from/*" "$to" "$err_msg" percent_progress
+        copy_with_progress "$from" "$to" "$err_msg" percent_progress
 
     else
-        copy_with_progress "$from/*" "$to" "$err_msg" text_progress_bar
+        copy_with_progress "$from" "$to" "$err_msg" text_progress_bar
     fi
 
-    sync
+    sync ; sync
+    pause copy
 }
 
 #------------------------------------------------------------------------------
