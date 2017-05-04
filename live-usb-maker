@@ -384,12 +384,12 @@ main() {
     else
         check_target "$TARGET" "$live_dev"
     fi
-    msg "Will use target device %s" "$(pq $TARGET)"
+    msg $"Will use target device %s" "$(pq $TARGET)"
 
     [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui && select_overall_mode CMDS QUESTION_MODE
 
     if need_q copy && ! encrypt; then
-        expert_yes_NO $"Encrypt the live-usb?" && ENCRYPT=true
+        expert_yes_NO $"Create an encrypted live-usb?" && ENCRYPT=true
     fi
 
     # FIXME: better error messsage!!
@@ -399,8 +399,8 @@ main() {
 
     if [ ${#FROM} -gt 0 ]; then
         check_from from "$FROM" "$TARGET"
-    elif ! need_q "copy-main|copy-bios|copy-uefi"; then
-        from="null=null"
+    elif ! need_q 'copy-main|copy-bios|copy-uefi'; then
+        from='null=null'
     else
     #--- Select source of live-usb if one was not given
         select_usb_src from "$TARGET"
@@ -509,7 +509,7 @@ main() {
 
     # Require that an entire disk device be specified (could relax?)
     local dev_type=$(lsblk -no type --nodeps $target_dev)
-    [ "$dev_type" = "disk" ] || fatal "Device %s is not a disk device" $target_dev
+    [ "$dev_type" = 'disk' ] || fatal "Device %s is not a disk device" $target_dev
 
     setup_devices $target_dev
 
@@ -522,7 +522,7 @@ main() {
 
     local alloc_size main_size
 
-    encrypt && shout "\n%s" "Encryption enabled"
+    encrypt && shout "\n%s" $"Encryption enabled"
     need_q partition-make && verify_sizes alloc_size main_size bios_size "$target_dev" \
         "$ISO_DIR" "$percent_size" "$UEFI_SIZE" "$BIOS_SIZE" "${DEFAULT_SIZE%%%}"
 
@@ -534,14 +534,14 @@ main() {
     umount_all $target_dev
 
     local encrypted_lab=""
-    encrypt && encrypted_lab="$(bqq "encrypted") "
+    encrypt && encrypted_lab="$(bqq $"encrypted") "
 
     local new_line=$(printf "$nc_co\n$quest_co...")
     # Ready to make live-usb on device X by <cloning|copying directory Y>
     local final_q=$(quest $"Ready to make %s on device %s by %s" "${encrypted_lab}$(pqq live-usb)" \
         "$(pqq ${target_dev##*/})$new_line" "$from_act $from_thing $(pqq $from_value)")
 
-    [ "$CMDS" != "all" ] \
+    [ "$CMDS" != 'all' ] \
         && final_q=$(printf "Ready to perform %s action(s) on %s" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
 
     if q_mode gui; then
@@ -574,9 +574,9 @@ main() {
         local phrase_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$PHRASE_FNAME
         local encrypt_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$ENCRYPT_FNAME
 
-        [ "$PASS_PHRASE" = "random" ] && PASS_PHRASE=$(random_phrase 10)
+        [ "$PASS_PHRASE" = 'random' ] && PASS_PHRASE=$(random_phrase 10)
 
-        msg "Using passphrase %s" "$(pq "$PASS_PHRASE")"
+        msg $"Will use initial passphrase %s" "$(pq "$PASS_PHRASE")"
 
         write_phrase_file "$PASS_PHRASE" $phrase_file
         sync
@@ -648,7 +648,7 @@ main() {
 
     msg "$(bq "=>") %s" $"done"
 
-    [ -n "$DID_ENCRYPT" ] && shout "You will be asked to create your own passphrase on the first boot"
+    [ -n "$DID_ENCRYPT" ] && shout $"You will be asked to create your own passphrase on the first boot"
 
     my_exit 0
 }
@@ -701,7 +701,7 @@ select_overall_mode() {
     local cmd_var=$1 q_var=$2 ans cmd_val q_val
     local title=$"Please select what action to perform"
     local menu=$(overall_mode_menu)
-    my_select "ans" "$title" "$menu"
+    my_select 'ans' "$title" "$menu"
     case $ans in
                   encrypt) q_val=simple ; ENCRYPT=true     ;;
            default|simple) q_val=$ans                      ;;
@@ -886,7 +886,7 @@ guess_partitioning() {
                *)  fatal "This does not look like a live-usb device (%s)" $fs_type;;
     esac
 
-    encrypt && shout "Assuming this is an encrypted live-usb"
+    encrypt && shout $"Assuming this is an encrypted live-usb"
     setup_devices $drive
 }
 
@@ -964,7 +964,7 @@ encrypt_partition() {
     test -e $dev || fatal "Device to encrypt %s does not exist" $dev
     test -b $dev || fatal "Device to encrypt %s is not a block device" $dev
 
-    msg "About to encrypt device %s" "$(pq $dev)"
+    msg $"About to encrypt device %s" "$(pq $dev)"
 
     [ "$PRETEND_MODE" ] && return
 
@@ -974,7 +974,7 @@ encrypt_partition() {
     cryptsetup open --type luks --key-file $file $dev $name \
         || fatal "Failed to open encrypted device"
 
-    msg "Encryption successful"
+    msg $"Encryption successful"
     LUKS_DEV=/dev/mapper/$name
 }
 
@@ -1170,7 +1170,7 @@ do_makefs_ext() {
 
     force makefs && force_ext="-F"
     cmd mkfs.ext4 $force_ext $EXT4_NO_64BIT $options $dev \
-        || fatal "makefs" "Could not make %s file system on %s.  Perhaps try %s" "ext4" $dev "--force=makefs"
+        || fatal 'makefs' "Could not make %s file system on %s.  Perhaps try %s" 'ext4' $dev "--force=makefs"
 
     [ -n "$label" ] && cmd tune2fs -L "${label:0:16}" $dev
 }
@@ -1227,8 +1227,8 @@ copy_files_spec() {
 
     test -z "$spec" && fatal "Missing list of files to copy to %s" "$(pqw $targ)"
 
-    msg "copy from %s to %s partition" "$(pq $(basename $src))" "$(pq $(basename $targ))"
-    msg "files: %s" "$(pq $spec)"
+    msg $"copy from %s to %s partition" "$(pq $(basename $src))" "$(pq $(basename $targ))"
+    msg $"files: %s" "$(pq $spec)"
 
     while read file; do
         test -z "$file" && continue
@@ -1255,7 +1255,7 @@ enable_initrd_encryption() {
 
     local prog full
     for prog in $CRYPT_PROGS; do
-        msg "Add program %s to %s" "$(pq $prog)" "$(pq initrd)"
+        msg $"Add program %s to %s" "$(pq $prog)" "$(pq initrd)"
         full=$(find_bin $mod_dir $prog)
         [ -n "$full" ] || fatal "Could not find program %s to include in initrd" $prog
         cmd cp $mod_dir$full $dir/bin/
@@ -1296,7 +1296,7 @@ fix_uefi_memtest() {
     local dir=$1/EFI/BOOT
     test -d "$dir" || dir=$1/efi/boot
     test -d "$dir" || return
-    msg "Fix uefi memtest bug"
+    msg "Fix %sbug" 'uefi memtest'
     local fallback=$dir/fallback.efi
     local grubx64=$dir/grubx64.efi
 
@@ -1374,7 +1374,7 @@ do_uuids() {
     local bios_dir=$1  bios_uuid=$2  grub_cfg=$3  uefi_uuid=$4  uefi_part=$5
     if [ ${#uefi_uuid} -gt 0 ]; then
         local uefi_file=$bios_dir/antiX/esp-uuid
-        cmd mkdir -p $(dirname $uefi_file) || fatal $"Making directory '%s' failed" "$(dirname $uefi_file)"
+        cmd mkdir -p $(dirname $uefi_file) || fatal "Making directory '%s' failed" "$(dirname $uefi_file)"
         cmd write_file $uefi_file $uefi_uuid
     else
         warn "No %s given for %s partition" UUID uefi
@@ -1386,7 +1386,8 @@ do_uuids() {
     fi
 
     if ! test -e $grub_cfg; then
-        pwarn $"Could not find '%s' file" "$(basename $grub_cfg)"
+        # Could not find <grub.cfg> file
+        pwarn $"Could not find %s file" "$(basename $grub_cfg)"
         return
     fi
 
