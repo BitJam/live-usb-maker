@@ -375,7 +375,7 @@ main() {
         we_are_live=true
         # FIXME: should use initrd.out to get the uuid, etc
         live_dev=$(get_live_dev)
-        warn_z "$live_dev" $"The live media is not mounted"
+        warn_z "$live_dev" "The live media is not mounted"
     fi
 
     # Check cmdline target *before* the first menu
