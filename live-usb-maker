@@ -627,7 +627,10 @@ main() {
         fix_uefi_memtest $UEFI_DIR
     fi
 
-    need copy-main && do_copy_main $ISO_DIR $MAIN_DIR  "$@"
+    if need copy-main; then
+        do_copy_main $ISO_DIR $MAIN_DIR "$@"
+        do_made_by $BIOS_DIR "$MADE_BY_FILE"
+    fi
 
     local bios_uuid=$(lsblk -no uuid $BIOS_DEV)
     local uefi_uuid=$(lsblk -no uuid $UEFI_DEV)
