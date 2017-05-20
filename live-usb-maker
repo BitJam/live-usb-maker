@@ -345,6 +345,7 @@ main() {
 
     shout $"Starting %s" "$ME"
     start_log "$orig_args" "$CMDS"
+    type -t find_man_page &>/dev/null && find_man_page
 
     shift $SHIFT_2
     if [ $# -gt 0 ]; then
