@@ -561,6 +561,9 @@ main() {
 
     sync; sync
 
+    # Nothing else makes sense if there is no partition table
+    need_q partition-clear && ! need_q partition-make && exit_done
+
     cmd wait_for_file "$BIOS_DEV"
     need makefs-bios && do_makefs_ext "$BIOS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
@@ -647,7 +650,7 @@ main() {
 
     need_q copy && display_df_output $mp_list
 
-    msg "$(bq "=>") %s" $"done"
+    say_done
 
     [ -n "$DID_ENCRYPT" ] && shout $"You will be asked to create your own passphrase on the first boot"
 
@@ -1554,6 +1557,20 @@ check_size() {
     [ $extra -lt 0 ]       && $action $"Not enough space on %s partition" "$type"
     [ $extra -lt $margin ] && $action $"Less than %s MiB would remain on %s partition" "$margin" "$type"
 }
+
+
+#------------------------------------------------------------------------------
+# Tell user we are done and then exit
+#------------------------------------------------------------------------------
+exit_done() {
+    say_done
+    my_exit
+}
+
+#------------------------------------------------------------------------------
+# Tell user that we're done
+#------------------------------------------------------------------------------
+say_done() { msg "$(bq "=>") %s" $"done" ; }
 
 #------------------------------------------------------------------------------
 # A catch-all for things to be done right before exiting
