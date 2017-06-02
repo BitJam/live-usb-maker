@@ -689,13 +689,12 @@ check_from() {
 # Pretty much WYSIWYG
 #------------------------------------------------------------------------------
 overall_mode_menu() {
-    local fmt="%s$P_IFS%s\n"
-    encrypt || printf "$fmt" simple  $"Make a full-featured live-usb"
-    printf "$fmt" encrypt $"Make an encrypted full-featured live-usb"
-    printf "$fmt" default $"Make a customized live-usb (includes encryption option)"
-    printf "$fmt" uuids   $"Update UUIDS on an existing live-usb"
-    printf "$fmt" cheats  $"Update boot parameters on an existing live-usb"
-    printf "$fmt" install $"Reinstall legacy bootloader on an existing live-usb"
+    encrypt || menu_printf simple  $"Make a full-featured live-usb"
+    menu_printf encrypt $"Make an encrypted full-featured live-usb"
+    menu_printf default $"Make a customized live-usb (includes encryption option)"
+    menu_printf uuids   $"Update UUIDS on an existing live-usb"
+    menu_printf cheats  $"Update boot parameters on an existing live-usb"
+    menu_printf install $"Reinstall legacy bootloader on an existing live-usb"
 }
 
 #------------------------------------------------------------------------------
