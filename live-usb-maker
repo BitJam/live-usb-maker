@@ -1106,6 +1106,9 @@ clear_partition() {
 
     # Clear out secondary gpt partition table
     cmd dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
+
+    # Tell kernel the partition table has changed
+    cmd partprobe $dev
 }
 
 #------------------------------------------------------------------------------
@@ -1145,6 +1148,9 @@ do_partition() {
     cmd $preamb mkpart primary $main_fs $main_start  $main_end || fatal "$err_msg" main
     cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal "$err_msg" uefi
     cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal "$err_msg" flags
+
+    # Tell kernel the partition table has changed
+    cmd partprobe $drive
 
     DID_PARTITION=true
 }
