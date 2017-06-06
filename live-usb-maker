@@ -28,7 +28,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
         MAX_FILES="20"
      MIN_ISO_SIZE="180M"
 
-        MSDOS_GPT="gpt"
+        MSDOS_GPT="msdos"
      DEFAULT_SIZE="100%"
          CMD_SIZE=""
         BIOS_SIZE="150"
