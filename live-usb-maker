@@ -1149,6 +1149,10 @@ do_partition() {
     cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal "$err_msg" uefi
     cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal "$err_msg" flags
 
+    if [ "$type" = 'gpt' ]; then
+        cmd $preamb disk_set pmbr_boot on || fatal "$err_msg" disk_set
+    fi
+
     # Tell kernel the partition table has changed
     cmd partprobe $drive
 
