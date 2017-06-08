@@ -151,13 +151,14 @@ Options:
                                all: All of the above (dangerous!)
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
-  -g --gpt              Use gpt partitioning (default) instead of msdos
+  -g --gpt              Use gpt partitioning instead of msdos
+     --gpt-pmbr         Set pmbr_boot disk flag (prevents booting via UEFI)
   -h --help             Show this usage
   -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
   -I --ignore-config    Ignore the configuration file
   -k --keep-syslinux    Don't replace the syslinux files
   -L --label=Name       Label ext partition with Name
-  -m --msdos            Use msdos partitioning instead of gpt
+  -m --msdos            Use msdos partitioning (default) instead of gpt
   -n --no-prog-bar      Don't show progress *bar* when copying
      --pause            Wait for user input before exit
      --pause=initrd     Pause after unpacking the initrd.gz file
@@ -191,6 +192,7 @@ eval_early_argument() {
       -ignore-config|I) IGNORE_CONFIG=true   ;;
        -write-config|W) WRITE_CONFIG=true    ;;
        -reset-config|R) RESET_CONFIG=true    ;;
+        -gpt|-gpt-pmbr) CMD_GPT=true         ;;
               -force|F) FORCE="$FORCE,$val"  ;;
               -force=*) FORCE="$FORCE,$val"  ;;
            -progress|P) PROGRESS=true        ;;
@@ -218,6 +220,7 @@ eval_argument() {
               -from|f)  FROM=$val                        ;;
               -from=*)  FROM=$val                        ;;
                -gpt|g)  MSDOS_GPT="gpt"                  ;;
+            -gpt-pmbr)  MSDOS_GPT="gpt" ; DO_PMBR=true   ;;
       -gui-progress|-)  END_CMDLINE=true                 ;;
             -initrd|i)  INITRD_FILE=$val                 ;;
      -keep-syslinux|k)  KEEP_SYSLINUX=true               ;;
@@ -293,6 +296,14 @@ main() {
     EXIT_NUM=100
 
     read_reset_config_file "$CONFIG_FILE"
+
+    # Force stored 'gpt' value back to msdos.  Can still be overridden by the
+    # --gpt command line parameter
+    if [ -z "$CMD_GPT" -a "$MSDOS_GPT" != 'msdos' ]; then
+        warn "Forcing partitioning to be %s" "$(pqh msdos)"
+        MSDOS_GPT=msdos
+        write_config "$CONFIG_FILE"
+    fi
 
     ERR_FILE=$THE_ERR_FILE
     trap clean_up EXIT
@@ -1149,7 +1160,7 @@ do_partition() {
     cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal "$err_msg" uefi
     cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal "$err_msg" flags
 
-    if [ "$type" = 'gpt' ]; then
+    if [ "$type" = 'gpt' -a "$DO_PMBR" ]; then
         cmd $preamb disk_set pmbr_boot on || fatal "$err_msg" disk_set
     fi
 
