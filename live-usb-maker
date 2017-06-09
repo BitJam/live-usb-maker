@@ -434,7 +434,7 @@ main() {
         *) test -f "$from" && from=file=$from ;;
     esac
 
-    [ -n "$from" -a -n "${from%%*=*}" ] && internal_err "bad from value 1 " "$from"
+    [ -n "$from" -a -n "${from%%*=*}" ] && internal_error "bad from value 1 " "$from"
 
     local from_type=${from%%=*}
     local from_value=${from#*=}
@@ -487,7 +487,7 @@ main() {
 
         null) ;;
         *)
-            internal_err "Bad from variable 2" "$from"
+            internal_error "Bad from variable 2" "$from"
             ;;
     esac
 
@@ -1037,7 +1037,7 @@ clone_directory() {
         1) fatal "No '%s' file found in any directory on clone device at '%s'"   "$LINUXFS_NAME" "$from_dir" ;;
         2) fatal "No live-boot directory found on clone device at '%s'"          "$from_dir" ;;
         3) fatal "Multiple live-boot directories found on clone device at '%s'"  "$from_dir" ;;
-        *) internal_err "find_live_boot_dir" $ret ;;
+        *) internal_error "find_live_boot_dir" $ret ;;
     esac
 
     msg "Live boot directory %s" "$(pq $boot_dir)"
