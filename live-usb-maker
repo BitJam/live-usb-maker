@@ -1238,6 +1238,7 @@ do_copy_main() {
         copy_with_progress "$from" "$to" "$err_msg" percent_progress
 
     else
+        local PROGRESS_SCALE=1000
         copy_with_progress "$from" "$to" "$err_msg" text_progress_bar
     fi
 
