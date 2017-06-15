@@ -600,7 +600,7 @@ main() {
 
         need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
-        local main_uuid=$(lsblk -no uuid $MAIN_DEV)
+        local main_uuid=$(lsblk --nodeps -no uuid $MAIN_DEV)
         cmd write_file $encrypt_file "$main_uuid"
 
         sync
