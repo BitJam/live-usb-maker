@@ -907,7 +907,7 @@ guess_partitioning() {
 
 random_phrase() {
     local len=${1:-30}
-    dd if=/dev/urandom count=2 2>/dev/null | tr -dc A-Za-z0-9 | head -c$len
+    quiet_dd if=/dev/urandom count=2 | tr -dc A-Za-z0-9 | head -c$len
 }
 
 #------------------------------------------------------------------------------
@@ -1107,16 +1107,16 @@ clear_partition() {
     local total=$(parted --script $dev unit KiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)kiB$/\1/ip")
 
     # Clear out previous primary partition table
-    cmd dd if=/dev/zero of=$dev bs=1K count=17
+    cmd quiet_dd if=/dev/zero of=$dev bs=1K count=17
 
     # Clear out sneaky iso-hybrid partition table
-    cmd dd if=/dev/zero of=$dev bs=1K count=17 seek=32
+    cmd quiet_dd if=/dev/zero of=$dev bs=1K count=17 seek=32
 
     [ -n "$total" ] || return
     local offset=$((total - 17))
 
     # Clear out secondary gpt partition table
-    cmd dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
+    cmd quiet_dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
 
     # Tell kernel the partition table has changed
     cmd partprobe $dev
@@ -1464,7 +1464,7 @@ do_install_bootloader() {
     done
 
     [ "$file" ] || fatal "Could not find file %s" "$fname"
-    cmd dd bs=440 conv=notrunc count=1 if=$file of=$target_dev  || fatal "%s command failed" dd
+    cmd quiet_dd bs=440 conv=notrunc count=1 if=$file of=$target_dev  || fatal "%s command failed" dd
 
     local sdir idir syslinux_dir isolinux_dir
     for sdir in boot/syslinux syslinux; do
@@ -1565,6 +1565,11 @@ check_target() {
 # Convenience routine to save a little typing
 #------------------------------------------------------------------------------
 encrypt() {  [ "$ENCRYPT" ]; return $?; }
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+quiet_dd() { dd "$@" 2>/dev/null ; }
 
 #------------------------------------------------------------------------------
 # Make sure we have enough left over space on a partition.  Can generate
