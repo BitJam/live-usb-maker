@@ -1567,7 +1567,7 @@ check_target() {
 encrypt() {  [ "$ENCRYPT" ]; return $?; }
 
 #------------------------------------------------------------------------------
-#
+# Strip out stderr output to make "dd" easier to use with cmd() function
 #------------------------------------------------------------------------------
 quiet_dd() { dd "$@" 2>/dev/null ; }
 
