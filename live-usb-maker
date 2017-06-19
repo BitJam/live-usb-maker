@@ -59,18 +59,24 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
     QUESTION_MODE="default"
 
           ENCRYPT=""
-      PASS_PHRASE="random"
+ PASS_PHRASE_TYPE=""
         LUKS_NAME="live-usb-maker"
 
 EXT_OVERHEAD_FORM="* 26 / 10000 - 2"
- EXT_OVERHEAD_MAX=44
+ EXT_OVERHEAD_MAX="44"
+
+  PP_MAX_WORD_LEN="8"
+     PP_NUM_WORDS="6"
+    PP_WORDS_FILE="/usr/share/dict/american-english"
+   PP_RAND_SOURCE="/dev/urandom"
 
 #== END_CONFIG
 
-
+BACKUP_WORDS_FILE="/usr/share/dict/words"
       CRYPT_PROGS="cryptsetup dmsetup"
-     PHRASE_FNAME=".passphrase"
-    ENCRYPT_FNAME="crypt"
+     PHRASE_FNAME="passphrase"
+       SEED_FNAME="random-seed"
+    ENCRYPT_FNAME="encrypted"
 
          WORK_DIR="/run/$ME"
         SHELL_LIB="cli-shell-utils.bash"
@@ -135,7 +141,13 @@ Options:
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
   -E --encrypt          Set up to boot from an encrypted partition
-  --encrypt=<phrase>    Use <phrase> to encrypt the partition
+  --encrypt=<flag>      Phasephrase option:
+                           first-boot  Force user to set phrase on first boot
+                           file=xxx    Read phrase from file <xxx>
+                           random      Generate a random passphrase
+                           random=N    Generate a random passhphrase containing
+                                       N words
+
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   --ext-options=<xx>    Use these options when creating the ext4 filesystem
 
@@ -212,7 +224,7 @@ eval_argument() {
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
            -encrypt|E)  ENCRYPT=true                     ;;
-           -encrypt=*)  ENCRYPT=true ; PASS_PHRASE=$val  ;;
+           -encrypt=*)  ENCRYPT=true ; PASS_PHRASE_TYPE=$val  ;;
           -esp-size|e)  UEFI_SIZE=$val                   ;;
          -ext-options)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
@@ -230,7 +242,7 @@ eval_argument() {
        -no-prog-bar|n)  NO_PROGRESS_BAR=true             ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
              -pause=*)  PAUSE="$PAUSE${PAUSE:+,}$val"    ;;
-        -percent-prog) PERCENT_PROG=true                 ;;
+        -percent-prog)  PERCENT_PROG=true                ;;
            -pretend|p)  PRETEND_MODE=true                ;;
           -progress|P)  PROGRESS=true                    ;;
              -quiet|q)  QUIET=true                       ;;
@@ -359,6 +371,16 @@ main() {
 
     shout $"Starting %s" "$ME"
     start_log "$orig_args" "$CMDS"
+
+    # NOTE: this placement is not ideal because it allows the user to
+    # write an invalid pass_phrase_type to the config file
+    #======== Encryption =====================================================
+    if encrypt; then
+        q_mode gui && : ${PASS_PHRASE_TYPE:=first-boot}
+        validate_passphrase_type "$PASS_PHRASE_TYPE"
+    fi
+    #=========================================================================
+
     type -t find_man_page &>/dev/null && find_man_page
 
     shift $SHIFT_2
@@ -549,7 +571,16 @@ main() {
     umount_all $target_dev
 
     local encrypted_lab=""
-    encrypt && encrypted_lab="$(bqq $"encrypted") "
+
+    #======== Encryption =====================================================
+    if encrypt; then
+        encrypted_lab="$(bqq $"encrypted") "
+
+        test -r "$PP_WORDS_FILE" || PP_WORDS_FILE=$BACKUP_WORDS_FILE
+
+        encrypt && select_passphrase_type PASS_PHRASE_TYPE
+    fi
+    #=========================================================================
 
     local new_line=$(printf "$nc_co\n$quest_co...")
     # Ready to make live-usb on device X by <cloning|copying directory Y>
@@ -584,27 +615,33 @@ main() {
     cmd wait_for_file "$UEFI_DEV"
     need makefs-uefi && do_makefs_uefi "$UEFI_DEV" "$ESP_LABEL"
 
+    #======== Encryption =====================================================
     if encrypt && need encrypt-main; then
         wait_for_file "$MAIN_DEV"
 
         # Write phrase and signal file *before* encrypting
         my_mount $BIOS_DEV $BIOS_DIR
-        local phrase_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$PHRASE_FNAME
-        local encrypt_file=$BIOS_DIR/${DEF_BOOT_DIR#/}/$ENCRYPT_FNAME
+        local phrase_file=$BIOS_DIR/$DEF_BOOT_DIR/$PHRASE_FNAME
+        local encrypt_file=$BIOS_DIR/$DEF_BOOT_DIR/$ENCRYPT_FNAME
 
-        [ "$PASS_PHRASE" = 'random' ] && PASS_PHRASE=$(random_phrase 10)
+        # Simplify to types: ask, file, phrase
+        # Convert file to phrase to avoid problems with \n
+        local phrase=$PASS_PHRASE_TYPE
+        case $phrase in
+               file=*) phrase=phrase=$(cat "$val")               ;;
+               random) set_rand_phrase   phrase                  ;;
+             random=*) set_rand_phrase   phrase ${phrase#*=}     ;;
+           first-boot) first_boot_phrase phrase "$phrase_file"   ;;
+        esac
 
-        msg $"Will use initial passphrase %s" "$(pq "$PASS_PHRASE")"
-
-        write_phrase_file "$PASS_PHRASE" $phrase_file
-        sync
-
-        encrypt_partition $MAIN_DEV "$LUKS_NAME" $phrase_file
+        encrypt_partition $MAIN_DEV "$LUKS_NAME" "$phrase"
 
         need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
         local main_uuid=$(lsblk --nodeps -no uuid $MAIN_DEV)
         cmd write_file $encrypt_file "$main_uuid"
+        # FIXME: for backward compatibility with antiX-17.a3
+        cmd write_file ${encrypt_file%encrypted}crypt "$main_uuid"
 
         sync
 
@@ -612,8 +649,8 @@ main() {
 
         always_cmd umount $BIOS_DEV
         my_mount "$LUKS_DEV" "$MAIN_DIR"
-
     fi
+    #=========================================================================
 
     [ -z "$DID_PARTITION" ] && guess_partitioning $target_dev
 
@@ -640,6 +677,7 @@ main() {
 
         umount $LINUX_DIR ; rmdir $LINUX_DIR
     fi
+    #=========================================================================
 
     if need copy-uefi; then
         copy_files_spec $ISO_DIR "$UEFI_FILES" "$UEFI_DIR" uefi
@@ -649,6 +687,7 @@ main() {
     if need copy-main; then
         do_copy_main $ISO_DIR $MAIN_DIR "$@"
         do_made_by $BIOS_DIR "$MADE_BY_FILE"
+        write_random_seed $MAIN_DIR/$DEF_BOOT_DIR/$SEED_FNAME
     fi
 
     local bios_uuid=$(lsblk -no uuid $BIOS_DEV)
@@ -667,7 +706,7 @@ main() {
 
     say_done
 
-    [ -n "$DID_ENCRYPT" ] && shout $"You will be asked to create your own passphrase on the first boot"
+    [ -n "$FIRST_BOOT_PHRASE" ] && shout $"You will be asked to create a passphrase during the first boot"
 
     my_exit 0
 }
@@ -698,6 +737,192 @@ check_from() {
     else
         fatal "The --from parameter '%s' was not recognized" "$cmd_from"
     fi
+}
+
+#------------------------------------------------------------------------------
+# Offer several passphrases.  Let user pick one of them or enter their own
+# or force the passphrase to be created on first boot of live-usb
+#------------------------------------------------------------------------------
+select_passphrase_type() {
+    local var=$1  val
+    eval val=\$$var
+
+    # Only select a pp type if one was not already given
+    [ -n "$val" ] && return
+
+    shout
+
+    local have_words dict_size dict_bits
+    if test -r $PP_WORDS_FILE; then
+        dict_size=$(dict_size)
+        dict_bits=$(x1 "log($dict_size)/log(2)")
+        have_words=true
+    else
+        warn "Could not find words file %s" "$PP_WORDS_FILE"
+        warn "Will not generate passphrases"
+    fi
+
+    # Don't let these menu entries get into the log file
+    local VERBOSE_SELECT=
+
+    local phrase  phrase_2  phrase_3   phrase_4   phrase_5   phrase_6
+    local   bits    bits_2    bits_3     bits_4     bits_5     bits_6
+
+    # Repeat if user wants to see more passphrases
+    while true; do
+
+        local i  len=4  max_len=8  seq=
+        if [ "$have_words" ]; then
+            shout "Please wait while some random passphrases are generated"
+            msg "Dictionary size is %s words (%s bits/word)" \
+                "$(nq $(add_commas $dict_size))" "$(nq $dict_bits)" | color_commas
+            seq=$(seq 2 6)
+        fi
+
+        for i in $seq; do
+            phrase=$(gen_passphrase $len)
+            eval phrase_$i=\$phrase
+            bits=$(x1 "log($dict_size)/log(2) * $len")
+            eval bits_$i=\$bits
+            len=$((len + 1))
+            [ $len -gt $max_len ] && len=$max_len
+        done
+
+        local menu=$(
+            menu_printf ask         "Enter your own passphrase"
+            menu_printf first-boot  "Set passphrase on first boot of live-usb"
+            for i in $seq; do
+                eval phrase=\$phrase_$i
+                eval bits=\$bits_$i
+                menu_printf "phrase=$phrase" "%s (%s bits)" "$(bq "$phrase")" "$(nq $bits)"
+            done
+            [ "$have_words" ] && menu_printf more "See more passphrases"
+        )
+
+        local ans
+        my_select ans "Please select a passphrase for the encrypted live-usb" "$menu"
+        [ "$ans" != 'more' ] && break
+    done
+
+    eval $var=\$ans
+    case $ans in
+        first-boot)
+            msg $"You will be asked to create a passphrase during the first boot" ;;
+
+               ask)
+            msg "Soon you will be asked to enter a new passphrase (3 times)" ;;
+
+          phrase=*) say_using_phrase "${ans#*=}" ;;
+
+    esac
+    press_enter
+}
+
+
+#------------------------------------------------------------------------------
+# Make sure the passphrase type entered on the command line is valid
+#------------------------------------------------------------------------------
+validate_passphrase_type() {
+    local arg=$1  val=${1#*=}
+
+    case $arg in
+                  "")  ;;
+          first-boot)  msg "You will be asked to create a passphrase during the first boot" ;;
+                 ask)  msg "You will be asked to create a passphrase" ;;
+              random)  test_rand $PP_NUM_WORDS ;;
+            random=*)  test_rand "$val"        ;;
+              file=*)  test_phrase_file "$val" ;;
+                   *)  fatal "Unknown %s parameter %s" "--encrypt" "$(pqw $arg)"
+    esac
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+test_rand() {
+    local num=$1
+    case $num in
+        [1-9]|1[0-9]|20) ;;
+        *) fatal "Only %s through %s random words are allowed in passphrase. Invalid arg: %s" 1 20 "$arg"
+    esac
+    msg "Will create a random passphrase %s words long" "$(nq $num)"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+test_phrase_file() {
+    local file=$1
+    test -e "$file" || fatal "Cannot find phrase file %s" "$file"
+    test -r "$file" || fatal "Cannot read phrase file %s" "$file"
+    local lines=$(cat "$file" | wc -l)
+    case $lines in
+        0)  ;;
+        1) warn "Phrase files should not have a new-line character" ;;
+        *) fatal "Phrase file can have only one line" ;;
+    esac
+    msg "Will read passphrase from file %s" "$(pq "$file")"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+set_rand_phrase() {
+    local var=$1 len=$2
+    local _phrase=$(gen_passphrase $len)
+    say_using_phrase "$_phrase"
+    press_enter
+    eval $var=\$_phrase
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+say_using_phrase() {
+    local phrase=$1
+
+    msg "Will use phrase %s" "$(bq "$phrase")"
+    msg "Please carefully write it down in a safe place"
+    msg "If you forget this phrase then the live-usb will be useless"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+first_boot_phrase() {
+    local var=$1  file=$2
+    local _phrase=$(gen_passphrase 2)
+    msg $"Will use initial passphrase %s\n" "$(pq "$_phrase")"
+    write_phrase_file "$_phrase" "$file"
+    eval $var=file=\$file
+    FIRST_BOOT_PHRASE=true
+    sync
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+gen_passphrase() {
+    local nwords=${1:-$PP_NUM_WORDS}  max_len=${2:-$PP_MAX_WORD_LEN}
+    local  file=${3:-$PP_WORDS_FILE}      src=${4:-$PP_RAND_SOURCE}
+
+    test -r "$file" || fatal "Could not read words file %s" "$file"
+
+    # Remove lines w/ non-ascii characters and long words
+    # then pick N words at random
+    # then translate new-line to space
+    # then convert final space back to new-line
+    egrep -v -e "[^ -~]" -e ".{$((max_len + 1))}" "$file" \
+        | shuf --repeat --random-source=$src -n$nwords    \
+        | tr '\n' ' ' | sed "s/ $/\n/"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+dict_size() {
+    local file=${1:-$PP_WORDS_FILE}  max_len=${2:-$PP_MAX_WORD_LEN}
+    egrep -v -e "[^ -~]" -e ".{$((max_len + 1))}" "$file" | wc -l
 }
 
 #------------------------------------------------------------------------------
@@ -909,11 +1134,6 @@ guess_partitioning() {
     setup_devices $drive
 }
 
-random_phrase() {
-    local len=${1:-30}
-    quiet_dd if=/dev/urandom count=2 | tr -dc A-Za-z0-9 | head -c$len
-}
-
 #------------------------------------------------------------------------------
 # Different actions take place on different partitions depending on if we are
 # making an encrypted live-usb or not.
@@ -976,23 +1196,41 @@ write_phrase_file() {
 }
 
 #------------------------------------------------------------------------------
-# Create an encrypted partition using the supplied phrase and name
+# Create an encrypted partition using the supplied phrase-file and name
 #------------------------------------------------------------------------------
 encrypt_partition() {
-    local dev=$1  name=$2  file=$3
+    local dev=$1  name=$2  phrase=$3
     test -e $dev || fatal "Device to encrypt %s does not exist" $dev
     test -b $dev || fatal "Device to encrypt %s is not a block device" $dev
 
     msg $"About to encrypt device %s" "$(pq $dev)"
 
+    local val=${phrase#*=}  ret
     if [ -z "$PRETEND_MODE" ]; then
+        case $phrase in
+                ask)                  cryptsetup luksFormat              $dev ; ret=$? ;;
+             file=*) cat "$val"     | cryptsetup luksFormat --key-file - $dev ; ret=$? ;;
+           phrase=*) echo -n "$val" | cryptsetup luksFormat --key-file - $dev ; ret=$? ;;
+                  *) internal_error phrase-type "$phrase"
+        esac
 
-        cat $file | cryptsetup luksFormat --key-file - $dev \
-            || fatal "Failed to create encrypted device"
+        [ $ret -eq 0 ] || fatal "Failed to create encrypted device"
     fi
 
-    cryptsetup open --type luks --key-file $file $dev $name \
-        || fatal "Failed to open encrypted device"
+    case $phrase in
+           ask) cryptsetup open --type luks                   $dev $name; ret=$? ;;
+        file=*) cryptsetup open --type luks --key-file "$val" $dev $name; ret=$? ;;
+
+      phrase=*) if yes_NO "Do you want to try entering the new passphrase now?"; then
+                    echo choice yes
+                    cryptsetup open --type luks $dev $name; ret=$?
+                else
+                    echo choice no
+                    echo -n "$val" | cryptsetup open --type luks --key-file - $dev $name; ret=$?
+                fi ;;
+    esac
+
+    [ $ret -eq 0 ] || fatal "Failed to open encrypted device"
 
     LUKS_DEV=/dev/mapper/$name
     msg $"Encryption successful"
@@ -1543,6 +1781,15 @@ do_made_by() {
   version: $VERSION ($VERSION_DATE)"
 }
 
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+write_random_seed() {
+    local file=$1
+    cmd quiet_dd if=/dev/urandom of=$file bs=1 count=512
+    cmd chmod 600 $file
+}
+
 #===== Here come the utilities! ===============================================
 
 get_extlinux_version() {
@@ -1716,11 +1963,16 @@ $(config_header "$file" $ME)
     QUESTION_MODE="$QUESTION_MODE"
 
           ENCRYPT="$ENCRYPT"
-      PASS_PHRASE="$PASS_PHRASE"
+ PASS_PHRASE_TYPE="$PASS_PHRASE_TYPE"
         LUKS_NAME="$LUKS_NAME"
 
 EXT_OVERHEAD_FORM="$EXT_OVERHEAD_FORM"
  EXT_OVERHEAD_MAX="$EXT_OVERHEAD_MAX"
+
+  PP_MAX_WORD_LEN="$PP_MAX_WORD_LEN"
+     PP_NUM_WORDS="$PP_NUM_WORDS"
+    PP_WORDS_FILE="$PP_WORDS_FILE"
+   PP_RAND_SOURCE="$PP_RAND_SOURCE"
 
 $(config_footer)
 Config_File
