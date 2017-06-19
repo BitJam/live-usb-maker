@@ -44,7 +44,7 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
           LIVE_MP="/live/boot-dev"
      LINUXFS_NAME="linuxfs"
  MIN_LINUXFS_SIZE="120M"
-     DEF_BOOT_DIR="/antiX"
+     DEF_BOOT_DIR="antiX"
 
        CLONE_DIRS="boot EFI efi"
       CLONE_FILES="cdrom.ico version"
@@ -296,6 +296,9 @@ main() {
     EXIT_NUM=100
 
     read_reset_config_file "$CONFIG_FILE"
+
+    # Strip off leading / once and for all
+    DEF_BOOT_DIR="${DEF_BOOT_DIR#/}"
 
     # Force stored 'gpt' value back to msdos.  Can still be overridden by the
     # --gpt command line parameter
@@ -624,11 +627,12 @@ main() {
 
     display_df_output $mp_list
 
+    #======== Encryption =====================================================
     if encrypt && need copy-bios; then
         copy_files_spec $ISO_DIR "$BIOS_FILES" "$BIOS_DIR" bios
 
         # Need to get modules out of the linuxfs file (sigh)
-        local linuxfs_full=$ISO_DIR/${DEF_BOOT_DIR#/}/$LINUXFS_NAME
+        local linuxfs_full=$ISO_DIR/$DEF_BOOT_DIR/$LINUXFS_NAME
         my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
 
         need encryption-initrd && enable_initrd_encryption \
@@ -1085,7 +1089,7 @@ Clone_Files
     while read file; do
         [ ${#file} -gt 0 ] || continue
         from="$full_boot_dir/$file"
-        dest="$targ_dir/${DEF_BOOT_DIR#/}/$file"
+        dest="$targ_dir/$DEF_BOOT_DIR/$file"
 
         test -f "$from" || continue
         mkdir -p "$(dirname "$dest")" || fatal "Could not mkdir %s" "$(dirname "$dest")"
