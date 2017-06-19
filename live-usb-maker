@@ -142,11 +142,12 @@ Options:
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
   -E --encrypt          Set up to boot from an encrypted partition
   --encrypt=<flag>      Phasephrase option:
+                           ask         Enter the passphrase via the keyboard
                            first-boot  Force user to set phrase on first boot
                            file=xxx    Read phrase from file <xxx>
                            random      Generate a random passphrase
                            random=N    Generate a random passhphrase containing
-                                       N words
+                                       N words (1 -- 20 allowed)
 
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   --ext-options=<xx>    Use these options when creating the ext4 filesystem

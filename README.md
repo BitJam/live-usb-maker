@@ -41,7 +41,14 @@ Options:
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
   -E --encrypt          Set up to boot from an encrypted partition
-  --encrypt=<phrase>    Use <phrase> to encrypt the partition
+  --encrypt=<flag>      Phasephrase option:
+                           ask         Enter the passphrase via the keyboard
+                           first-boot  Force user to set phrase on first boot
+                           file=xxx    Read phrase from file <xxx>
+                           random      Generate a random passphrase
+                           random=N    Generate a random passhphrase containing
+                                       N words (1 -- 20 allowed)
+
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   --ext-options=<xx>    Use these options when creating the ext4 filesystem
 
@@ -57,24 +64,27 @@ Options:
                                all: All of the above (dangerous!)
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
-  -g --gpt              Use gpt partitioning (default) instead of msdos
+  -g --gpt              Use gpt partitioning instead of msdos
+     --gpt-pmbr         Set pmbr_boot disk flag (prevents booting via UEFI)
   -h --help             Show this usage
   -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
   -I --ignore-config    Ignore the configuration file
   -k --keep-syslinux    Don't replace the syslinux files
   -L --label=Name       Label ext partition with Name
-  -m --msdos            Use msdos partitioning instead of gpt
+  -m --msdos            Use msdos partitioning (default) instead of gpt
   -n --no-prog-bar      Don't show progress *bar* when copying
-  -p --pretend          Don't run most commands
      --pause            Wait for user input before exit
      --pause=initrd     Pause after unpacking the initrd.gz file
-  -P --progress         Create /var/log/live-usb-maker.progress progress file
+     --percent-prog     Show progress percentage but no bar
+  -p --pretend          Don't run commands that affect the usb device
+  -P --progress         Create /var/log/live-usb-maker.progress progress *file*
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
   -t --target=<xxx>     The device to make into a new live-usb
   -v --version          Show version information
-  -V --verbose          Print more, show commands when run
+  -V --verbose          Print more, show command outputs
+  -VV --very-verbose    Also show commands
   -W --write-config     Write a config file preserving current options
 
 Notes:
