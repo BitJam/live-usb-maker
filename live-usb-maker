@@ -1859,7 +1859,6 @@ check_size() {
     [ $extra -lt $margin ] && $action $"Less than %s MiB would remain on %s partition" "$margin" "$type"
 }
 
-
 #------------------------------------------------------------------------------
 # Tell user we are done and then exit
 #------------------------------------------------------------------------------
