@@ -1227,11 +1227,9 @@ encrypt_partition() {
            ask) cryptsetup open --type luks                   $dev $name; ret=$? ;;
         file=*) cryptsetup open --type luks --key-file "$val" $dev $name; ret=$? ;;
 
-      phrase=*) if yes_NO "Do you want to try entering the new passphrase now?"; then
-                    echo choice yes
+      phrase=*) if YES_no "Do you want to try entering the new passphrase now?"; then
                     cryptsetup open --type luks $dev $name; ret=$?
                 else
-                    echo choice no
                     echo -n "$val" | cryptsetup open --type luks --key-file - $dev $name; ret=$?
                 fi ;;
     esac
