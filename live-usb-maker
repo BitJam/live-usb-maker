@@ -878,7 +878,7 @@ set_rand_phrase() {
     local _phrase=$(gen_passphrase $len)
     say_using_phrase "$_phrase"
     press_enter
-    eval $var=\$_phrase
+    eval $var=phrase=\$_phrase
 }
 
 #------------------------------------------------------------------------------
