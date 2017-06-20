@@ -795,7 +795,7 @@ select_passphrase_type() {
             for i in $seq; do
                 eval phrase=\$phrase_$i
                 eval bits=\$bits_$i
-                menu_printf "phrase=$phrase" "%s (%s bits)" "$(bq "$phrase")" "$(nq $bits)"
+                menu_printf "index=$i" "%s (%s bits)" "$(bq "$phrase")" "$(nq $bits)"
             done
             [ "$have_words" ] && menu_printf more "See more passphrases"
         )
@@ -805,17 +805,22 @@ select_passphrase_type() {
         [ "$ans" != 'more' ] && break
     done
 
-    eval $var=\$ans
     case $ans in
         first-boot)
             msg $"You will be asked to create a passphrase during the first boot" ;;
 
-               ask)
+        ask)
             msg "Soon you will be asked to enter a new passphrase (3 times)" ;;
+        index=*)
+            i=${ans#*=}
+            eval phrase=\$phrase_$i
+            say_using_phrase "$phrase"
+            ans=phrase=$phrase ;;
 
-          phrase=*) say_using_phrase "${ans#*=}" ;;
-
+        *) fatal_error select-phrase "$ans" ;;
     esac
+
+    eval $var=\$ans
     press_enter
 }
 
