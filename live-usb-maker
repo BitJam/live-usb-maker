@@ -106,6 +106,8 @@ SYSLINUX_FILES="chain.c32 gfxboot.c32 vesamenu.c32 ldlinux.c32 libcom32.c32"
 SYSLINUX_FILES="$SYSLINUX_FILES libmenu.c32 libutil.c32 linux.c32 menu.c32"
    SYSLINUX_RM="*.c32 ldlinux.sys syslinux.bin isolinux.bin version"
 
+        SWEARS="asshole|bastard|bitch|cock|crap|cunt|damn|dick|douche|fag|fuck|piss|pussy|shit|slut"
+
 usage() {
     local ret=${1:-0}
 
@@ -402,6 +404,7 @@ main() {
     INITRD_DIR=$WORK_DIR/initrd
     LINUX_DIR=$WORK_DIR/linux
     MNT_DIR=$WORK_DIR/live-dev
+    WORD_FILE=$WORK_DIR/words
 
     mkdir $ISO_DIR $BIOS_DIR $MAIN_DIR $UEFI_DIR || fatal "Could not make %s subdirectories" "$WORK_DIR"
     echo $$ > $WORK_DIR/pid
@@ -917,21 +920,28 @@ gen_passphrase() {
 
     test -r "$file" || fatal "Could not read words file %s" "$file"
 
-    # Remove lines w/ non-ascii characters and long words
-    # then pick N words at random
+    # pick N words at random
     # then translate new-line to space
     # then convert final space back to new-line
-    egrep -v -e "[^ -~]" -e ".{$((max_len + 1))}" "$file" \
-        | shuf --repeat --random-source=$src -n$nwords    \
+    dict_words "$file" "$max_len" | shuf --repeat --random-source=$src -n$nwords \
         | tr '\n' ' ' | sed "s/ $/\n/"
 }
 
 #------------------------------------------------------------------------------
-#
+# echo the number of words in the dictionary
 #------------------------------------------------------------------------------
-dict_size() {
+dict_size() { dict_words "$@" | wc -l ; }
+
+#------------------------------------------------------------------------------
+# Do these searches once because they can take half a second or more. Store
+# the results in tmpfs.
+#------------------------------------------------------------------------------
+dict_words() {
     local file=${1:-$PP_WORDS_FILE}  max_len=${2:-$PP_MAX_WORD_LEN}
-    egrep -v -e "[^ -~]" -e ".{$((max_len + 1))}" "$file" | wc -l
+
+    test -e $WORD_FILE || egrep -v -i -e "[^ -~]" -e ".{$((max_len + 1))}" -e "$SWEARS" "$file" > $WORD_FILE
+
+    cat $WORD_FILE
 }
 
 #------------------------------------------------------------------------------
