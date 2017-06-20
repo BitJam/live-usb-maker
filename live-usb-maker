@@ -1214,9 +1214,16 @@ encrypt_partition() {
     local val=${phrase#*=}  ret
     if [ -z "$PRETEND_MODE" ]; then
         case $phrase in
-                ask)                  cryptsetup luksFormat              $dev ; ret=$? ;;
+                ask) shout
+                     shout "We want to overwrite the data on %s" $dev
+                     shout "Type in upper-case %s as suggested" "'YES'"
+                     cryptsetup luksFormat              $dev ; ret=$?
+                     shout "You will be asked for the passphrase a third time" ;;
+
              file=*) cat "$val"     | cryptsetup luksFormat --key-file - $dev ; ret=$? ;;
+
            phrase=*) echo -n "$val" | cryptsetup luksFormat --key-file - $dev ; ret=$? ;;
+
                   *) internal_error phrase-type "$phrase"
         esac
 
