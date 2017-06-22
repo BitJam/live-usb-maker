@@ -582,7 +582,7 @@ main() {
 
         test -r "$PP_WORDS_FILE" || PP_WORDS_FILE=$BACKUP_WORDS_FILE
 
-        encrypt && select_passphrase_type PASS_PHRASE_TYPE
+        select_passphrase_type PASS_PHRASE_TYPE
     fi
     #=========================================================================
 
