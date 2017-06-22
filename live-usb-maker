@@ -756,14 +756,20 @@ select_passphrase_type() {
 
     shout
 
-    local have_words dict_size dict_bits
-    if test -r $PP_WORDS_FILE; then
-        dict_size=$(dict_size)
+    local have_words dict_size=0 dict_bits=0
+    test -r $PP_WORDS_FILE && dict_size=$(dict_size)
+
+    if [ $dict_size -eq 0 ]; then
+        warn "no words were found in the dictionary"
+        warn "Will not generate passphrases"
+
+    elif [ $dict_size -lt 5000 ]; then
+        warn "only %s words were found in the dictionary" "$(nq $dict_size)"
+        warn "Will not generate passphrases"
+
+    else
         dict_bits=$(x1 "log($dict_size)/log(2)")
         have_words=true
-    else
-        warn "Could not find words file %s" "$PP_WORDS_FILE"
-        warn "Will not generate passphrases"
     fi
 
     # Don't let these menu entries get into the log file
@@ -904,6 +910,7 @@ say_using_phrase() {
 first_boot_phrase() {
     local var=$1  file=$2
     local _phrase=$(gen_passphrase 2)
+    : ${_phrase:=default-passphrase}
     msg $"Will use initial passphrase %s\n" "$(pq "$_phrase")"
     write_phrase_file "$_phrase" "$file"
     eval $var=file=\$file
@@ -923,7 +930,7 @@ gen_passphrase() {
     # pick N words at random
     # then translate new-line to space
     # then convert final space back to new-line
-    dict_words "$file" "$max_len" | shuf --repeat --random-source=$src -n$nwords \
+    dict_words "$file" "$max_len" | shuf --repeat --random-source=$src -n$nwords 2>/dev/null \
         | tr '\n' ' ' | sed "s/ $/\n/"
 }
 
