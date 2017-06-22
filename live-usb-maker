@@ -946,7 +946,8 @@ dict_size() { dict_words "$@" | wc -l ; }
 dict_words() {
     local file=${1:-$PP_WORDS_FILE}  max_len=${2:-$PP_MAX_WORD_LEN}
 
-    test -e $WORD_FILE || egrep -v -i -e "[^ -~]" -e ".{$((max_len + 1))}" -e "$SWEARS" "$file" -e "'" > $WORD_FILE
+    test -e $WORD_FILE || grep -P -v "[^ -~]" "$file" \
+        | egrep -v -e ".{$((max_len + 1))}" -e "$SWEARS" -e "'" > $WORD_FILE
 
     cat $WORD_FILE
 }
