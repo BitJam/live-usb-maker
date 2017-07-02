@@ -77,6 +77,7 @@ BACKUP_WORDS_FILE="/usr/share/dict/words"
      PHRASE_FNAME="passphrase"
        SEED_FNAME="random-seed"
     ENCRYPT_FNAME="encrypted"
+   ENCRYPT_ENABLE="enable"
 
          WORK_DIR="/run/$ME"
         SHELL_LIB="cli-shell-utils.bash"
@@ -299,7 +300,8 @@ main() {
     local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFghIkLmnpPqRstvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local VERY_VERBOSE VERBOSITY=0
-    local START_T=0
+    local ISO_BOOT_DIR  START_T=0
+
     set_colors
 
     local orig_args="$*"
@@ -673,13 +675,13 @@ main() {
         copy_files_spec $ISO_DIR "$BIOS_FILES" "$BIOS_DIR" bios
 
         # Need to get modules out of the linuxfs file (sigh)
-        local linuxfs_full=$ISO_DIR/$DEF_BOOT_DIR/$LINUXFS_NAME
-        my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
+        #local linuxfs_full=$ISO_DIR/$DEF_BOOT_DIR/$LINUXFS_NAME
+        #my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
 
-        need encryption-initrd && enable_initrd_encryption \
-            "$INITRD_FILE" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR" "$LINUX_DIR"
+        #need encryption-initrd && enable_initrd_encryption \
+        #    "$INITRD_FILE" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR" "$LINUX_DIR"
 
-        umount $LINUX_DIR ; rmdir $LINUX_DIR
+        #umount $LINUX_DIR ; rmdir $LINUX_DIR
     fi
     #=========================================================================
 
@@ -692,6 +694,12 @@ main() {
         do_copy_main $ISO_DIR $MAIN_DIR "$@"
         do_made_by $BIOS_DIR "$MADE_BY_FILE"
         write_random_seed $MAIN_DIR/$DEF_BOOT_DIR/$SEED_FNAME
+    fi
+
+    if need_q copy-bios || need_q copy-main; then
+        : ${ISO_BOOT_DIR:=$DEF_BOOT_DIR}
+        local initrd_file=${INITRD_FILE:-$ISO_DIR/$ISO_BOOT_DIR/initrd.gz}
+        enable_disable_initrd_encryption "$initrd_file" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR"
     fi
 
     local bios_uuid=$(lsblk -no uuid $BIOS_DEV)
@@ -1315,6 +1323,7 @@ clone_directory() {
     esac
 
     msg "Live boot directory %s" "$(pq $boot_dir)"
+    ISO_BOOT_DIR=$boot_dir
 
     # Prepare to get all files/dirs from under the boot-directory on a frugal install
     local full_boot_dir="$from_dir/${boot_dir#/}"
@@ -1544,7 +1553,7 @@ Copy_Files_Spec
 }
 
 #------------------------------------------------------------------------------
-# Add cryptsetup and dmsetup to the initrd.  Also add kernel modules.
+# Add cryptsetup and dmsetup to the initrd. NOT USED!
 #------------------------------------------------------------------------------
 enable_initrd_encryption() {
     local from_file=${1:-$2}  to_file=$2  dir=${3:-$INITRD_DIR}  mod_dir=$4
@@ -1576,6 +1585,36 @@ enable_initrd_encryption() {
     local md5_sum=$(cd $(dirname $to_file) && md5sum $(basename $to_file))
     cmd write_file "$to_file".md5 "$md5_sum"
 }
+
+#------------------------------------------------------------------------------
+# Add or removed /etc/encrypt inside initrd
+#------------------------------------------------------------------------------
+enable_disable_initrd_encryption() {
+    local from_file=${1:-$2}  to_file=$2  dir=${3:-$INITRD_DIR}
+
+    test -r "$from_file" || fatal "Could not find initrd file %s" "$(pqw $from_file)"
+    always_cmd unpack-initrd -f "$from_file" -d $dir || fatal "An error occurred unpacking the initrd"
+
+
+    local encrypt_file=$dir/etc/encrypt
+    if encrypt; then
+        test -e $dir/bin/cryptsetup  || fatal "The % program not found in the initrd" cryptsetup
+        grep -q cryptsetup $dir/init || fatal "This initrd cannot do encryption"
+
+        msg $"Enable encryption in the live initrd"
+        echo "$ENCRYPT_ENABLE" > $encrypt_file
+    else
+        msg $"Disable encryption in the live initrd"
+        rm -f $encrypt_file
+    fi
+
+    pause initrd
+
+    cmd unpack-initrd -f $to_file -d $dir --repack || fatal "An error occurred repacking the initrd"
+    local md5_sum=$(cd $(dirname $to_file) && md5sum $(basename $to_file))
+    cmd write_file "$to_file".md5 "$md5_sum"
+}
+
 
 #------------------------------------------------------------------------------
 # Find a binary program on a mounted file system such as a squashfs.
