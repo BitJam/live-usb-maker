@@ -220,7 +220,7 @@ eval_early_argument() {
 
 eval_argument() {
     local arg=$1  val=$2
-        case $arg in
+    case $arg in
          -bios-size|b)  BIOS_SIZE=$val                   ;;
          -bios-size=*)  BIOS_SIZE=$val                   ;;
              -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
@@ -919,7 +919,8 @@ first_boot_phrase() {
     local var=$1  file=$2
     local _phrase=$(gen_passphrase 2)
     : ${_phrase:=default-passphrase}
-    msg $"Will use initial passphrase %s\n" "$(pq "$_phrase")"
+    msg $"Will use initial passphrase %s" "$(pq "$_phrase")"
+    msg
     write_phrase_file "$_phrase" "$file"
     eval $var=file=\$file
     FIRST_BOOT_PHRASE=true
@@ -1012,7 +1013,7 @@ select_target_device() {
     case $cnt in
         0) fatal $"No available target usb devices were found" ;;
         1) dev=$(echo "$menu" | cut -d"$P_IFS" -f1 | head -n1)
-            Msg $"Only one target usb device was found: %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
+            Msg $"Only one target usb device was found %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
            eval $var=\$dev
            return ;;
     esac
@@ -1917,7 +1918,9 @@ exit_done() {
 #------------------------------------------------------------------------------
 # Tell user that we're done
 #------------------------------------------------------------------------------
-say_done() { msg "$(bq "=>") %s" $"done" ; }
+say_done() {
+    msg "$(bq "=>") %s" $"done"
+}
 
 #------------------------------------------------------------------------------
 # A catch-all for things to be done right before exiting
