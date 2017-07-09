@@ -1402,6 +1402,7 @@ clear_partition() {
     # Clear out secondary gpt partition table
     cmd quiet_dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
 
+    sleep 1
     # Tell kernel the partition table has changed
     cmd partprobe $dev
 }
@@ -1448,6 +1449,7 @@ do_partition() {
         cmd $preamb disk_set pmbr_boot on || fatal "$err_msg" disk_set
     fi
 
+    sleep 1
     # Tell kernel the partition table has changed
     cmd partprobe $drive
 
