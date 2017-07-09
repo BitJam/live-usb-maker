@@ -647,8 +647,6 @@ main() {
 
         local main_uuid=$(lsblk --nodeps -no uuid $MAIN_DEV)
         cmd write_file $encrypt_file "$main_uuid"
-        # FIXME: for backward compatibility with antiX-17.a3
-        cmd write_file ${encrypt_file%encrypted}crypt "$main_uuid"
 
         sync
 
