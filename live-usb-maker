@@ -418,7 +418,11 @@ main() {
         we_are_live=true
         # FIXME: should use initrd.out to get the uuid, etc
         live_dev=$(get_live_dev)
-        warn_z "$live_dev" "The live media is not mounted"
+        if [ -n "$live_dev" ]; then
+            shout "Found live media device %s" "$(pqb /dev/$(get_drive $live_dev))"
+        else
+            "$live_dev" "The live media is not mounted"
+        fi
     fi
 
     # Check cmdline target *before* the first menu
