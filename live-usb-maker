@@ -583,8 +583,20 @@ main() {
     local encrypted_lab=""
 
     #======== Encryption =====================================================
-    if encrypt; then
+    encrypt && echo
+    if encrypt && need encryption-initrd; then
         encrypted_lab="$(bqq $"encrypted") "
+        msg "Checking to see if the live media will support encryption ..."
+        # Need to get programs, libs, and modules, out of the linuxfs file (sigh)
+        local linuxfs_full=$ISO_DIR/$DEF_BOOT_DIR/$LINUXFS_NAME
+        my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
+
+        local initrd_file=${INITRD_FILE:-$ISO_DIR/$DEF_BOOT_DIR/initrd.gz}
+        start_initrd_encryption "$initrd_file" "$INITRD_DIR" "$LINUX_DIR"
+        pause initrd
+        umount $LINUX_DIR ; rmdir $LINUX_DIR
+
+        # FIXME: mount initrd, check init, mount linuxfs and check for cryptsetup
 
         test -r "$PP_WORDS_FILE" || PP_WORDS_FILE=$BACKUP_WORDS_FILE
 
@@ -677,14 +689,9 @@ main() {
     if encrypt && need copy-bios; then
         copy_files_spec $ISO_DIR "$BIOS_FILES" "$BIOS_DIR" bios
 
-        # Need to get programs, libs, and modules, out of the linuxfs file (sigh)
-        local linuxfs_full=$ISO_DIR/$DEF_BOOT_DIR/$LINUXFS_NAME
-        my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
+        #need encryption-initrd &&
+        finish_initrd_encryption "$INITRD_DIR" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz"
 
-        need encryption-initrd && enable_initrd_encryption \
-            "$INITRD_FILE" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR" "$LINUX_DIR"
-
-        umount $LINUX_DIR ; rmdir $LINUX_DIR
     fi
     #=========================================================================
 
@@ -775,7 +782,7 @@ select_passphrase_type() {
         warn "Will not generate passphrases"
 
     elif [ $dict_size -lt 5000 ]; then
-        warn "only %s words were found in the dictionary" "$(nq $dict_size)"
+        warn "only %s words were found in the dictionary" "$(nqh $dict_size)"
         warn "Will not generate passphrases"
 
     else
@@ -1559,51 +1566,64 @@ Copy_Files_Spec
 }
 
 #------------------------------------------------------------------------------
-# Add cryptsetup to the initrd.
+# Do these step early so we can error out early if there is a problem.
 #------------------------------------------------------------------------------
-enable_initrd_encryption() {
-    local from_file=${1:-$2}  to_file=$2  dir=${3:-$INITRD_DIR}  mod_dir=$4
+start_initrd_encryption() {
+    local from_file=$1  initrd_dir=${2:-$INITRD_DIR}  linux_dir=$3
 
     test -r "$from_file" || fatal "Could not find initrd file %s" "$(pqw $from_file)"
-    unpack-initrd -f "$from_file" -d $dir || fatal "An error occurred unpacking the initrd"
+    unpack-initrd -f "$from_file" -d $initrd_dir || fatal $"An error occurred unpacking the initrd"
 
-    grep -q cryptsetup $dir/init || fatal "This initrd cannot do encryption"
+    #grep -q cryptsetup $initrd_dir/init || fatal $"This live initrd cannot do encryption"
 
-    copy-initrd-programs --from=$mod_dir --to=$dir --clean
-    copy-initrd-programs --from=$mod_dir --to=$dir --encrypt \
-        || fatal "Was unable to add all required programs to the initrd"
+    verbose_cmd copy-initrd-programs --no-color --from=$linux_dir --to=$initrd_dir --clean
+    verbose_cmd copy-initrd-programs --no-color --from=$linux_dir --to=$initrd_dir --encrypt \
+        || fatal $"Was unable to add all required programs to the live initrd"
 
-    # msg "add %s modules to initrd" "$(pq encryption)"
-    # cmd copy-initrd-modules --quiet --crypt --from=$mod_dir --to=$dir \
-    #     || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
+    local kernel mod_dir=$initrd_dir/lib/modules
+    for kernel in $(ls $mod_dir); do
 
-    local encrypt_file=$dir/etc/encrypt
+        test -d $mod_dir/$kernel/kernel               || continue
+        test -d $linux_dir/lib/modules/$kernel/kernel || continue
+
+        msg "add %s modules to initrd" "$(pq $kernel encryption)"
+        cmd copy-initrd-modules --quiet --only-encrypt --from=$linux_dir --to=$initrd_dir \
+            || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
+
+    done
+    local encrypt_file=$initrd_dir/etc/encrypt
     mkdir -p $(dirname $encrypt_file)
     echo "$ENCRYPT_ENABLE" > $encrypt_file
+}
 
-    pause initrd
+#------------------------------------------------------------------------------
+# We do this later so we don't get over-written (is this true?)
+#------------------------------------------------------------------------------
+finish_initrd_encryption() {
+    local initrd_dir=${1:-$INITRD_DIR}  to_file=$2
 
     [ "$PRETEND" ] && return
 
-    unpack-initrd -f $to_file -d $dir --repack || fatal "An error occurred repacking the initrd"
+    unpack-initrd -f $to_file -d $initrd_dir --repack || fatal "An error occurred repacking the initrd"
     local md5_sum=$(cd $(dirname $to_file) && md5sum $(basename $to_file))
     cmd write_file "$to_file".md5 "$md5_sum"
 }
 
 #------------------------------------------------------------------------------
 # Add or removed /etc/encrypt inside initrd  NO LONGER USED
+# (although it might be safer for non-encrypted live-usbs
 #------------------------------------------------------------------------------
 enable_disable_initrd_encryption() {
-    local from_file=${1:-$2}  to_file=$2  dir=${3:-$INITRD_DIR}
+    local from_file=${1:-$2}  to_file=$2  initrd_dir=${3:-$INITRD_DIR}
 
     test -r "$from_file" || fatal "Could not find initrd file %s" "$(pqw $from_file)"
-    unpack-initrd -f "$from_file" -d $dir || fatal "An error occurred unpacking the initrd"
+    unpack-initrd -f "$from_file" -d $initrd_dir || fatal "An error occurred unpacking the initrd"
 
 
-    local encrypt_file=$dir/etc/encrypt
+    local encrypt_file=$initrd_dir/etc/encrypt
     if encrypt; then
-        test -e $dir/bin/cryptsetup  || fatal "The %s program not found in the initrd" cryptsetup
-        grep -q cryptsetup $dir/init || fatal "This initrd cannot do encryption"
+        test -e $initrd_dir/bin/cryptsetup  || fatal "The %s program not found in the initrd" cryptsetup
+        grep -q cryptsetup $initrd_dir/init || fatal "This initrd cannot do encryption"
 
         msg $"Enable encryption in the live initrd"
         echo "$ENCRYPT_ENABLE" > $encrypt_file
@@ -1614,7 +1634,7 @@ enable_disable_initrd_encryption() {
 
     pause initrd
 
-    cmd unpack-initrd -f $to_file -d $dir --repack || fatal "An error occurred repacking the initrd"
+    cmd unpack-initrd -f $to_file -d $initrd_dir --repack || fatal "An error occurred repacking the initrd"
     local md5_sum=$(cd $(dirname $to_file) && md5sum $(basename $to_file))
     cmd write_file "$to_file".md5 "$md5_sum"
 }
