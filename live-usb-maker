@@ -833,11 +833,13 @@ select_passphrase_type() {
     done
 
     case $ans in
+
         first-boot)
             msg $"You will be asked to create a passphrase during the first boot" ;;
 
         ask)
             msg "Soon you will be asked to enter a new passphrase (3 times)" ;;
+
         index=*)
             i=${ans#*=}
             eval phrase=\$phrase_$i
