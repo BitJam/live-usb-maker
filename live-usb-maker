@@ -980,7 +980,7 @@ overall_mode_menu() {
     encrypt || menu_printf simple  $"Make a full-featured live-usb"
     menu_printf encrypt $"Make an encrypted full-featured live-usb"
     menu_printf default $"Make a customized live-usb (includes encryption option)"
-    menu_printf uuids   $"Update UUIDS on an existing live-usb"
+    menu_printf uuids   $"Update UUIDs on an existing live-usb"
     menu_printf cheats  $"Update boot parameters on an existing live-usb"
     menu_printf install $"Reinstall legacy bootloader on an existing live-usb"
 }
