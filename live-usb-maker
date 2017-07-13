@@ -70,6 +70,7 @@ EXT_OVERHEAD_FORM="* 26 / 10000 - 2"
     PP_WORDS_FILE="/usr/share/dict/american-english"
    PP_RAND_SOURCE="/dev/urandom"
 
+  GRAPHICAL_MENUS="true"
 #== END_CONFIG
 
 BACKUP_WORDS_FILE="/usr/share/dict/words"
@@ -168,6 +169,7 @@ Options:
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
   -g --gpt              Use gpt partitioning instead of msdos
+  -G --graphic-ui       Use the new graphics user interface (default)
      --gpt-pmbr         Set pmbr_boot disk flag (prevents booting via UEFI)
   -h --help             Show this usage
   -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
@@ -176,6 +178,7 @@ Options:
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning (default) instead of gpt
   -n --no-prog-bar      Don't show progress *bar* when copying
+  -N --numeric-ui       Use the legacy numerical user interface
      --pause            Wait for user input before exit
      --pause=initrd     Pause after unpacking the initrd.gz file
      --percent-prog     Show progress percentage but no bar
@@ -235,6 +238,7 @@ eval_argument() {
           -esp-size=*)  UEFI_SIZE=$val                   ;;
               -from|f)  FROM=$val                        ;;
               -from=*)  FROM=$val                        ;;
+       --graphic-ui|G)  GRAPHICAL_MENUS=true             ;;
                -gpt|g)  MSDOS_GPT="gpt"                  ;;
             -gpt-pmbr)  MSDOS_GPT="gpt" ; DO_PMBR=true   ;;
       -gui-progress|-)  END_CMDLINE=true                 ;;
@@ -245,6 +249,7 @@ eval_argument() {
              -msdos|m)  MSDOS_GPT="msdos"                ;;
        -no-prog-bar|n)  NO_PROGRESS_BAR=true             ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
+       --numeric-ui|N)  GRAPHICAL_MENUS=                 ;;
              -pause=*)  PAUSE="$PAUSE${PAUSE:+,}$val"    ;;
         -percent-prog)  PERCENT_PROG=true                ;;
            -pretend|p)  PRETEND_MODE=true                ;;
@@ -297,7 +302,7 @@ takes_param() {
 }
 
 main() {
-    local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFghIkLmnpPqRstvVW"
+    local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFgGhIkLmnNpPqRstvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
