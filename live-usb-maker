@@ -249,7 +249,7 @@ eval_argument() {
              -msdos|m)  MSDOS_GPT="msdos"                ;;
        -no-prog-bar|n)  NO_PROGRESS_BAR=true             ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
-       --numeric-ui|N)  GRAPHICAL_MENUS=                 ;;
+        -numeric-ui|N)  GRAPHICAL_MENUS=                 ;;
              -pause=*)  PAUSE="$PAUSE${PAUSE:+,}$val"    ;;
         -percent-prog)  PERCENT_PROG=true                ;;
            -pretend|p)  PRETEND_MODE=true                ;;
