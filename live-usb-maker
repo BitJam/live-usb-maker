@@ -1408,16 +1408,16 @@ clear_partition() {
     local total=$(parted --script $dev unit KiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)kiB$/\1/ip")
 
     # Clear out previous primary partition table
-    cmd quiet_dd if=/dev/zero of=$dev bs=1K count=17
+    cmd dd status=none if=/dev/zero of=$dev bs=1K count=17
 
     # Clear out sneaky iso-hybrid partition table
-    cmd quiet_dd if=/dev/zero of=$dev bs=1K count=17 seek=32
+    cmd dd status=none if=/dev/zero of=$dev bs=1K count=17 seek=32
 
     [ -n "$total" ] || return
     local offset=$((total - 17))
 
     # Clear out secondary gpt partition table
-    cmd quiet_dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
+    cmd dd status=none conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
 
     sleep 1
     # Tell kernel the partition table has changed
@@ -1808,7 +1808,7 @@ do_install_bootloader() {
     done
 
     [ "$file" ] || fatal "Could not find file %s" "$fname"
-    cmd quiet_dd bs=440 conv=notrunc count=1 if=$file of=$target_dev  || fatal "%s command failed" dd
+    cmd dd status=none bs=440 conv=notrunc count=1 if=$file of=$target_dev  || fatal "%s command failed" dd
 
     local sdir idir syslinux_dir isolinux_dir
     for sdir in boot/syslinux syslinux; do
@@ -1888,7 +1888,7 @@ do_made_by() {
 #------------------------------------------------------------------------------
 write_random_seed() {
     local file=$1
-    cmd quiet_dd if=/dev/urandom of=$file bs=1 count=512
+    cmd dd status=none if=/dev/urandom of=$file bs=1 count=512
     cmd chmod 600 $file
 }
 
@@ -1918,11 +1918,6 @@ check_target() {
 # Convenience routine to save a little typing
 #------------------------------------------------------------------------------
 encrypt() {  [ "$ENCRYPT" ]; return $?; }
-
-#------------------------------------------------------------------------------
-# Strip out stderr output to make "dd" easier to use with cmd() function
-#------------------------------------------------------------------------------
-quiet_dd() { dd "$@" 2>/dev/null ; }
 
 #------------------------------------------------------------------------------
 # Make sure we have enough left over space on a partition.  Can generate
