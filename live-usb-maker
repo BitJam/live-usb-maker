@@ -379,7 +379,7 @@ main() {
        fatal_z "$TARGET"  "No --target was given while in %s mode" gui
     fi
 
-    shout $"Starting %s" "$ME"
+    shout_title $"Starting %s" "$ME"
     start_log "$orig_args" "$CMDS"
 
     # NOTE: this placement is not ideal because it allows the user to
@@ -609,10 +609,10 @@ main() {
     fi
     #=========================================================================
 
-    local new_line=$(printf "$nc_co\n$quest_co...")
+    local new_line=$(printf "$nc_co\n$bold_co...")
     # Ready to make live-usb on device X by <cloning|copying directory Y>
-    local final_q=$(quest $"Ready to make %s on device %s by %s" "${encrypted_lab}$(pqq live-usb)" \
-        "$(pqq ${target_dev##*/})$new_line" "$from_act $from_thing $(pqq $from_value)")
+    local final_q=$(printf $"Ready to make %s on device %s by %s" "${encrypted_lab}$(pqb live-usb)" \
+        "$(pqb ${target_dev##*/})$new_line" "$from_act $from_thing $(pqb $from_value)")
 
     [ "$CMDS" != 'all' ] \
         && final_q=$(printf "Ready to perform %s action(s) on %s" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
@@ -620,8 +620,10 @@ main() {
     if q_mode gui; then
         msg "$final_q"
     else
-        final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
-        YES_no_pretend "$final_q" || my_exit
+        echo
+        shout_subtitle "$final_q"
+        #final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
+        YES_no_pretend $"Shall we begin?" || my_exit
     fi
 
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
