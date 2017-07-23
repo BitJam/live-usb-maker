@@ -2005,14 +2005,6 @@ umount_work_dir() {
 }
 
 #------------------------------------------------------------------------------
-# Show version information and then exit
-#------------------------------------------------------------------------------
-show_version() {
-    printf "%s version %s (%s)\n" "$ME" "$VERSION" "$VERSION_DATE"
-    exit 0
-}
-
-#------------------------------------------------------------------------------
 # Write a config file using the current variables so users can easily put
 # command line parameters into the config file.
 #------------------------------------------------------------------------------
