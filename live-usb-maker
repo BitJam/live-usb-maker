@@ -657,6 +657,7 @@ main() {
         # Convert file to phrase to avoid problems with \n
         local phrase=$PASS_PHRASE_TYPE
         case $phrase in
+                  ask)                                            ;;
                file=*) phrase=phrase=$(cat "$val")                ;;
                random) set_rand_phrase   phrase                   ;;
              random=*) set_rand_phrase   phrase ${phrase#*=}      ;;
