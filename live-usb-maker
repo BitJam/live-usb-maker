@@ -71,6 +71,7 @@ EXT_OVERHEAD_FORM="* 26 / 10000 - 2"
    PP_RAND_SOURCE="/dev/urandom"
 
   GRAPHICAL_MENUS="true"
+  AUTOMOUNT_DELAY="1"
 #== END_CONFIG
 
 BACKUP_WORDS_FILE="/usr/share/dict/words"
@@ -653,7 +654,13 @@ main() {
     need partition-clear && clear_partition "$target_dev"
     need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$bios_size" "$main_size" "$uefi_size"
 
+    msg $"Unmount new partitions if needed ..."
+
     sync; sync
+    sleep ${AUTOMOUNT_DELAY:-2}
+
+    # Make sure the new target partitions get unmounted if they were auto-mounted
+    umount_all $target_dev
 
     # Nothing else makes sense if there is no partition table
     need_q partition-clear && ! need_q partition-make && exit_done
