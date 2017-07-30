@@ -110,6 +110,10 @@ SYSLINUX_FILES="$SYSLINUX_FILES libmenu.c32 libutil.c32 linux.c32 menu.c32"
 
         SWEARS="asshole|bastard|bitch|cock|crap|cunt|damn|dick|douche|fag|fuck|piss|pussy|shit|slut"
 
+
+#------------------------------------------------------------------------------
+# Show usage and exit
+#------------------------------------------------------------------------------
 usage() {
     local ret=${1:-0}
 
@@ -205,6 +209,9 @@ Usage
     exit $ret
 }
 
+#------------------------------------------------------------------------------
+# Callback routine to evalute some command line args before the root user test.
+#------------------------------------------------------------------------------
 eval_early_argument() {
     local val=${1#*=}
     case $1 in
@@ -221,6 +228,10 @@ eval_early_argument() {
     esac
 }
 
+#------------------------------------------------------------------------------
+# Callback routine to evaluate arguments after the root user check.  We also
+# need to include the early args to avoid unknown argument errors.
+#------------------------------------------------------------------------------
 eval_argument() {
     local arg=$1  val=$2
     case $arg in
@@ -274,6 +285,9 @@ eval_argument() {
     esac
 }
 
+#------------------------------------------------------------------------------
+# Callback routine for command line arguments that don't start with "-"
+#------------------------------------------------------------------------------
 assign_parameter() {
     local cnt=$1 param=$2
    case $param in
@@ -285,6 +299,9 @@ assign_parameter() {
     esac
 }
 
+#------------------------------------------------------------------------------
+# Callback routine to see if an argument requires a value to follow it.
+#------------------------------------------------------------------------------
 takes_param() {
     case $1 in
    -bios-size|b) return 0 ;;
@@ -301,6 +318,9 @@ takes_param() {
     return 1
 }
 
+#------------------------------------------------------------------------------
+# The main routine.  Called from the very bottom of this script.
+#------------------------------------------------------------------------------
 main() {
     local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFgGhIkLmnNpPqRstvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
@@ -883,7 +903,7 @@ validate_passphrase_type() {
 }
 
 #------------------------------------------------------------------------------
-#
+#  Make sure the number of random words requested is sane
 #------------------------------------------------------------------------------
 test_rand() {
     local num=$1
@@ -895,7 +915,7 @@ test_rand() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Test that the passphrase file exists and is reasonable
 #------------------------------------------------------------------------------
 test_phrase_file() {
     local file=$1
@@ -914,7 +934,7 @@ test_phrase_file() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Set the variable named as the first arg to a random phrase of $len words
 #------------------------------------------------------------------------------
 set_rand_phrase() {
     local var=$1 len=$2
@@ -925,7 +945,7 @@ set_rand_phrase() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Warn user to remember the new passphrase
 #------------------------------------------------------------------------------
 say_using_phrase() {
     local phrase=$1
@@ -936,7 +956,8 @@ say_using_phrase() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Generate a 2-word passphrase and stick it in $file.  Also put the passphrase
+# into the $var variable
 #------------------------------------------------------------------------------
 first_boot_phrase() {
     local var=$1  file=$2
@@ -951,7 +972,8 @@ first_boot_phrase() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Create a passphrase with $nwords words.  You can also adjust the max word
+# length, the dictionary file, and the random source.
 #------------------------------------------------------------------------------
 gen_passphrase() {
     local nwords=${1:-$PP_NUM_WORDS}  max_len=${2:-$PP_MAX_WORD_LEN}
@@ -1888,7 +1910,8 @@ do_made_by() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Create a random seed file for the first boot.  This is not safe locally, of
+# course, but should be good for possible internet attacks.
 #------------------------------------------------------------------------------
 write_random_seed() {
     local file=$1
@@ -1898,6 +1921,9 @@ write_random_seed() {
 
 #===== Here come the utilities! ===============================================
 
+#------------------------------------------------------------------------------
+# Get the version number of the extlinux program we are using
+#------------------------------------------------------------------------------
 get_extlinux_version() {
     extlinux -v 2>&1 | sed -r "s/^[a-z]+\s+([0-9.]+).*/\1/g"
 }
