@@ -685,6 +685,9 @@ main() {
 
     sync; sync
 
+    # Tell OS partitioning has changed (after we've created the new file systems)
+    cmd partprobe $drive
+
     my_mount $BIOS_DEV $BIOS_DIR
     my_mount $UEFI_DEV $UEFI_DIR
 
@@ -1470,8 +1473,6 @@ do_partition() {
     fi
 
     sleep 1
-    # Tell kernel the partition table has changed
-    cmd partprobe $drive
 
     DID_PARTITION=true
 }
