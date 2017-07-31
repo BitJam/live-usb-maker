@@ -649,6 +649,8 @@ main() {
 
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
+    suspend_automount
+
     START_T=$(date +%s)
 
     need partition-clear && clear_partition "$target_dev"
