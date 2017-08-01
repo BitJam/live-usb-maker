@@ -659,7 +659,7 @@ main() {
     msg $"Unmount new partitions if needed ..."
 
     sync; sync
-    sleep ${AUTOMOUNT_DELAY:-2}
+    #sleep ${AUTOMOUNT_DELAY:-2}
 
     # Make sure the new target partitions get unmounted if they were auto-mounted
     umount_all $target_dev
@@ -1456,7 +1456,6 @@ clear_partition() {
     # Clear out secondary gpt partition table
     cmd dd status=none conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
 
-    sleep 1
     # Tell kernel the partition table has changed
     cmd partprobe $dev
 }
@@ -1487,6 +1486,7 @@ do_partition() {
     local main_start=1  main_end=$main_size  main_fs=ext4  uefi_part=2
     if [ $bios_size -gt 0 ]; then
 
+        clear_filesystem $drive 1
         cmd $preamb mkpart primary ext4 1 $bios_size || fatal "$err_msg" bios
 
         main_start=$((bios_size))
@@ -1495,7 +1495,9 @@ do_partition() {
         main_fs=
     fi
 
-    cmd $preamb mkpart primary $main_fs $main_start  $main_end || fatal "$err_msg" main
+    clear_filesystem $drive $main_start
+    cmd $preamb mkpart primary $main_fs $main_start $main_end  || fatal "$err_msg" main
+    clear_filesystem $drive $main_end
     cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal "$err_msg" uefi
     cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal "$err_msg" flags
 
@@ -1503,9 +1505,21 @@ do_partition() {
         cmd $preamb disk_set pmbr_boot on || fatal "$err_msg" disk_set
     fi
 
-    sleep 1
+    # Tell kernel the partition table has changed
+    cmd partprobe $dev
 
     DID_PARTITION=true
+}
+
+
+#------------------------------------------------------------------------------
+# Zero out the first 128K of each filesystem before we created its partition
+# table entry
+#------------------------------------------------------------------------------
+clear_filesystem() {
+    local drive=$1  offset_m=$2  size=128
+    local offset_k=$((offset_m * 1024))
+    cmd dd status=none if=/dev/zero of=$drive seek=$offset_k bs=1024 count=128
 }
 
 #------------------------------------------------------------------------------
