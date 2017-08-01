@@ -656,7 +656,7 @@ main() {
     need partition-clear && clear_partition "$target_dev"
     need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$bios_size" "$main_size" "$uefi_size"
 
-    msg $"Unmount new partitions if needed ..."
+    # msg "Unmount new partitions if needed ..."
 
     sync; sync
     #sleep ${AUTOMOUNT_DELAY:-2}
