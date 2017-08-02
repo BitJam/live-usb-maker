@@ -65,6 +65,7 @@ Options:
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
   -g --gpt              Use gpt partitioning instead of msdos
+  -G --graphic-ui       Use the new graphics user interface (default)
      --gpt-pmbr         Set pmbr_boot disk flag (prevents booting via UEFI)
   -h --help             Show this usage
   -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
@@ -73,6 +74,7 @@ Options:
   -L --label=Name       Label ext partition with Name
   -m --msdos            Use msdos partitioning (default) instead of gpt
   -n --no-prog-bar      Don't show progress *bar* when copying
+  -N --numeric-ui       Use the legacy numerical user interface
      --pause            Wait for user input before exit
      --pause=initrd     Pause after unpacking the initrd.gz file
      --percent-prog     Show progress percentage but no bar
@@ -93,8 +95,6 @@ Notes:
   - config file: /root/.config/live-usb-maker/live-usb-maker.conf
   - the config file will be sourced if it exists
   - it will be created if it doesn't exist
-  - If encryption is enabled, the user will be prompted to enter a new
-    passphrase on the first boot of the live-usb
 ```
 
 The Script
