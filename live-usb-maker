@@ -1084,7 +1084,7 @@ verify_sizes() {
     local percent=${cmd_percent:-$default_size}
 
     # Get total size of target live-usb device
-    local total_size=$(parted --script $target_dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    local total_size=$(parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
 
     local main_needed=$(du_ap_size_spec $dir "*")
     local uefi_needed=$(du_ap_size_spec $dir "$UEFI_FILES")
@@ -1465,7 +1465,7 @@ clear_partition() {
 # bios partition.
 #------------------------------------------------------------------------------
 do_partition() {
-    local drive=$1  type=${2:-msdos}  bios_size=${3:-0}  main_size=$4  uefi_size=$5
+    local dev=$1  type=${2:-msdos}  bios_size=${3:-0}  main_size=$4  uefi_size=$5
     local alloc_size=$((bios_size + main_size + uefi_size))
 
     local boot_flag
@@ -1479,13 +1479,13 @@ do_partition() {
     # Using <gpt|msdos> partitioning
     msg $"Using %s partitioning" $(pq $type)
     local err_msg="Partitioning failed at %s"
-    local preamb="parted --script --align optimal $target_dev unit MiB"
+    local preamb="parted --script --align optimal $dev unit MiB"
     cmd $preamb mklabel $type || fatal "$err_msg" start
 
     local main_start=1  main_end=$main_size  main_fs=ext4  uefi_part=2
     if [ $bios_size -gt 0 ]; then
 
-        clear_filesystem $drive 1
+        clear_filesystem $dev 1
         cmd $preamb mkpart primary ext4 1 $bios_size || fatal "$err_msg" bios
 
         main_start=$((bios_size))
@@ -1494,9 +1494,9 @@ do_partition() {
         main_fs=
     fi
 
-    clear_filesystem $drive $main_start
+    clear_filesystem $dev $main_start
     cmd $preamb mkpart primary $main_fs $main_start $main_end  || fatal "$err_msg" main
-    clear_filesystem $drive $main_end
+    clear_filesystem $dev $main_end
     cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal "$err_msg" uefi
     cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal "$err_msg" flags
 
@@ -1516,9 +1516,9 @@ do_partition() {
 # table entry
 #------------------------------------------------------------------------------
 clear_filesystem() {
-    local drive=$1  offset_m=$2  size=128
+    local dev=$1  offset_m=$2  size=128
     local offset_k=$((offset_m * 1024))
-    cmd dd status=none if=/dev/zero of=$drive seek=$offset_k bs=1024 count=128
+    cmd dd status=none if=/dev/zero of=$dev seek=$offset_k bs=1024 count=128
     sync
 }
 
@@ -1837,7 +1837,7 @@ do_uuids() {
 # This installs the legacy syslinux bootloader
 #------------------------------------------------------------------------------
 do_install_bootloader() {
-    local target_dev=$1  bios_dir=$2  type=$3
+    local dev=$1  bios_dir=$2  type=$3
 
     msg "extlinux version %s" "$(pq $(get_extlinux_version))"
 
@@ -1857,7 +1857,7 @@ do_install_bootloader() {
     done
 
     [ "$file" ] || fatal "Could not find file %s" "$fname"
-    cmd dd status=none bs=440 conv=notrunc count=1 if=$file of=$target_dev  || fatal "%s command failed" dd
+    cmd dd status=none bs=440 conv=notrunc count=1 if=$file of=$dev  || fatal "%s command failed" dd
 
     local sdir idir syslinux_dir isolinux_dir
     for sdir in boot/syslinux syslinux; do
