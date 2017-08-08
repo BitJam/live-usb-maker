@@ -74,6 +74,7 @@ EXT_OVERHEAD_FORM="* 26 / 10000 - 2"
   AUTOMOUNT_DELAY="1"
 #== END_CONFIG
 
+          CP_ARGS="--no-dereference --preserve=mode,links --recursive"
 BACKUP_WORDS_FILE="/usr/share/dict/words"
       CRYPT_PROGS="cryptsetup dmsetup"
      PHRASE_FNAME="passphrase"
@@ -1583,7 +1584,7 @@ do_copy_main() {
         copy_with_progress "$from" "$to" "$err_msg" "$@"
 
     elif q_mode gui || [ "$NO_PROGRESS_BAR" ]; then
-        cmd cp -a $from/* $to/ || fatal "$err_msg"
+        cmd cp $CP_ARGS $from/* $to/ || fatal "$err_msg"
 
     elif [ "$PERCENT_PROG" ]; then
         copy_with_progress "$from" "$to" "$err_msg" percent_progress
@@ -1614,7 +1615,7 @@ copy_files_spec() {
         test -z "$file" && continue
         dir=$targ/$(dirname $file)
         test -d "$dir" || cmd mkdir -p "$dir"
-        cmd cp -r "$src/$file" "$dir"  || warn $"Error while copying %s files" "$(pqw $type)"
+        cmd cp $CP_ARGS "$src/$file" "$dir"  || warn $"Error while copying %s files" "$(pqw $type)"
     done <<Copy_Files_Spec
 $(cd $src && eval "ls -d $spec" 2>/dev/null)
 Copy_Files_Spec
