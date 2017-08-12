@@ -98,7 +98,7 @@ ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="copy,flock,makefs,umount,usb"
+   ALL_FORCE="automount,copy,flock,makefs,umount,usb"
    ALL_PAUSE="exit,initrd,copy"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -171,6 +171,7 @@ Options:
                                usb: Ignore usb/removable check
                             makefs: Make the ext4 filesystem even if one exists
                               copy: Overwrite ext4 partition even if antiX/ exists
+                         automount: temporarily disable antiX automounting
                                all: All of the above (dangerous!)
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
@@ -648,7 +649,7 @@ main() {
 
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
-    suspend_automount
+    force automount && suspend_automount
 
     START_T=$(date +%s)
 
