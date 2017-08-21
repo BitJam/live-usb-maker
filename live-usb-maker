@@ -720,7 +720,10 @@ main() {
     # Tell OS partitioning has changed (after we've created the new file systems)
     cmd partprobe $target_dev
 
+    wait_for_file $BIOS_DEV
     my_mount $BIOS_DEV $BIOS_DIR  -t $MAIN_FS_TYPE
+
+    wait_for_file $UEFI_DEV
     my_mount $UEFI_DEV $UEFI_DIR  -t $UEFI_FS_TYPE
 
     local mp_list="$BIOS_DIR $UEFI_DIR"
