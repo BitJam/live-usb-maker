@@ -101,7 +101,7 @@ ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,save-boot,umount,usb"
+   ALL_FORCE="automount,flock,makefs,umount,usb"
    ALL_PAUSE="exit,initrd,copy"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -173,7 +173,6 @@ Options:
                             umount: Allows try to umount all partitions on drive
                                usb: Ignore usb/removable check
                             makefs: Make the ext4 filesystem even if one exists
-                         save-boot: Save original boot directory when updating a live-usb
                          automount: temporarily disable antiX automounting
                                all: All of the above (dangerous!)
   -- --gui-progress     All remaining args are used as a gui progress bar program
@@ -197,7 +196,9 @@ Options:
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
+  -S --save-boot        Save original boot directory when updating a live-usb
   -t --target=<xxx>     The device to make into a new live-usb
+  -u --update           Only update an existing live-usb
   -v --version          Show version information
   -V --verbose          Print more, show command outputs
   -VV --very-verbose    Also show commands
@@ -271,9 +272,12 @@ eval_argument() {
           -progress|P)  PROGRESS=true                    ;;
              -quiet|q)  QUIET=true                       ;;
               -size|s)  CMD_SIZE=${val%\%}               ;;
+         -save-boot|S)  SAVE_BOOT=true                   ;;
               -size=*)  CMD_SIZE=${val%\%}               ;;
             -target|t)  TARGET=$val                      ;;
             -target=*)  TARGET=$val                      ;;
+             -upate|u)  CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }copy-main"
+                        SAVE_BOOT=true                   ;;
            -verbose|V)  VERBOSITY=$((VERBOSITY + 1))     ;;
         -very-verbose)  VERBOSITY=$((VERBOSITY + 2))     ;;
 
@@ -326,7 +330,7 @@ takes_param() {
 # The main routine.  Called from the very bottom of this script.
 #------------------------------------------------------------------------------
 main() {
-    local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFgGhIkLmnNpPqRstvVW"
+    local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFgGhIkLmnNpPqRsStuvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
@@ -1563,7 +1567,7 @@ do_copy_main() {
 
     cmd rm -rf $to/boot.orig
 
-    if test -d $to/boot && force save-boot; then
+    if [ -d $to/boot -a -n "$SAVE_BOOT" ]; then
         msg "Saving existing boot directory"
         cmd mv $to/boot $to/boot.orig
     fi
@@ -1590,7 +1594,7 @@ do_copy_main() {
     if test -d $to/boot.orig && force save-boot; then
         msg "Restoring original boot directory"
         cmd rm -rf $to/boot
-        cmd mv $to/boot.orig $to.boot
+        cmd mv $to/boot.orig $to/boot
     fi
 
     sync ; sync
