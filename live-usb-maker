@@ -139,7 +139,7 @@ a small fat32 file system for booting via UEFI.
 
 This will destroy any existing information on <usb-device>.  The default
 partitioning scheme is msdos (due to a bug in some Dell BIOSes).  Use
-the  --gpt flag to use gpt partitioning instead.
+the  --gpt flag to get gpt partitioning instead.
 
   --from="iso-file"    Enter an iso file to use as the source
   --from="clone"       clone a running live system.
