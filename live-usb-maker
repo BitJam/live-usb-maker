@@ -515,7 +515,7 @@ main() {
             ;;
 
         dev)
-            mount_device "$from_value" "$ISO_DIR"
+            mount_device "$from_value" "$ISO_DIR" 'from'
             # What thing we are copying or cloning from: file, device or directory
             from_thing=$"device"
             ;;
@@ -529,12 +529,12 @@ main() {
             # Just clone the directory instead if the device is already mounted
             if is_mounted "$from_dev"; then
                 from_value=$(grep "^$from_dev " /proc/mounts | cut -d" " -f2 | head -n1)
-                msg "Will trying cloning directory %s" "$(pq "$from_value")"
+                msg "Will try cloning directory %s" "$(pq "$from_value")"
                 from_dev=
             fi
 
             if [ ${#from_dev} -gt 0 ]; then
-                mount_device    "$from_dev" "$MNT_DIR"
+                mount_device "$from_dev"  "$MNT_DIR" 'from'
                 clone_directory "$MNT_DIR"  "$ISO_DIR"
                 # What thing we are copying or cloning from: file, device or directory
                 from_thing=$"device"
@@ -1336,6 +1336,8 @@ encrypt_partition() {
 
 #------------------------------------------------------------------------------
 # Mount a device or know the reason why.  Should go in lib?
+# any 3rd arg means we are only going read so we can mount something that
+# is already mounted
 #------------------------------------------------------------------------------
 mount_device() {
     local dev=$(expand_device "$1")  dir=$2
@@ -1343,7 +1345,8 @@ mount_device() {
     mkdir -p "$dir"       || fatal "Failed to create mountpoint directory %s" "$dir"
     is_mountpoint "$dir"  && fatal "Directory '%s' is already a mountpoint"   "$dir"
 
-    is_mounted "$dev"     && fatal "Device %s is already mounted" "$dev"
+    [ -z "$3" ] && is_mounted "$dev" && fatal "Device %s is already mounted" "$dev"
+
     [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount optical disc at %s" "$(pq $dev)"
     always_cmd mount -o ro "$dev" "$dir"
     is_mountpoint "$dir"  || fatal "Failed to mount device %s at %s" "$dev"   "$dir"
