@@ -25,8 +25,8 @@ Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
 
 This will destroy any existing information on <usb-device>.  The default
-partitioning scheme is GPT.  Use --msdos flag to use msdos partitioning
-instead.
+partitioning scheme is msdos (due to a bug in some Dell BIOSes).  Use
+the  --gpt flag to get gpt partitioning instead.
 
   --from="iso-file"    Enter an iso file to use as the source
   --from="clone"       clone a running live system.
@@ -60,7 +60,7 @@ Options:
                             umount: Allows try to umount all partitions on drive
                                usb: Ignore usb/removable check
                             makefs: Make the ext4 filesystem even if one exists
-                              copy: Overwrite ext4 partition even if antiX/ exists
+                         automount: temporarily disable antiX automounting
                                all: All of the above (dangerous!)
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
@@ -83,7 +83,9 @@ Options:
   -q --quiet            Print less
   -R --reset-config     Write a fresh config file with default options
   -s --size=XX          Percent of usb-device to use (default 100)
+  -S --save-boot        Save original boot directory when updating a live-usb
   -t --target=<xxx>     The device to make into a new live-usb
+  -u --update           Only update an existing live-usb
   -v --version          Show version information
   -V --verbose          Print more, show command outputs
   -VV --very-verbose    Also show commands
