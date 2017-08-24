@@ -1594,7 +1594,7 @@ do_copy_main() {
         copy_with_progress "$from" "$to" "$err_msg" text_progress_bar
     fi
 
-    if test -d $to/boot.orig && force save-boot; then
+    if test -d $to/boot.orig;  then
         msg "Restoring original boot directory"
         cmd rm -rf $to/boot
         cmd mv $to/boot.orig $to/boot
