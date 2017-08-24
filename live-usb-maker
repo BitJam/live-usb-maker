@@ -303,7 +303,7 @@ assign_parameter() {
         expert) QUESTION_MODE=expert           ;;
         simple) QUESTION_MODE=simple           ;;
            gui) QUESTION_MODE=gui              ;;
-             *) CMD_CMDS="$CMD_CMDS $param"    ;;
+             *) CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }$param" ;;
     esac
 }
 
@@ -642,8 +642,11 @@ main() {
     local final_q=$(printf $"Ready to make %s on device %s by %s" "${encrypted_lab}$(pqb live-usb)" \
         "$(pqb ${target_dev##*/})$new_line" "$from_act $from_thing $(pqb $from_value)")
 
+    local ready_str=$"Ready to perform %s action on %s"
+    [ -z "${CMDS##* *}" ] && ready_str=$"Ready to perform %s actions on %s"
+
     [ "$CMDS" != 'all' ] \
-        && final_q=$(printf "Ready to perform %s action(s) on %s" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
+        && final_q=$(printf "$ready_str" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
 
     if q_mode gui; then
         msg "$final_q"
