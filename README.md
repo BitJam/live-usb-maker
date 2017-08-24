@@ -57,7 +57,6 @@ Options:
                         clone=<xxx> to clone another live-usb
 
   -F --force=<xxx>      Force the options specfied:
-                            umount: Allows try to umount all partitions on drive
                                usb: Ignore usb/removable check
                             makefs: Make the ext4 filesystem even if one exists
                          automount: temporarily disable antiX automounting
