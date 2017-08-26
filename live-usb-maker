@@ -275,7 +275,7 @@ eval_argument() {
               -size=*)  CMD_SIZE=${val%\%}               ;;
             -target|t)  TARGET=$val                      ;;
             -target=*)  TARGET=$val                      ;;
-             -upate|u)  CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }copy-main"
+            -update|u)  CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }copy-main"
                         SAVE_BOOT=true                   ;;
            -verbose|V)  VERBOSITY=$((VERBOSITY + 1))     ;;
         -very-verbose)  VERBOSITY=$((VERBOSITY + 2))     ;;
