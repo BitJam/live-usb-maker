@@ -47,6 +47,7 @@ are not given on the command line.
 
 Options:
   -C --color=<xxx>       Set color scheme to off|low|low2|bw|dark|high
+                         (default is high)
   -f --force=usb         Disable safety check that ensures we only write to usb
                          and removable devices
   -h  --help             Show this usage
@@ -77,7 +78,6 @@ eval_early_argument() {
 eval_argument() {
     local arg=$1  val=$2
     case $arg in
-
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
               -from|f)  FROM=$val                        ;;
