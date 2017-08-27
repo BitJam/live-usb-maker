@@ -1944,7 +1944,7 @@ do_made_by() {
 #------------------------------------------------------------------------------
 write_random_seed() {
     local file=$1
-    cmd dd status=none if=/dev/urandom of=$file bs=1 count=512
+    cmd dd status=none if=/dev/urandom of=$file bs=512 count=1
     cmd chmod 600 $file
 }
 
