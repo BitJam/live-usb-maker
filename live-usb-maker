@@ -1531,7 +1531,7 @@ do_partition() {
 clear_filesystem() {
     local dev=$1  offset_m=$2  size=128
     local offset_k=$((offset_m * 1024))
-    cmd dd status=none if=/dev/zero of=$dev seek=$offset_k bs=1024 count=128
+    cmd dd status=none if=/dev/zero of=$dev seek=$offset_k bs=1K count=$size
     sync
 }
 
