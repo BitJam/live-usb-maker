@@ -24,9 +24,13 @@ export TEXTDOMAIN="cli-shell-utils"
 domain_dir="$MY_DIR/../cli-shell-utils/locale"
 test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
 
-
          ERR_FILE="/dev/null"
      THE_ERR_FILE="/var/log/$ME.error"
+
+    PROGRESS_TYPE="bar"
+
+    YAD_PROG="yad --progress --auto-close --width 800 --title=$ME --on-top --center"
+    YAD_PROG="$YAD_PROG --text-align=center --text Progress"
 
   SIZE_MARGIN="1"
     ALL_FORCE="flock,usb"
@@ -42,12 +46,15 @@ Will prompt you for the file and for the device to write to if they
 are not given on the command line.
 
 Options:
-  -f --force=usb     Disable safety check that ensures we only write to usb
-                     and removable devices
-  -h  --help         Show this usage
-  -f  --from=<file>  The iso file to copy
-  -t  --to=<device>  The device to write to
-  -v  --version      Show the version number and date
+  -C --color=<xxx>       Set color scheme to off|low|low2|bw|dark|high
+  -f --force=usb         Disable safety check that ensures we only write to usb
+                         and removable devices
+  -h  --help             Show this usage
+  -f  --from=<file>      The iso file to copy
+  -P  --progress=<type>  Type of progress indicator: bar|percent|none
+                         (the default is bar)
+  -t  --to=<device>      The device to write to
+  -v  --version          Show the version number and date
 Usage
     exit $ret
 }
@@ -70,8 +77,13 @@ eval_early_argument() {
 eval_argument() {
     local arg=$1  val=$2
     case $arg in
+
+             -color|C)  COLOR_SCHEME=$val                ;;
+             -color=*)  COLOR_SCHEME=$val                ;;
               -from|f)  FROM=$val                        ;;
               -from=*)  FROM=$val                        ;;
+          -progress=*)  PROGRESS_TYPE=$val               ;;
+          -progress|P)  PROGRESS_TYPE=$val               ;;
                 -to|t)  TARGET=$val                      ;;
                 -to=*)  TARGET=$val                      ;;
                     *)  fatal "Unknown parameter %s" "-$arg"  ;;
@@ -83,9 +95,10 @@ eval_argument() {
 #------------------------------------------------------------------------------
 takes_param() {
     case $1 in
-    -esp-size|e) return 0 ;;
-        -from|f) return 0 ;;
-          -to|t) return 0 ;;
+          -color|C) return 0 ;;
+        -percent|P) return 0 ;;
+           -from|f) return 0 ;;
+             -to|t) return 0 ;;
     esac
     return 1
 }
@@ -94,8 +107,8 @@ takes_param() {
 # The main routine.  Called from the very bottom of this script.
 #==============================================================================
 main() {
-    local SHIFT SHORT_STACK="fhtv"
-    local FROM TARGET START_T=0
+    local SHIFT  SHORT_STACK="CfhPtv"
+    local FROM  TARGET  START_T=0  PROGRESS_SCALE=1000
 
     set_colors
 
@@ -105,9 +118,21 @@ main() {
     read_early_params "$@"
     need_root
     read_params "$@"
-    shift $SHIFT
 
+    set_colors $COLOR_SCHEME
+
+    shift $SHIFT
     fatal_n0 $# "Extra command line arguments: %s" "$*"
+
+    case $PROGRESS_TYPE in
+        percent) prog_prog="percent_progress"   ;;
+           none) prog_prog=":"                  ;;
+            bar) prog_prog="text_progress_bar"  ;;
+            yad) prog_prog=$YAD_PROG
+                 PROGRESS_SCALE=100             ;;
+        *) fatal "Unknown --progress vale %s" "$(pqw "$PROGRESS_TYPE")"
+    esac
+
 
     ERR_FILE=$THE_ERR_FILE
     trap clean_up EXIT
@@ -164,8 +189,7 @@ main() {
     YES_no $"Shall we begin?" || exit
     START_T=$(date +%s)
 
-    local PROGRESS_SCALE=1000
-    dd_live_usb "$FROM" /dev/$TARGET text_progress_bar
+    dd_live_usb "$FROM" /dev/$TARGET $prog_prog
 
     exit_done
 }
