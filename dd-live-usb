@@ -141,6 +141,7 @@ main() {
     rm -f $ERR_FILE
 
     shout_title $"Starting %s" "$ME"
+    set_window_title "$ME"
 
     #--- Find live boot device if we are running live
 

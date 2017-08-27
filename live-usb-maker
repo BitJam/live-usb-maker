@@ -407,6 +407,7 @@ main() {
     fi
 
     shout_title $"Starting %s" "$ME"
+    set_window_title "$ME"
     start_log "$orig_args" "$CMDS"
 
     # NOTE: this placement is not ideal because it allows the user to
