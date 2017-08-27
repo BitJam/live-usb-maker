@@ -162,6 +162,10 @@ main() {
         TARGET=${TARGET#/dev/}
         check_target "$TARGET" "$live_dev"
     fi
+
+    # Make sure the target is not in use
+    umount_all $TARGET
+
     msg $"Will use target device %s" "$(pq $TARGET)"
 
     if [ ${#FROM} -eq 0 ]; then
