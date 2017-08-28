@@ -246,7 +246,8 @@ eval_argument() {
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
            -encrypt|E)  ENCRYPT=true                     ;;
-           -encrypt=*)  ENCRYPT=true ; PASS_PHRASE_TYPE=$val  ;;
+           -encrypt=*)  ENCRYPT=true
+                        PASS_PHRASE_TYPE=$val            ;;
           -esp-size|e)  UEFI_SIZE=$val                   ;;
          -ext-options)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
@@ -271,12 +272,14 @@ eval_argument() {
           -progress|P)  PROGRESS=true                    ;;
              -quiet|q)  QUIET=true                       ;;
               -size|s)  CMD_SIZE=${val%\%}               ;;
-         -save-boot|S)  SAVE_BOOT=true                   ;;
+         -save-boot|S)  SAVE_BOOT=true
+                        KEEP_SYSLINUX=true               ;;
               -size=*)  CMD_SIZE=${val%\%}               ;;
             -target|t)  TARGET=$val                      ;;
             -target=*)  TARGET=$val                      ;;
             -update|u)  CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }copy-main"
-                        SAVE_BOOT=true                   ;;
+                        SAVE_BOOT=true
+                        KEEP_SYSLINUX=true               ;;
            -verbose|V)  VERBOSITY=$((VERBOSITY + 1))     ;;
         -very-verbose)  VERBOSITY=$((VERBOSITY + 2))     ;;
 
@@ -1032,9 +1035,11 @@ overall_mode_menu() {
     encrypt || menu_printf simple  $"Make a full-featured live-usb"
     menu_printf encrypt $"Make an encrypted full-featured live-usb"
     menu_printf default $"Make a customized live-usb (includes encryption option)"
+    menu_printf update  $"Update the OS on an existing live-usb (experimental)"
     menu_printf uuids   $"Update UUIDs on an existing live-usb"
     menu_printf cheats  $"Update boot parameters on an existing live-usb"
     menu_printf install $"Reinstall legacy bootloader on an existing live-usb"
+    menu_printf clear   $"Clear the partition table on a usb device"
 }
 
 #------------------------------------------------------------------------------
@@ -1046,10 +1051,13 @@ select_overall_mode() {
     local menu=$(overall_mode_menu)
     my_select 'ans' "$title" "$menu"
     case $ans in
-                  encrypt) q_val=simple ; ENCRYPT=true     ;;
-           default|simple) q_val=$ans                      ;;
-            uuids|install) cmd_val=$ans                    ;;
-                   cheats) cmd_val=$ans ; : ${CHEATS:=yes} ;;
+                  encrypt) q_val=simple ; ENCRYPT=true               ;;
+           default|simple) q_val=$ans                                ;;
+            uuids|install) cmd_val=$ans                              ;;
+                   cheats) cmd_val=$ans ; : ${CHEATS:=yes}           ;;
+                    clear) cmd_val="partition-clear"                 ;;
+                   update) cmd_val="copy-main" ; SAVE_BOOT=true      ;;
+                        *) internal_error select_overall_mode "$ans" ;;
     esac
 
     [ ${#cmd_val} -gt 0 ] && eval $cmd_var=\$cmd_val
