@@ -1318,10 +1318,10 @@ encrypt_partition() {
     if [ -z "$PRETEND_MODE" ]; then
         case $phrase in
                 ask) shout
-                     shout "We want to overwrite the data on %s" $dev
-                     shout "Type in upper-case %s as suggested" "'YES'"
+                     shout $"We want to overwrite the data on %s" $dev
+                     shout $"Type in upper-case %s as suggested" "'YES'"
                      cryptsetup luksFormat              $dev ; ret=$?
-                     shout "You will be asked for the passphrase a third time" ;;
+                     shout $"You will be asked for the passphrase a third time" ;;
 
              file=*) cat "$val"     | cryptsetup luksFormat --key-file - $dev ; ret=$? ;;
 
@@ -1330,21 +1330,21 @@ encrypt_partition() {
                   *) internal_error phrase-type "$phrase"
         esac
 
-        [ $ret -eq 0 ] || fatal "Failed to create encrypted device"
+        [ $ret -eq 0 ] || fatal $"Failed to create encrypted device"
     fi
 
     case $phrase in
            ask) cryptsetup open --type luks                   $dev $name; ret=$? ;;
         file=*) cryptsetup open --type luks --key-file "$val" $dev $name; ret=$? ;;
 
-      phrase=*) if YES_no "Do you want to try entering the new passphrase now?"; then
+      phrase=*) if YES_no $"Do you want to try entering the new passphrase now?"; then
                     cryptsetup open --type luks $dev $name; ret=$?
                 else
                     echo -n "$val" | cryptsetup open --type luks --key-file - $dev $name; ret=$?
                 fi ;;
     esac
 
-    [ $ret -eq 0 ] || fatal "Failed to open encrypted device"
+    [ $ret -eq 0 ] || fatal $"Failed to open encrypted device"
 
     LUKS_DEV=/dev/mapper/$name
     msg $"Encryption successful"
