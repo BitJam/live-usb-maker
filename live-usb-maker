@@ -700,6 +700,7 @@ main() {
         local phrase=$PASS_PHRASE_TYPE
         case $phrase in
                   ask)                                            ;;
+             phrase=*)                                            ;;
                file=*) phrase=phrase=$(cat "$val")                ;;
                random) set_rand_phrase   phrase                   ;;
              random=*) set_rand_phrase   phrase ${phrase#*=}      ;;
