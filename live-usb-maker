@@ -1733,7 +1733,7 @@ fix_uefi_memtest() {
     local dir=$1/EFI/BOOT
     test -d "$dir" || dir=$1/efi/boot
     test -d "$dir" || return
-    msg "Fix %sbug" 'uefi memtest'
+    msg $"Fix %s bug" 'Dell uefi memtest'
     local fallback=$dir/fallback.efi
     local grubx64=$dir/grubx64.efi
 
