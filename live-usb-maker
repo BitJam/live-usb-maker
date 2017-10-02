@@ -364,7 +364,7 @@ main() {
     trap clean_up EXIT
     do_flock
 
-    rm -f $ERR_FILE
+    test -f $ERR_FILE && rm -f $ERR_FILE
 
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
@@ -411,7 +411,7 @@ main() {
 
     shout_title $"Starting %s" "$ME"
     set_window_title "$ME"
-    start_log "$orig_args" "$CMDS"
+    start_log "$THE_LOG_FILE" "$orig_args"
 
     # NOTE: this placement is not ideal because it allows the user to
     # write an invalid pass_phrase_type to the config file
@@ -2028,27 +2028,6 @@ my_exit() {
 
     # Msg "=> cleaning up"
     exit $ret
-}
-
-#------------------------------------------------------------------------------
-# Start logging by appending a simple header
-#------------------------------------------------------------------------------
-start_log() {
-    local args=$1 cmds=${2# }
-
-    LOG_FILE=$THE_LOG_FILE
-
-    cat <<Start_Log >> $LOG_FILE
----------------------------------------------------------------------
-$0
-        started: $(date)
-        version: $VERSION ($VERSION_DATE)
-    comand line: $args
-      found lib: $FOUND_LIB
-     TEXTDOMAIN: $TEXTDOMAIN
-  TEXTDOMAINDIR: $TEXTDOMAINDIR
-
-Start_Log
 }
 
 #------------------------------------------------------------------------------
