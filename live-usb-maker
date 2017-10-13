@@ -769,7 +769,9 @@ main() {
     local bios_uuid=$(lsblk -no uuid $BIOS_DEV)
     local uefi_uuid=$(lsblk -no uuid $UEFI_DEV)
 
-    need uuids && do_uuids $BIOS_DIR "$bios_uuid" "$UEFI_DIR/$GRUB_CONF" "$uefi_uuid" "$UEFI_PART"
+    local main_dir
+    encrypt && main_dir=$MAIN_DIR
+    need uuids && do_uuids $BIOS_DIR "$bios_uuid" "$UEFI_DIR/$GRUB_CONF" "$uefi_uuid" "$UEFI_PART" "$main_dir"
 
     [ ${#cheats} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $BIOS_DIR "$cheats"
     [ ${#cheats} -gt 0 ] && need cheats-grub     && do_cheats_grub     $UEFI_DIR "$cheats"
@@ -1808,14 +1810,14 @@ do_cheats_grub() {
 # user to be amble to save their  boot parameter selections.
 #------------------------------------------------------------------------------
 do_uuids() {
-    local bios_dir=$1  bios_uuid=$2  grub_cfg=$3  uefi_uuid=$4  uefi_part=$5
-    if [ ${#uefi_uuid} -gt 0 ]; then
-        local uefi_file=$bios_dir/antiX/esp-uuid
+    local bios_dir=$1  bios_uuid=$2  grub_cfg=$3  uefi_uuid=$4  uefi_part=$5 main_dir=$6
+    local dir
+    for dir in $bios_dir $main_dir; do
+        [ ${#uefi_uuid} -gt 0 ] || continue
+        local uefi_file=$dir/antiX/esp-uuid
         cmd mkdir -p $(dirname $uefi_file) || fatal "Making directory '%s' failed" "$(dirname $uefi_file)"
         cmd write_file $uefi_file $uefi_uuid
-    else
-        warn "No %s given for %s partition" UUID uefi
-    fi
+    done
 
     if [ ${#bios_uuid} -eq 0 ]; then
         warn "No %s given for %s partition" UUID ext4
@@ -1845,7 +1847,6 @@ do_uuids() {
 
     cmd sed -ri "s/(root=\(hd0,)[0-9]\)/\1$uefi_part)/" $grub_cfg \
         || fatal "sed on %s failed" "$(basename $grub_cfg)"
-
 }
 
 #------------------------------------------------------------------------------
