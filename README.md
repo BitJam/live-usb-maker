@@ -58,9 +58,11 @@ Options:
 
   -F --force=<xxx>      Force the options specfied:
                                usb: Ignore usb/removable check
+                         ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
                          automount: temporarily disable antiX automounting
                                all: All of the above (dangerous!)
+
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
   -g --gpt              Use gpt partitioning instead of msdos
