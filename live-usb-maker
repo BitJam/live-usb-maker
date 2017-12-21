@@ -467,7 +467,7 @@ main() {
     else
         check_target "$TARGET" "$live_dev"
     fi
-    msg $"Will use target device %s" "$(pq $TARGET)"
+    msg $"Will use target device %s" "$(pq "$TARGET ($(device_info $TARGET))")"
 
     [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui && select_overall_mode CMDS QUESTION_MODE
 
@@ -1088,7 +1088,8 @@ select_target_device() {
     case $cnt in
         0) fatal $"No available target usb devices were found" ;;
         1) dev=$(echo "$menu" | cut -d"$P_IFS" -f1 | head -n1)
-            Msg $"Only one target usb device was found %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
+            #Msg $"Only one target usb device was found %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
+            Msg $"Only one target usb device was found %s" "$(pq $dev)"
            eval $var=\$dev
            return ;;
     esac
