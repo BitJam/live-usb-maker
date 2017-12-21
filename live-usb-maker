@@ -1470,16 +1470,16 @@ clear_partition() {
     local total=$(parted --script $dev unit KiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)kiB$/\1/ip")
 
     # Clear out previous primary partition table
-    cmd dd status=none if=/dev/zero of=$dev bs=1K count=17
+    cmd_dd if=/dev/zero of=$dev bs=1K count=17
 
     # Clear out sneaky iso-hybrid partition table
-    cmd dd status=none if=/dev/zero of=$dev bs=1K count=17 seek=32
+    cmd_dd if=/dev/zero of=$dev bs=1K count=17 seek=32
 
     [ -n "$total" ] || return
     local offset=$((total - 17))
 
     # Clear out secondary gpt partition table
-    cmd dd status=none conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
+    cmd_dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
 
     # Tell kernel the partition table has changed
     cmd partprobe $dev
@@ -1543,7 +1543,7 @@ do_partition() {
 clear_filesystem() {
     local dev=$1  offset_m=$2  size=128
     local offset_k=$((offset_m * 1024))
-    cmd dd status=none if=/dev/zero of=$dev seek=$offset_k bs=1K count=$size
+    cmd_dd if=/dev/zero of=$dev seek=$offset_k bs=1K count=$size
     sync
 }
 
@@ -1874,7 +1874,7 @@ do_install_bootloader() {
     done
 
     [ "$file" ] || fatal "Could not find file %s" "$fname"
-    cmd dd status=none bs=440 conv=notrunc count=1 if=$file of=$dev  || fatal "%s command failed" dd
+    cmd_dd bs=440 conv=notrunc count=1 if=$file of=$dev
 
     local sdir idir syslinux_dir isolinux_dir
     for sdir in boot/syslinux syslinux; do
@@ -1955,7 +1955,7 @@ do_made_by() {
 #------------------------------------------------------------------------------
 write_random_seed() {
     local file=$1
-    cmd dd status=none if=/dev/urandom of=$file bs=512 count=1
+    cmd_dd if=/dev/urandom of=$file bs=512 count=1
     cmd chmod 600 $file
 }
 
