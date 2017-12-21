@@ -101,7 +101,7 @@ ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,usb"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb"
    ALL_PAUSE="exit,initrd,copy"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -171,9 +171,11 @@ Options:
 
   -F --force=<xxx>      Force the options specfied:
                                usb: Ignore usb/removable check
+                         ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
                          automount: temporarily disable antiX automounting
                                all: All of the above (dangerous!)
+
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
   -g --gpt              Use gpt partitioning instead of msdos
@@ -379,6 +381,9 @@ main() {
 
     CMDS=${CMD_CMDS:-all}
 
+    # Let the gui take care of filtering out ultra-fit devices
+    q_mode gui && FORCE="$FORCE,ultra-fit"
+
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
     check_pause PAUSE "$ALL_PAUSE"
@@ -467,6 +472,14 @@ main() {
     else
         check_target "$TARGET" "$live_dev"
     fi
+
+    if ! force ultra-fit && is_ultra_fit_dev $TARGET; then
+
+        warn $"The selected usb drive was %s" "$(pqw $SANDISK_ULTRA_FIT)"
+        warn $"This device is known to cause errors during creation and boot"
+        yes_NO $"Do you want to use it anyway?" || exit
+    fi
+
     msg $"Will use target device %s" "$(pq "$TARGET ($(device_info $TARGET))")"
 
     [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui && select_overall_mode CMDS QUESTION_MODE
@@ -1085,6 +1098,29 @@ select_target_device() {
 
     local menu=$(cli_drive_menu "$live_dev" "$from_dev")
     local dev cnt=$(count_lines "$menu")
+
+    if ultra_fit_detected; then
+        case $cnt in
+            0)  warn $"The only usb drive detected was %s" "$(pqw $SANDISK_ULTRA_FIT)"
+                warn $"This device is known to cause errors during creation and boot"
+                if yes_NO $"Do you want to use it anyway?"; then
+                    FORCE="$FORCE,ultra-fit"
+                    menu=$(cli_drive_menu "$live_dev" "$from_dev")
+                    cnt=$(count_lines "$menu")
+                else
+                    exit 0
+                fi ;;
+
+            *)  warn $"A %s usb drive was detected" "$(pqw $SANDISK_ULTRA_FIT)"
+                warn $"This device is known to cause errors during creation and boot"
+                if yes_NO $"Do you want it included in the menu anyway"; then
+                    FORCE="$FORCE,ultra-fit"
+                    menu=$(cli_drive_menu "$live_dev" "$from_dev")
+                    cnt=$(count_lines "$menu")
+                fi ;;
+        esac
+    fi
+
     case $cnt in
         0) fatal $"No available target usb devices were found" ;;
         1) dev=$(echo "$menu" | cut -d"$P_IFS" -f1 | head -n1)
