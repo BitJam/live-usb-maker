@@ -462,7 +462,7 @@ main() {
         if [ -n "$live_dev" ]; then
             shout "Found live media device %s" "$(pqb /dev/$(get_drive $live_dev))"
         else
-            "$live_dev" "The live media is not mounted"
+            fatal "The live media is not mounted"
         fi
     fi
 
