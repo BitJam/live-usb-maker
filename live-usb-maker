@@ -462,7 +462,8 @@ main() {
         if [ -n "$live_dev" ]; then
             shout "Found live media device %s" "$(pqb /dev/$(get_drive $live_dev))"
         else
-            fatal "The live media is not mounted"
+            # Don't error out on systems running toram
+            : fatal "The live media is not mounted"
         fi
     fi
 
