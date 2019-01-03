@@ -2006,7 +2006,7 @@ write_random_seed() {
 # If given do_all flag then defrag the entire directory
 #------------------------------------------------------------------------------
 do_defrag() {
-    iso_dir=$1  do_all=$2  prog=e4defrag  opts="-cv"
+    iso_dir=$1  do_all=$2  prog=e4defrag  opts="-v"
     if ! which $prog &>/dev/null; then
         warn $"Could not find program %s.  Not defragging." $prog
         return
