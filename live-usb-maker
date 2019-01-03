@@ -153,6 +153,7 @@ Options:
                            Use "on" or "yes"  to show cheat menus without asking
                         Otherwise you will be asked.
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
+  -d --defrag-all       Defragment all files on the main partitions using e4defrag
   -E --encrypt          Set up to boot from an encrypted partition
   --encrypt=<flag>      Phasephrase option:
                            ask         Enter the passphrase via the keyboard
@@ -247,6 +248,7 @@ eval_argument() {
              -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
+        -defrag-all|d)  DEFRAG_ALL=true                  ;;
            -encrypt|E)  ENCRYPT=true                     ;;
            -encrypt=*)  ENCRYPT=true
                         PASS_PHRASE_TYPE=$val            ;;
@@ -334,7 +336,7 @@ takes_param() {
 # The main routine.  Called from the very bottom of this script.
 #------------------------------------------------------------------------------
 main() {
-    local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFgGhIkLmnNpPqRsStuvVW"
+    local SHIFT SHIFT_2 SHORT_STACK="bcCdDeEfFgGhIkLmnNpPqRsStuvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
@@ -773,6 +775,8 @@ main() {
         do_made_by $BIOS_DIR "$MADE_BY_FILE"
         write_random_seed $MAIN_DIR/$DEF_BOOT_DIR/$SEED_FNAME
     fi
+
+    do_defrag "$MAIN_DIR" "$DEFRAG_ALL"
 
     # if need_q copy-bios || need_q copy-main; then
     #     : ${ISO_BOOT_DIR:=$DEF_BOOT_DIR}
@@ -1994,6 +1998,25 @@ write_random_seed() {
     local file=$1
     cmd_dd if=/dev/urandom of=$file bs=512 count=1
     cmd chmod 600 $file
+}
+
+
+#------------------------------------------------------------------------------
+# Defrag the vmlinuz file(s) if able
+# If given do_all flag then defrag the entire directory
+#------------------------------------------------------------------------------
+do_defrag() {
+    iso_dir=$1  do_all=$2  prog=e4defrag  opts="-cv"
+    if ! which $prog &>/dev/null; then
+        warn $"Could not find program %s.  Not defragging." $prog
+        return
+    fi
+
+    if [ "$do_all" ]; then
+        cmd $prog $opts $iso_dir/
+    else
+        cmd $prog $opts $iso_dir/$DEF_BOOT_DIR/vmlinuz*
+    fi
 }
 
 #===== Here come the utilities! ===============================================
