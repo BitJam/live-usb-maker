@@ -101,7 +101,7 @@ ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse"
    ALL_PAUSE="exit,initrd,copy"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -174,7 +174,7 @@ Options:
                          ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
                          automount: temporarily disable antiX automounting
-                               all: All of the above (dangerous!)
+                            nofuse: don't use fuseiso to mount iso files
 
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
