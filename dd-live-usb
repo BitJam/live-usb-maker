@@ -8,8 +8,8 @@
 # License: GPLv3 or later
 #==============================================================================
 
-     VERSION="0.10.02"
- VERSION_DATE="Sun Aug 27 03:21:00 MDT 2017"
+     VERSION="0.10.03"
+ VERSION_DATE="Fri Jan  4 23:54:54 MST 2019"
 
   GRAPHICAL_MENUS="true"
 
