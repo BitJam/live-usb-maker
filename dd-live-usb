@@ -164,6 +164,17 @@ main() {
         check_target "$TARGET" "$live_dev"
     fi
 
+    # These are mostly for a manually entered target
+    test -e $target_dev || fatal "Target device %s does not exist" $target_dev
+    test -b $target_dev || fatal "Target device %s is not a block device" $target_dev
+
+    # fatal "The device %s does not seem to be usb or removable."
+    # FIXME: move this to the lib?
+    force usb || is_usb_or_removable $target_dev || yes_NO_fatal "usb" \
+        "Do you want to use it anyway (dangerous)?" \
+        "Use %s to always ignore this warning"      \
+        "The device %s does not seem to be usb or removeable."  "$target_dev"
+
     # Make sure the target is not in use
     umount_all $TARGET
 
