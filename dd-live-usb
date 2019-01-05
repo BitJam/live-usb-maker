@@ -226,6 +226,21 @@ select_target_device() {
     my_select $var $"Please select the target usb device" "$menu"
 }
 
+#------------------------------------------------------------------------------
+# Make sure --target device is valid.
+#------------------------------------------------------------------------------
+check_target() {
+    local target=$1  live_dev=$2
+
+    # Make sure our target is a real device
+    local target_dev=$(expand_device $target)
+
+    [ ${#target_dev} -gt 0 ] || fatal "Could not find device %s" "$target"
+    [ ${#live_dev}   -gt 0 ] || return
+    local live_drive=$(get_drive ${live_dev##*/} )
+    local targ_drive=$(get_drive ${target##*/}   )
+    [ "$live_drive" = "$targ_drive" ] && fatal "Target '%s' cannot be on the live device '%s'" "$target" "$live_drive"
+}
 
 #------------------------------------------------------------------------------
 # Tell user we are done and then exit
