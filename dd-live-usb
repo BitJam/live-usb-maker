@@ -164,9 +164,14 @@ main() {
         check_target "$TARGET" "$live_dev"
     fi
 
+    local target_dev=/dev/${TARGET#/dev/}
     # These are mostly for a manually entered target
     test -e $target_dev || fatal "Target device %s does not exist" $target_dev
     test -b $target_dev || fatal "Target device %s is not a block device" $target_dev
+
+    # Require that an entire disk device be specified (could relax?)
+    local dev_type=$(lsblk -no type --nodeps $target_dev)
+    [ "$dev_type" = 'disk' ] || fatal "Device %s is not a disk device" $target_dev
 
     # fatal "The device %s does not seem to be usb or removable."
     # FIXME: move this to the lib?
