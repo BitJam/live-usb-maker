@@ -48,7 +48,7 @@ are not given on the command line.
 Options:
   -C --color=<xxx>       Set color scheme to off|low|low2|bw|dark|high
                          (default is high)
-  -f --force=usb         Disable safety check that ensures we only write to usb
+     --force=usb         Disable safety check that ensures we only write to usb
                          and removable devices
   -h  --help             Show this usage
   -f  --from=<file>      The iso file to copy
