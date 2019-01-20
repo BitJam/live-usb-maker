@@ -48,10 +48,10 @@ are not given on the command line.
 Options:
   -C --color=<xxx>       Set color scheme to off|low|low2|bw|dark|high
                          (default is high)
-     --force=usb         Disable safety check that ensures we only write to usb
+  -F  --force=usb        Disable safety check that ensures we only write to usb
                          and removable devices
-  -h  --help             Show this usage
   -f  --from=<file>      The iso file to copy
+  -h  --help             Show this usage
   -P  --progress=<type>  Type of progress indicator: bar|percent|none
                          (the default is bar)
   -t  --to=<device>      The device to write to
@@ -65,6 +65,7 @@ Usage
 eval_early_argument() {
     local val=${1#*=}
     case $1 in
+              -force|F) FORCE="$FORCE,$val"  ;;
               -force=*) FORCE="$FORCE,$val"  ;;
                -help|h) usage                ;;
             -version|v) show_version         ;;
@@ -107,7 +108,7 @@ takes_param() {
 # The main routine.  Called from the very bottom of this script.
 #==============================================================================
 main() {
-    local SHIFT  SHORT_STACK="CfhPtv"
+    local SHIFT  SHORT_STACK="CFfhPtv"
     local FROM  TARGET  START_T=0  PROGRESS_SCALE=1000
 
     set_colors
