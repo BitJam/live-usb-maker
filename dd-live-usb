@@ -131,9 +131,8 @@ main() {
             bar) prog_prog="text_progress_bar"  ;;
             yad) prog_prog=$YAD_PROG
                  PROGRESS_SCALE=100             ;;
-        *) fatal "Unknown --progress vale %s" "$(pqw "$PROGRESS_TYPE")"
+        *) fatal "Unknown --progress value %s" "$(pqw "$PROGRESS_TYPE")"
     esac
-
 
     ERR_FILE=$THE_ERR_FILE
     trap clean_up EXIT
@@ -211,6 +210,8 @@ main() {
     YES_no $"Shall we begin?" || exit
     START_T=$(date +%s)
 
+    clear_partition /dev/$TARGET
+
     dd_live_usb "$FROM" /dev/$TARGET $prog_prog
 
     exit_done
@@ -258,6 +259,30 @@ check_target() {
     local targ_drive=$(get_drive ${target##*/}   )
     [ "$live_drive" = "$targ_drive" ] && fatal "Target '%s' cannot be on the live device '%s'" "$target" "$live_drive"
 }
+
+#------------------------------------------------------------------------------
+# Clear out previous partition tables.
+#------------------------------------------------------------------------------
+clear_partition() {
+    local dev=$1
+    local total=$(parted --script $dev unit KiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)kiB$/\1/ip")
+
+    # Clear out previous primary partition table
+    cmd_dd if=/dev/zero of=$dev bs=1K count=17
+
+    # Clear out sneaky iso-hybrid partition table
+    cmd_dd if=/dev/zero of=$dev bs=1K count=17 seek=32
+
+    [ -n "$total" ] || return
+    local offset=$((total - 17))
+
+    # Clear out secondary gpt partition table
+    cmd_dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
+
+    # Tell kernel the partition table has changed
+    cmd partprobe $dev
+}
+
 
 #------------------------------------------------------------------------------
 # Tell user we are done and then exit
