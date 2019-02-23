@@ -678,6 +678,9 @@ main() {
 
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
+    # Add last lines of dmesg output to log file on fatal errors
+    add_dmesg_to_fatal
+
     force automount && suspend_automount
 
     START_T=$(date +%s)
