@@ -152,6 +152,9 @@ Options:
                            Use "off" or "no" to disable cheats menu.
                            Use "on" or "yes"  to show cheat menus without asking
                         Otherwise you will be asked.
+  --clone-persist       Clone persistence files
+  --clone-persist=<p>   or pass a parameter: h,home:  clone home
+                                             r,root:  clone root
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
   -d --defrag-all       Defragment all files on the main partitions using e4defrag
   -E --encrypt          Set up to boot from an encrypted partition
@@ -177,34 +180,37 @@ Options:
                          automount: temporarily disable antiX automounting
                             nofuse: don't use fuseiso to mount iso files
 
-  -- --gui-progress     All remaining args are used as a gui progress bar program
-                        Example: --gui-progress yad --progress --auto-close
-  -g --gpt              Use gpt partitioning instead of msdos
-  -G --graphic-ui       Use the new graphics user interface (default)
-     --gpt-pmbr         Set pmbr_boot disk flag (prevents booting via UEFI)
-  -h --help             Show this usage
-  -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
-  -I --ignore-config    Ignore the configuration file
-  -k --keep-syslinux    Don't replace the syslinux files
-  -L --label=Name       Label ext partition with Name
-  -m --msdos            Use msdos partitioning (default) instead of gpt
-  -n --no-prog-bar      Don't show progress *bar* when copying
-  -N --numeric-ui       Use the legacy numerical user interface
-     --pause            Wait for user input before exit
-     --pause=initrd     Pause after unpacking the initrd.gz file
-     --percent-prog     Show progress percentage but no bar
-  -p --pretend          Don't run commands that affect the usb device
-  -P --progress         Create $THE_PROG_FILE progress *file*
-  -q --quiet            Print less
-  -R --reset-config     Write a fresh config file with default options
-  -s --size=XX          Percent of usb-device to use (default 100)
-  -S --save-boot        Save original boot directory when updating a live-usb
-  -t --target=<xxx>     The device to make into a new live-usb
-  -u --update           Only update an existing live-usb
-  -v --version          Show version information
-  -V --verbose          Print more, show command outputs
-  -VV --very-verbose    Also show commands
-  -W --write-config     Write a config file preserving current options
+  -- --gui-progress           All remaining args are used as a gui progress bar program
+                              Example: --gui-progress yad --progress --auto-close
+  -g --gpt                    Use gpt partitioning instead of msdos
+  -G --graphic-ui             Use the new graphics user interface (default)
+     --gpt-pmbr               Set pmbr_boot disk flag (prevents booting via UEFI)
+  -h --help                   Show this usage
+  -i --initrd=<file>          Start with <file> for making encrypt enabled initrd
+  -I --ignore-config          Ignore the configuration file
+  -k --keep-syslinux          Don't replace the syslinux files
+  -L --label=Name             Label ext partition with Name
+  -m --msdos                  Use msdos partitioning (default) instead of gpt
+  -n --no-prog-bar            Don't show progress *bar* when copying
+     --no-clone-persist       Don't clone persistence files even if they exist
+     --no-clone-persist=<p>   Or pass a parameter: h,home: don't clone home
+                                                   r,root: don't clone root
+  -N --numeric-ui             Use the legacy numerical user interface
+     --pause                  Wait for user input before exit
+     --pause=initrd           Pause after unpacking the initrd.gz file
+     --percent-prog           Show progress percentage but no bar
+  -p --pretend                Don't run commands that affect the usb device
+  -P --progress               Create $THE_PROG_FILE progress *file*
+  -q --quiet                  Print less
+  -R --reset-config           Write a fresh config file with default options
+  -s --size=XX                Percent of usb-device to use (default 100)
+  -S --save-boot              Save original boot directory when updating a live-usb
+  -t --target=<xxx>           The device to make into a new live-usb
+  -u --update                 Only update an existing live-usb
+  -v --version                Show version information
+  -V --verbose                Print more, show command outputs
+  -VV --very-verbose          Also show commands
+  -W --write-config           Write a config file preserving current options
 
 Notes:
   - short options stack. Example: -pv is the same as --pretend --verbose
@@ -246,6 +252,8 @@ eval_argument() {
          -bios-size=*)  BIOS_SIZE=$val                   ;;
              -cheat|c)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
              -cheat=*)  CHEATS="$CHEATS${CHEATS:+ }$val" ;;
+       -clone-persist)  CLONE_PERSIST=home,root          ;;
+     -clone-persist=*)  CLONE_PERSIST=$val               ;;
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
         -defrag-all|d)  DEFRAG_ALL=true                  ;;
@@ -268,6 +276,8 @@ eval_argument() {
              -label=*)  BIOS_LABEL=$val                  ;;
              -msdos|m)  MSDOS_GPT="msdos"                ;;
        -no-prog-bar|n)  NO_PROGRESS_BAR=true             ;;
+    -no-clone-persist)  NO_CLONE_PERSIST=home,root       ;;
+  -no-clone-persist=*)  NO_CLONE_PERSIST=$val            ;;
                -pause)  PAUSE="$PAUSE${PAUSE:+,}exit"    ;;
         -numeric-ui|N)  GRAPHICAL_MENUS=                 ;;
              -pause=*)  PAUSE="$PAUSE${PAUSE:+,}$val"    ;;
@@ -338,6 +348,8 @@ takes_param() {
 main() {
     local SHIFT SHIFT_2 SHORT_STACK="bcCdDeEfFgGhIkLmnNpPqRsStuvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
+    local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
+    local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
 
@@ -364,6 +376,7 @@ main() {
         write_config "$CONFIG_FILE"
     fi
 
+
     ERR_FILE=$THE_ERR_FILE
     trap clean_up EXIT
     do_flock
@@ -372,6 +385,8 @@ main() {
 
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
+
+    validate_clone_persist "$CLONE_PERSIST" "$NO_CLONE_PERSIST"
 
     case $VERBOSITY in
         0) ;;
@@ -558,12 +573,12 @@ main() {
 
             if [ ${#from_dev} -gt 0 ]; then
                 mount_device "$from_dev"  "$MNT_DIR" 'from'
-                clone_directory "$MNT_DIR"  "$ISO_DIR"
+                clone_directory "$MNT_DIR"  "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
                 from_thing=$"device"
 
             elif test -d "$from_value"; then
-                clone_directory "$from_value" "$ISO_DIR"
+                clone_directory "$from_value" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
                 from_thing=$"directory"
 
@@ -1421,7 +1436,7 @@ mount_device() {
 # and then copying that over to the target device. White-list not black-list.
 #------------------------------------------------------------------------------
 clone_directory() {
-    local from_dir=$1 targ_dir=$2
+    local from_dir=$1  targ_dir=$2  live_dev=$3
     is_mountpoint "$targ_dir" && fatal "Directory '%s' is already a mountpoint" "$targ_dir"
 
     test -d "$from_dir"       || fatal "Clone directory '%s' is not a directory"   "$from_dir"
@@ -1452,6 +1467,8 @@ clone_directory() {
     # Prepare to get all files/dirs from under the boot-directory on a frugal install
     local full_boot_dir="$from_dir/${boot_dir#/}"
     local src_root_dir=$from_dir
+
+    add_persist_files "$from_dir" "$boot_dir" "$live_dev"
 
     if [ -z "${boot_dir##*Frugal*}" ]; then
         msg "Cloning from a frugal directory"
@@ -1501,6 +1518,87 @@ Clone_Files
     done <<Clone_Bdir_Files
 $(cd "$full_boot_dir" && eval "ls -d $CLONE_BDIR_FILES" 2>/dev/null)
 Clone_Bdir_Files
+}
+
+#------------------------------------------------------------------------------
+# Add persistence files to list of files that get bind mounted when we clone.
+# Do not add a persistence file if it is in use.  Otherwise show the size and
+# ask the user if they want to include it.  The behaviour is also controlled
+# by the --clone-persist and --no-clone-persist parameters.
+#------------------------------------------------------------------------------
+add_persist_files() {
+    local from_dir=$1  boot_dir=$2  live_dev=$3
+    local full_boot_dir="$from_dir/${boot_dir#/}"
+
+    # See if live device is mounted at $from_dir
+    local from_live from_dev
+    if [ -n "$live_dev" ] && is_mountpoint "$from_dir"; then
+        from_dev=$(df "$from_dir" | tail -n1 | awk '{print $1}')
+        [ "${from_dev##*/}" = "$live_dev" ] && from_live=true
+    fi
+    local full_root="$full_boot_dir/rootfs"
+    if [ -z "$NO_CLONE_ROOT" -a -e "$full_root" ]; then
+        if [ -n "$from_live" -a -e '/live/config/static-root' ]; then
+            warn $"Not cloning active %s persistence file"  "$(pqh static root)"
+        else
+            add_one_persist_file "$CLONE_ROOT" "$full_root"
+        fi
+    fi
+
+    local full_home="$full_boot_dir/homefs"
+    if  [ -z "$NO_CLONE_HOME" -a -e "$full_home" ]; then
+        if [ -n "$from_live" ] && is_mountpoint '/home'; then
+            warn $"Not cloning active %s persistence file"  "$(pqh home)"
+        else
+            add_one_persist_file "$CLONE_HOME" "$full_home"
+        fi
+    fi
+}
+
+#------------------------------------------------------------------------------
+# Move common code from add_persist_files() into this routine
+#------------------------------------------------------------------------------
+add_one_persist_file() {
+    local flag=$1  full=$2  name=${2##*/}
+    local du_opts="--apparent-size --human-readable"
+    local size=$(du $du_opts "$full" | cut -f1)
+    #echo
+    # Found (<size>) <name> persistence file
+    msg $"Found (%s) %s persistence file" "$(nq $size)" "$(pq $name)"
+    if [ "$flag" ] || q_mode gui || YES_no $"Do you want to clone this file?"; then
+        msg $"Will clone %s persistence file" "$(pq $name)"
+        CLONE_BDIR_FILES="$CLONE_BDIR_FILES $name"
+    else
+        msg $"Will skip %s persistence file" "$(pq $name)"
+    fi
+}
+
+#------------------------------------------------------------------------------
+# Check the validity of the --clone-persist and --no-clone-persist options.
+# Catch invalid =xxx params and catch contradictions.
+#------------------------------------------------------------------------------
+validate_clone_persist() {
+    local clone=$1  no_clone=$2
+
+    local p
+    for p in ${clone//,/ }; do
+        case $p in
+            h|home) CLONE_HOME=true ;;
+            r|root) CLONE_ROOT=true ;;
+                 *) fatal "Unknown --clone-persist parameter: %s" "$p" ;;
+        esac
+    done
+
+    for p in ${no_clone//,/ }; do
+        case $p in
+            h|home) NO_CLONE_HOME=true ;;
+            r|root) NO_CLONE_ROOT=true ;;
+                 *) fatal "Unknown --no-clone-persist parameter: %s" "$p" ;;
+        esac
+    done
+
+    [ -n "$CLONE_HOME" -a -n "$NO_CLONE_HOME" ] && fatal "Can't both clone and not clone %s"  "$(pqw home)"
+    [ -n "$CLONE_ROOT" -a -n "$NO_CLONE_ROOT" ] && fatal "Can't both clone and not clone %s"  "$(pqw root)"
 }
 
 #===== "REAL" WORK STARTS HERE ================================================
