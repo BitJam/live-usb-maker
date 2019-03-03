@@ -1073,11 +1073,8 @@ overall_mode_menu() {
     encrypt || menu_printf simple  $"Make a full-featured live-usb"
     menu_printf encrypt $"Make an encrypted full-featured live-usb"
     menu_printf default $"Make a customized live-usb (includes encryption option)"
-    menu_printf update  $"Update the OS on an existing live-usb (experimental)"
-    menu_printf uuids   $"Update UUIDs on an existing live-usb"
-    menu_printf cheats  $"Update boot parameters on an existing live-usb"
-    menu_printf install $"Reinstall legacy bootloader on an existing live-usb"
-    menu_printf clear   $"Clear the partition table on a usb device"
+    menu_printf other   $"Other options"
+
 }
 
 #------------------------------------------------------------------------------
@@ -1085,21 +1082,60 @@ overall_mode_menu() {
 #------------------------------------------------------------------------------
 select_overall_mode() {
     local cmd_var=$1 q_var=$2 ans cmd_val q_val
-    local title=$"Please select what action to perform"
-    local menu=$(overall_mode_menu)
-    my_select 'ans' "$title" "$menu"
-    case $ans in
-                  encrypt) q_val=simple ; ENCRYPT=true               ;;
-           default|simple) q_val=$ans                                ;;
-            uuids|install) cmd_val=$ans                              ;;
-                   cheats) cmd_val=$ans ; : ${CHEATS:=yes}           ;;
-                    clear) cmd_val="partition-clear"                 ;;
-                   update) cmd_val="copy-main" ; SAVE_BOOT=true      ;;
-                        *) internal_error select_overall_mode "$ans" ;;
-    esac
 
-    [ ${#cmd_val} -gt 0 ] && eval $cmd_var=\$cmd_val
-    [ ${#q_val}   -gt 0 ] && eval $q_var=\$q_val
+    while true; do
+        local title=$"Please select what action to perform"
+        local menu=$(overall_mode_menu)
+        local not_done=""
+        my_select 'ans' "$title" "$menu"
+        case $ans in
+                      encrypt) q_val=simple ; ENCRYPT=true               ;;
+                      default) q_val=$ans                                ;;
+                       simple) q_val=$ans                                ;;
+                        other) select_other_mode                         ;;
+                            *) internal_error select_overall_mode "$ans" ;;
+        esac
+
+        [ "$not_done" ] && continue
+
+        break
+
+    done
+        [ ${#cmd_val} -gt 0 ] && eval $cmd_var=\$cmd_val
+        [ ${#q_val}   -gt 0 ] && eval $q_var=\$q_val
+
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+other_mode_menu() {
+    menu_printf quit    $"Go back to main menu"
+    menu_printf clear   $"Clear the partition table on a usb device"
+    menu_printf update  $"Update the OS on an existing live-usb (experimental)"
+    menu_printf uuids   $"Update UUIDs on an existing live-usb"
+    menu_printf cheats  $"Update boot parameters on an existing live-usb"
+    menu_printf install $"Reinstall legacy bootloader on an existing live-usb"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+select_other_mode() {
+    local ans2 title="Please select what other action to perform"
+    local menu=$(other_mode_menu)
+    BACK_TO_MAIN=$"go back to main menu"
+    my_select 'ans2' "$title" "$menu"
+    case $ans2 in
+                 quit) not_done=true                             ;;
+                clear) cmd_val="partition-clear"                 ;;
+               update) cmd_val="copy-main" ; SAVE_BOOT=true      ;;
+                uuids) cmd_val=$ans                              ;;
+               cheats) cmd_val=$ans ; : ${CHEATS:=yes}           ;;
+              install) cmd_val=$ans                              ;;
+                    *) internal_error select_other_mode "$ans"   ;;
+    esac
+    unset BACK_TO_MAIN
 }
 
 #------------------------------------------------------------------------------
