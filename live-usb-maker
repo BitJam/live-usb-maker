@@ -99,7 +99,7 @@ BACKUP_WORDS_FILE="/usr/share/dict/words"
 
 ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main defrag copy-bios copy-uefi"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
-    ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
+    ALL_CMDS="sizes all partition makefs copy cheats format-usb $ORDERED_CMDS"
 
    ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse"
    ALL_PAUSE="exit,initrd,copy"
@@ -396,6 +396,10 @@ main() {
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
     CMDS=${CMD_CMDS:-all}
+    case $CMDS in
+          format-usb) ;;
+        *format-usb*) fatal "Cannot combine %s with other commands" 'format-usb';;
+    esac
 
     # Let the gui take care of filtering out ultra-fit devices
     q_mode gui && FORCE="$FORCE,ultra-fit"
@@ -690,6 +694,7 @@ main() {
         YES_no_pretend $"Shall we begin?" || my_exit
     fi
 
+
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
     # Add last lines of dmesg output to log file on fatal errors
@@ -698,6 +703,12 @@ main() {
     force automount && suspend_automount
 
     START_T=$(date +%s)
+
+    if [ "$CMDS" = 'format-usb' ]; then
+        format_usb "$target_dev" "$MSDOS_GPT"
+        say_done
+        my_exit 0
+    fi
 
     need partition-clear && clear_partition "$target_dev"
     need partition-make  && do_partition "$target_dev" "$MSDOS_GPT" "$bios_size" "$main_size" "$uefi_size"
@@ -1111,6 +1122,7 @@ select_overall_mode() {
 #------------------------------------------------------------------------------
 other_mode_menu() {
     menu_printf quit    $"Go back to main menu"
+    menu_printf format  $"Format a data usb"
     menu_printf clear   $"Clear the partition table on a usb device"
     menu_printf update  $"Update the OS on an existing live-usb (experimental)"
     menu_printf uuids   $"Update UUIDs on an existing live-usb"
@@ -1128,6 +1140,7 @@ select_other_mode() {
     my_select 'ans2' "$title" "$menu"
     case $ans2 in
                  quit) not_done=true                             ;;
+               format) cmd_val=format-usb                        ;;
                 clear) cmd_val="partition-clear"                 ;;
                update) cmd_val="copy-main" ; SAVE_BOOT=true      ;;
                 uuids) cmd_val=$ans                              ;;
@@ -2159,6 +2172,34 @@ check_target() {
     local live_drive=$(get_drive ${live_dev##*/} )
     local targ_drive=$(get_drive ${target##*/}   )
     [ "$live_drive" = "$targ_drive" ] && fatal "Target '%s' cannot be on the live device '%s'" "$target" "$live_drive"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+format_usb() {
+    dev="/dev/${1#/dev/}"  type=$2
+    msg "formating device %s" "$(pq $dev)"
+
+    clear_partition "$dev"
+
+    msg $"Using %s partitioning" $(pq $type)
+    local err_msg="Partitioning failed at %s"
+    local preamb="parted --script --align optimal $dev unit MiB"
+    cmd $preamb mklabel $type || fatal "$err_msg" start
+
+    local total_size=$(parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    clear_filesystem $dev 1
+    cmd $preamb mkpart primary fat32 1 $((total_size - 1)) || fatal "$err_msg" bios
+
+    sync
+    msg "Make %s filesystem" "$(pq fat32)"
+    local part1=$(get_partition $dev 1)
+    cmd mkfs.vfat -n 'USB-DATA' $part1 \
+        || fatal "Could not make %s file system on %s" "fat32" "$part1"
+
+    sync
+    cmd partprobe $dev
 }
 
 #------------------------------------------------------------------------------
