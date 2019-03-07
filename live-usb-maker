@@ -99,7 +99,7 @@ BACKUP_WORDS_FILE="/usr/share/dict/words"
 
 ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main defrag copy-bios copy-uefi"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
-    ALL_CMDS="sizes all partition makefs copy cheats format-usb $ORDERED_CMDS"
+    ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
    ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse"
    ALL_PAUSE="exit,initrd,copy"
@@ -108,6 +108,8 @@ ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install enc
         PATH="$MY_LIB_DIR/bin:$LIB_DIR/bin:$PATH"
 
 MADE_BY_FILE="made-by-live-usb-maker"
+
+USB_FORMAT_LIST="vfat exfat ntfs ext4"
 
 SYSLINUX_FILES="chain.c32 gfxboot.c32 vesamenu.c32 ldlinux.c32 libcom32.c32"
 SYSLINUX_FILES="$SYSLINUX_FILES libmenu.c32 libutil.c32 linux.c32 menu.c32"
@@ -168,6 +170,9 @@ Options:
 
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   --ext-options=<xx>    Use these options when creating the ext4 filesystem
+
+    --format            Make a data usb formatted to fat32 by default
+    --format=<fs>       Make a data usb formated to the give filesystem
 
   -f --from=<xxx>       The device, cdrom, or file to make the live-usb from
                         Use "clone" to clone the current live system or use
@@ -264,6 +269,8 @@ eval_argument() {
          -ext-options)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
           -esp-size=*)  UEFI_SIZE=$val                   ;;
+              -format)  FORMAT_USB=true                  ;;
+            -format=*)  FORMAT_USB=true; USB_FORMAT=$val ;;
               -from|f)  FROM=$val                        ;;
               -from=*)  FROM=$val                        ;;
        --graphic-ui|G)  GRAPHICAL_MENUS=true             ;;
@@ -350,6 +357,7 @@ main() {
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
     local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR
+    local FORMAT_USB USB_FORMAT
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
 
@@ -387,6 +395,10 @@ main() {
 
     validate_clone_persist "$CLONE_PERSIST" "$NO_CLONE_PERSIST"
 
+    [ -n "$FORMAT_USB" -a -n "$CMD_CMDS" ] && fatal "Cannot combine %s with any commands" "--format"
+
+    validate_usb_format "$USB_FORMAT"
+
     case $VERBOSITY in
         0) ;;
         1) BE_VERBOSE=true                     ;;
@@ -396,10 +408,6 @@ main() {
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
     CMDS=${CMD_CMDS:-all}
-    case $CMDS in
-          format-usb) ;;
-        *format-usb*) fatal "Cannot combine %s with other commands" 'format-usb';;
-    esac
 
     # Let the gui take care of filtering out ultra-fit devices
     q_mode gui && FORCE="$FORCE,ultra-fit"
@@ -407,6 +415,11 @@ main() {
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
     check_pause PAUSE "$ALL_PAUSE"
+
+    if [ "$FORMAT_USB" ]; then
+        CMDS='format-usb'
+        CMD_CMDS="$CMDS"
+    fi
 
     [ -n "$INITRD_FILE" ] && ! test -r "$INITRD_FILE" \
         && fatal "Could not find initrd file %s" "$(pqw $INITRD_FILE)"
@@ -672,6 +685,13 @@ main() {
 
         select_passphrase_type PASS_PHRASE_TYPE
     fi
+
+    if [ -n "$FORMAT_USB" ]; then
+        q_mode gui && : ${USB_FORMAT:=vfat}
+        makefs_select USB_FORMAT
+        msg "Will create a %s filesystem" "$(pq $USB_FORMAT)"
+    fi
+
     #=========================================================================
 
     local new_line=$(printf "$nc_co\n$bold_co...")
@@ -694,7 +714,6 @@ main() {
         YES_no_pretend $"Shall we begin?" || my_exit
     fi
 
-
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
     # Add last lines of dmesg output to log file on fatal errors
@@ -704,8 +723,8 @@ main() {
 
     START_T=$(date +%s)
 
-    if [ "$CMDS" = 'format-usb' ]; then
-        format_usb "$target_dev" "$MSDOS_GPT"
+    if [ "$FORMAT_USB" ]; then
+        format_usb "$target_dev" "$MSDOS_GPT"  "$USB_FORMAT"
         say_done
         my_exit 0
     fi
@@ -1649,6 +1668,18 @@ validate_clone_persist() {
     [ -n "$CLONE_ROOT" -a -n "$NO_CLONE_ROOT" ] && fatal "Can't both clone and not clone %s"  "$(pqw root)"
 }
 
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+validate_usb_format() {
+    local fstype=$1
+    [ -z "$fstype" ]  && return 0
+
+    which "mkfs.$fstype" &>/dev/null && return 0
+
+    fatal "Don't know how to create a %s filesystem" "$(pqw $fstyle)"
+}
+
 #===== "REAL" WORK STARTS HERE ================================================
 
 
@@ -2178,7 +2209,8 @@ check_target() {
 #
 #------------------------------------------------------------------------------
 format_usb() {
-    dev="/dev/${1#/dev/}"  type=$2
+    dev="/dev/${1#/dev/}"  type=$2  fstype=$3
+
     msg "formating device %s" "$(pq $dev)"
 
     clear_partition "$dev"
@@ -2200,6 +2232,34 @@ format_usb() {
 
     sync
     cmd partprobe $dev
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+makefs_menu() {
+    for type in $USB_FORMAT_LIST; do
+        which "mkfs.$type" &>/dev/null ||continue
+        menu_printf $type "%s filesystem" "$type"
+    done
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+makefs_select() {
+    local var=$1  val
+    eval val=\$$var
+    [ -n "$val" ] && return
+
+    local menu=$(makefs_menu)
+    local cnt=$(count_lines "$menu")
+    case $cnt in
+        0) fatal "No filesystem creation tools were found!"    ;;
+        1) warn  "Only one filesystem creation tool was found" ;;
+    esac
+    local title="Please select the filesystem type"
+    my_select $var "$title" "$menu"
 }
 
 #------------------------------------------------------------------------------
