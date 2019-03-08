@@ -26,12 +26,12 @@ a small fat32 file system for booting via UEFI.
 
 This will destroy any existing information on <usb-device>.  The default
 partitioning scheme is msdos (due to a bug in some Dell BIOSes).  Use
-the  --gpt flag to get gpt partitioning instead.
+the  --gpt flag to use gpt partitioning instead.
 
-  --from="iso-file"    Enter an iso file to use as the source
-  --from="clone"       clone a running live system.
-  --from=clone=<dir>   clone from a mounted live-usb or iso-file.
-  --from=<dev>         copy from a livecd/dvd or live-usb
+  --from="iso-file"     Enter an iso file to use as the source
+  --from="clone"        clone a running live system.
+  --from=clone=<dir>    clone from a mounted live-usb or iso-file.
+  --from=<dev>          copy from a livecd/dvd or live-usb
 
 Options:
   -b --bios-size=<xx>   Size of BIOS boot partition when using encryption
@@ -39,7 +39,11 @@ Options:
                            Use "off" or "no" to disable cheats menu.
                            Use "on" or "yes"  to show cheat menus without asking
                         Otherwise you will be asked.
+  --clone-persist       Clone persistence files
+  --clone-persist=<p>   or pass a parameter: h,home:  clone home
+                                             r,root:  clone root
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
+  -d --defrag-all       Defragment all files on the main partitions using e4defrag
   -E --encrypt          Set up to boot from an encrypted partition
   --encrypt=<flag>      Phasephrase option:
                            ask         Enter the passphrase via the keyboard
@@ -52,6 +56,9 @@ Options:
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   --ext-options=<xx>    Use these options when creating the ext4 filesystem
 
+    --format            Make a data usb formatted to fat32 by default
+    --format=<fs>       Make a data usb formated to the give filesystem
+
   -f --from=<xxx>       The device, cdrom, or file to make the live-usb from
                         Use "clone" to clone the current live system or use
                         clone=<xxx> to clone another live-usb
@@ -61,36 +68,39 @@ Options:
                          ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
                          automount: temporarily disable antiX automounting
-                               all: All of the above (dangerous!)
+                            nofuse: don't use fuseiso to mount iso files
 
-  -- --gui-progress     All remaining args are used as a gui progress bar program
-                        Example: --gui-progress yad --progress --auto-close
-  -g --gpt              Use gpt partitioning instead of msdos
-  -G --graphic-ui       Use the new graphics user interface (default)
-     --gpt-pmbr         Set pmbr_boot disk flag (prevents booting via UEFI)
-  -h --help             Show this usage
-  -i --initrd=<file>    Start with <file> for making encrypt enabled initrd
-  -I --ignore-config    Ignore the configuration file
-  -k --keep-syslinux    Don't replace the syslinux files
-  -L --label=Name       Label ext partition with Name
-  -m --msdos            Use msdos partitioning (default) instead of gpt
-  -n --no-prog-bar      Don't show progress *bar* when copying
-  -N --numeric-ui       Use the legacy numerical user interface
-     --pause            Wait for user input before exit
-     --pause=initrd     Pause after unpacking the initrd.gz file
-     --percent-prog     Show progress percentage but no bar
-  -p --pretend          Don't run commands that affect the usb device
-  -P --progress         Create /var/log/live-usb-maker.progress progress *file*
-  -q --quiet            Print less
-  -R --reset-config     Write a fresh config file with default options
-  -s --size=XX          Percent of usb-device to use (default 100)
-  -S --save-boot        Save original boot directory when updating a live-usb
-  -t --target=<xxx>     The device to make into a new live-usb
-  -u --update           Only update an existing live-usb
-  -v --version          Show version information
-  -V --verbose          Print more, show command outputs
-  -VV --very-verbose    Also show commands
-  -W --write-config     Write a config file preserving current options
+  -- --gui-progress           All remaining args are used as a gui progress bar program
+                              Example: --gui-progress yad --progress --auto-close
+  -g --gpt                    Use gpt partitioning instead of msdos
+  -G --graphic-ui             Use the new graphics user interface (default)
+     --gpt-pmbr               Set pmbr_boot disk flag (prevents booting via UEFI)
+  -h --help                   Show this usage
+  -i --initrd=<file>          Start with <file> for making encrypt enabled initrd
+  -I --ignore-config          Ignore the configuration file
+  -k --keep-syslinux          Don't replace the syslinux files
+  -L --label=Name             Label ext partition with Name
+  -m --msdos                  Use msdos partitioning (default) instead of gpt
+  -n --no-prog-bar            Don't show progress *bar* when copying
+     --no-clone-persist       Don't clone persistence files even if they exist
+     --no-clone-persist=<p>   Or pass a parameter: h,home: don't clone home
+                                                   r,root: don't clone root
+  -N --numeric-ui             Use the legacy numerical user interface
+     --pause                  Wait for user input before exit
+     --pause=initrd           Pause after unpacking the initrd.gz file
+     --percent-prog           Show progress percentage but no bar
+  -p --pretend                Don't run commands that affect the usb device
+  -P --progress               Create /var/log/live-usb-maker.progress progress *file*
+  -q --quiet                  Print less
+  -R --reset-config           Write a fresh config file with default options
+  -s --size=XX                Percent of usb-device to use (default 100)
+  -S --save-boot              Save original boot directory when updating a live-usb
+  -t --target=<xxx>           The device to make into a new live-usb
+  -u --update                 Only update an existing live-usb
+  -v --version                Show version information
+  -V --verbose                Print more, show command outputs
+  -VV --very-verbose          Also show commands
+  -W --write-config           Write a config file preserving current options
 
 Notes:
   - short options stack. Example: -pv is the same as --pretend --verbose
