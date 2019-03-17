@@ -76,7 +76,7 @@ Options:
   -G --graphic-ui             Use the new graphics user interface (default)
      --gpt-pmbr               Set pmbr_boot disk flag (prevents booting via UEFI)
   -h --help                   Show this usage
-  -i --initrd=<file>          Start with <file> for making encrypt enabled initrd
+  -i --initrd=<file>          Update the initrd from using a template-initrd.gz
   -I --ignore-config          Ignore the configuration file
   -k --keep-syslinux          Don't replace the syslinux files
   -L --label=Name             Label ext partition with Name
