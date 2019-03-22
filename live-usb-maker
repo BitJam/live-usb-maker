@@ -51,9 +51,13 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
  CLONE_BDIR_FILES="{vmlinuz,vmlinuz1,initrd.gz,linuxfs}{,.md5}"
 
        UEFI_FILES="[Ee][Ff][Ii] boot/{grub,uefi-mt} version"
+     UEFI_2_FILES="[Ee][Ff][Ii] version"
        BIOS_FILES="[Ee][Ff][Ii] boot/{syslinux,grub,memtest} antiX/{vmlinuz,initrd}* version"
 
         GRUB_CONF="boot/grub/grub.cfg"
+    EFI_GRUB_CONF="boot/grub/config/efi-grub.cfg"
+     DID_EFI_FILE="boot/grub/config/did-efi-grub"
+
            CHEATS=""
      COLOR_SCHEME="high"
     QUESTION_MODE="default"
@@ -101,8 +105,8 @@ ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse"
-   ALL_PAUSE="exit,initrd,copy"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,uuids"
+   ALL_PAUSE="exit,initrd,copy,uuids"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
         PATH="$MY_LIB_DIR/bin:$LIB_DIR/bin:$PATH"
@@ -320,7 +324,7 @@ eval_argument() {
 # Callback routine for command line arguments that don't start with "-"
 #------------------------------------------------------------------------------
 assign_parameter() {
-    local cnt=$1 param=$2
+   local cnt=$1 param=$2
    case $param in
        default) QUESTION_MODE=default          ;;
         expert) QUESTION_MODE=expert           ;;
@@ -357,7 +361,7 @@ main() {
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
     local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR
-    local FORMAT_USB USB_FORMAT
+    local FORMAT_USB USB_FORMAT USING_GRUB_CONFIG_2
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
 
@@ -613,6 +617,13 @@ main() {
     msg $"Will use source %s" "$from_thing $(pq $from_value)"
     show_distro_version "$ISO_DIR" # "$from_value"
 
+    if test -e $ISO_DIR/$EFI_GRUB_CONF; then
+        msg "Found grub config %s"  "$(pq 2.0)"
+        USING_GRUB_CONFIG_2=true
+    else
+        msg "Found grub config %s"  "$(pq 1.0)"
+    fi
+
     local distro_name=$(get_distro_name "$ISO_DIR/version")
     if [ -n "$distro_name" ]; then
         BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
@@ -813,7 +824,11 @@ main() {
     #=========================================================================
 
     if need copy-uefi; then
-        copy_files_spec $ISO_DIR "$UEFI_FILES" "$UEFI_DIR" uefi
+        if using_grub_config_2; then
+            copy_files_spec $ISO_DIR "$UEFI_2_FILES" "$UEFI_DIR" uefi
+        else
+            copy_files_spec $ISO_DIR "$UEFI_FILES" "$UEFI_DIR" uefi
+        fi
         fix_uefi_memtest $UEFI_DIR
     fi
 
@@ -2032,7 +2047,14 @@ do_cheats_grub() {
 # user to be amble to save their  boot parameter selections.
 #------------------------------------------------------------------------------
 do_uuids() {
-    local bios_dir=$1  bios_uuid=$2  grub_cfg=$3  uefi_uuid=$4  uefi_part=$5 main_dir=$6
+    local bios_dir=$1  bios_uuid=$2  efi_grub_cfg=$3  uefi_uuid=$4  uefi_part=$5  main_dir=$6
+
+    # Sanity checks
+    #echo "$1 | $2 | $3 | $4 | $5 | $6"
+    #exit
+
+    pause uuids
+
     local dir
     for dir in $bios_dir $main_dir; do
         [ ${#uefi_uuid} -gt 0 ] || continue
@@ -2046,29 +2068,65 @@ do_uuids() {
         return
     fi
 
-    if ! test -e $grub_cfg; then
+    local base_grub_cfg=$(basename $efi_grub_cfg)
+
+    # Detect the newer grub config
+    if test -e $bios_dir/$EFI_GRUB_CONF; then
+        msg "Using grub config %s" "$(pq 2.0)"
+
+        # Copy over the efi-grub.cfg and signal we have done it
+        cmd mkdir -p $(dirname $efi_grub_cfg)
+        cmd cp "$bios_dir/$EFI_GRUB_CONF" "$efi_grub_cfg"
+        cmd touch "$bios_dir/$DID_EFI_FILE"
+
+        # Replace %UUID% with the bios_uuid in the code
+        cmd sed -i "/^\s*#/! s/%UUID%/$bios_uuid/" $efi_grub_cfg
+
+        # Make sure it worked (check can be bypassed with --force=uuid)
+        force uuid || grep -q "$bios_uuid" $efi_grub_cfg \
+            || warn "Failed to update UUID in %s" "$(pqw $base_grub_cfg)"
+
+
+         if grep -q "^[^#]*%ID_FILE%" $efi_grub_cfg ; then
+            local rand_file=/boot/grub/config/$(random_string).id
+            cmd touch $boot_mp$rand_file
+            cmd sed -i "/^\s*#/! s|%ID_FILE%|$rand_file|" $efi_grub_cfg
+        fi
+
+        return
+    fi
+
+    if ! test -e $efi_grub_cfg; then
         # Could not find <grub.cfg> file
-        pwarn "Could not find %s file" "$(basename $grub_cfg)"
+        pwarn "Could not find %s file on %s" "$base_grub_cfg"  'EFI'
         return
     fi
 
     local new_line="search --no-floppy --set=root --fs-uuid $bios_uuid"
-    if grep -q "search.*--set=root.*" $grub_cfg; then
+    if grep -q "search.*--set=root.*" $efi_grub_cfg; then
         # Replace the line(s) if it/they exists
-        cmd sed -i "/search.*--set=root.*/  s/.*/$new_line/" $grub_cfg \
-            || fatal "sed on %s failed" "$(basename $grub_cfg)"
+        cmd sed -i "/search.*--set=root.*/  s/.*/$new_line/" $efi_grub_cfg \
+            || fatal "sed on %s failed" "$base_grub_cfg"
     else
         # Add the new line before the first menuentry line if not
-        cmd sed -ri "1,/^\s*menuentry/s/(^\s*menuentry)/$new_line\n\n\1/" $grub_cfg \
-            || fatal "sed on %s failed" "$(basename $grub_cfg)"
+        cmd sed -ri "1,/^\s*menuentry/s/(^\s*menuentry)/$new_line\n\n\1/" $efi_grub_cfg \
+            || fatal "sed on %s failed" "$base_grub_cfg"
     fi
 
     # Remove #--esp comment to point memtest back to fat32 partition
-    cmd sed -ri "s/^#-+esp\s*//" $grub_cfg \
-        || fatal "sed on %s failed" "$(basename $grub_cfg)"
+    cmd sed -ri "s/^#-+esp\s*//" $efi_grub_cfg \
+        || fatal "sed on %s failed" "$base_grub_cfg"
 
-    cmd sed -ri "s/(root=\(hd0,)[0-9]\)/\1$uefi_part)/" $grub_cfg \
-        || fatal "sed on %s failed" "$(basename $grub_cfg)"
+    cmd sed -ri "s/(root=\(hd0,)[0-9]\)/\1$uefi_part)/" $efi_grub_cfg \
+        || fatal "sed on %s failed" "$base_grub_cfg"
+}
+
+#------------------------------------------------------------------------------
+# Create a random hex string $cnt * 2 chars long
+#------------------------------------------------------------------------------
+random_string() {
+    local cnt=${1:-16}
+    dd if=/dev/urandom status=none bs=1 count=$cnt | od -An -x | tr -d " "
 }
 
 #------------------------------------------------------------------------------
@@ -2263,9 +2321,10 @@ makefs_select() {
 }
 
 #------------------------------------------------------------------------------
-# Convenience routine to save a little typing
+# Convenience routines to save a little typing
 #------------------------------------------------------------------------------
-encrypt() {  [ "$ENCRYPT" ]; return $?; }
+encrypt()             {  [ "$ENCRYPT" ];             return $?; }
+using_grub_config_2() {  [ "$USING_GRUB_CONFIG_2" ]; return $?; }
 
 #------------------------------------------------------------------------------
 # Make sure we have enough left over space on a partition.  Can generate
@@ -2372,6 +2431,7 @@ $(config_header "$file" "$ME" "$VERSION" "$VERSION_DATE")
  CLONE_BDIR_FILES="$CLONE_BDIR_FILES"
 
        UEFI_FILES="$UEFI_FILES"
+     UEFI_2_FILES="$UEFI_2_FILES"
        BIOS_FILES="$BIOS_FILES"
 
         GRUB_CONF="$GRUB_CONF"
