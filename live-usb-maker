@@ -2465,19 +2465,27 @@ my_exit() {
 # This may be over-kill.  Seems reliable though ...
 #------------------------------------------------------------------------------
 umount_work_dir() {
-    local dir=${1:-$WORK_DIR}
-    [ -n "$dir" ] || return
+    local work_dir=${1:-$WORK_DIR}
+    [ -n "$work_dir" ] || return
 
     sync; sync
-    is_mountpoint "$dir" || return 0
+    is_mountpoint "$work_dir" || return 0
 
-    local try
-    for try in $(seq 1 30); do
-        umount --recursive "$dir"  2>/dev/null
-        is_mountpoint "$dir" || return 0
+    local try fail
+    for try in $(seq 1 5); do
+        fail=
+        while read dir; do
+            umount --recursive "$dir"  2>/dev/null
+            is_mountpoint $dir && fail=true
+        done<<Umount_Dirs
+$(mount | awk '{print $3}' | grep "^$work_dir/." | tac)
+Umount_Dirs
+
+        [ -z "$fail" ] && break
         sleep .1
     done
-    rmdir "$dir"
+    umount --recursive "$work_dir"
+    rmdir "$work_dir"
 }
 
 #------------------------------------------------------------------------------
