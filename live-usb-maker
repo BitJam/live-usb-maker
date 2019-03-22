@@ -1403,8 +1403,12 @@ guess_partitioning() {
                *)  fatal "This does not look like a live-usb device (%s)" $fs_type;;
     esac
 
+    # Get the type of partitioning
+    MSDOS_GPT=$(parted --script $drive unit MiB print | sed -n "s/^Partition Table: *//p")
+    msg "Found %s partitioning" "$(pq $MSDOS_GPT)"
     encrypt && shout $"Assuming this is an encrypted live-usb"
     setup_devices $drive
+
 }
 
 #------------------------------------------------------------------------------
