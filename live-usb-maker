@@ -195,7 +195,7 @@ Options:
   -G --graphic-ui             Use the new graphics user interface (default)
      --gpt-pmbr               Set pmbr_boot disk flag (prevents booting via UEFI)
   -h --help                   Show this usage
-  -i --initrd=<file>          Start with <file> for making encrypt enabled initrd
+  -i --initrd=<file>          Update the initrd from using a template-initrd.gz
   -I --ignore-config          Ignore the configuration file
   -k --keep-syslinux          Don't replace the syslinux files
   -L --label=Name             Label ext partition with Name
@@ -282,6 +282,7 @@ eval_argument() {
             -gpt-pmbr)  MSDOS_GPT="gpt" ; DO_PMBR=true   ;;
       -gui-progress|-)  END_CMDLINE=true                 ;;
             -initrd|i)  INITRD_FILE=$val                 ;;
+            -initrd=*)  INITRD_FILE=$val                 ;;
      -keep-syslinux|k)  KEEP_SYSLINUX=true               ;;
              -label|L)  BIOS_LABEL=$val                  ;;
              -label=*)  BIOS_LABEL=$val                  ;;
@@ -399,7 +400,10 @@ main() {
 
     validate_clone_persist "$CLONE_PERSIST" "$NO_CLONE_PERSIST"
 
-    [ -n "$FORMAT_USB" -a -n "$CMD_CMDS" ] && fatal "Cannot combine %s with any commands" "--format"
+    # Simple sanity check
+    [ -n "$FORMAT_USB"  -a -n "$CMD_CMDS"    ] && fatal "Cannot combine %s with any commands"  "--format"
+    [ -n "$INITRD_FILE" -a -n "$CMD_CMDS"    ] && fatal "Cannot combine %s with any commands"  "--initrd"
+    [ -n "$FORMAT_USB"  -a -n "$INITRD_FILE" ] && fatal "Cannot combine %s with %s" "--format" "--initrd"
 
     validate_usb_format "$USB_FORMAT"
 
@@ -423,10 +427,12 @@ main() {
     if [ "$FORMAT_USB" ]; then
         CMDS='format-usb'
         CMD_CMDS="$CMDS"
+    elif [ "$INITRD_FILE" ]; then
+        CMDS='update-initrd'
+        CMD_CMDS="$CMDS"
+        test -e "$INITRD_FILE" || fatal "Could not find initrd file %s" "$(pqw $INITRD_FILE)"
+        test -r "$INITRD_FILE" || fatal "Could not read initrd file %s" "$(pqw $INITRD_FILE)"
     fi
-
-    [ -n "$INITRD_FILE" ] && ! test -r "$INITRD_FILE" \
-        && fatal "Could not find initrd file %s" "$(pqw $INITRD_FILE)"
 
     local percent_size=${CMD_SIZE%%%}
     case $percent_size in
@@ -445,10 +451,16 @@ main() {
     q_mode gui && PROGRESS=true
     [ "$PROGRESS" ] && PROG_FILE=$THE_PROG_FILE
 
-    # Make sure we have a --from and a --target
+    # Make sure we have a --from (if needed) and a --target
     if q_mode gui; then
-        [ "$CMDS"  != "partition-clear" ] && fatal_z "$FROM" "No --from was given while in %s mode" gui
-       fatal_z "$TARGET"  "No --target was given while in %s mode" gui
+
+        case $CMDS in
+            partition-clear) ;;
+                 format-usb) ;;
+              update-initrd) ;;
+                          *) fatal_z "$FROM" "No --from was given while in %s mode" gui ;;
+        esac
+        fatal_z "$TARGET"  "No --target was given while in %s mode" gui
     fi
 
     shout_title $"Starting %s" "$ME"
@@ -685,7 +697,7 @@ main() {
         local linuxfs_full=$ISO_DIR/$DEF_BOOT_DIR/$LINUXFS_NAME
         my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
 
-        local initrd_file=${INITRD_FILE:-$ISO_DIR/$DEF_BOOT_DIR/initrd.gz}
+        local initrd_file=$ISO_DIR/$DEF_BOOT_DIR/initrd.gz
         start_initrd_encryption "$initrd_file" "$INITRD_DIR" "$LINUX_DIR"
         pause initrd
         umount $LINUX_DIR ; rmdir $LINUX_DIR
@@ -697,10 +709,13 @@ main() {
         select_passphrase_type PASS_PHRASE_TYPE
     fi
 
+    # FIXME: add sanity checks for "uuids" and for update-initrd
     if [ -n "$FORMAT_USB" ]; then
         q_mode gui && : ${USB_FORMAT:=vfat}
         makefs_select USB_FORMAT
         msg "Will create a %s filesystem" "$(pq $USB_FORMAT)"
+    elif [ -n "$INITRD_FILE" ]; then
+        msg "Will update the initrd from file %s" "$(pq $INITRD_FILE)"
     fi
 
     #=========================================================================
@@ -812,6 +827,12 @@ main() {
     encrypt && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
 
     display_df_output $mp_list
+
+    if [ "$INITRD_FILE" ]; then
+        update_initrd  "$MAIN_DIR"  "$INITRD_FILE"
+        say_done
+        my_exit 0
+    fi
 
     #======== Encryption =====================================================
     if encrypt && need copy-bios; then
@@ -1692,7 +1713,7 @@ validate_usb_format() {
 
     which "mkfs.$fstype" &>/dev/null && return 0
 
-    fatal "Don't know how to create a %s filesystem" "$(pqw $fstyle)"
+    fatal "Don't know how to create a %s filesystem" "$(pqw $fstype)"
 }
 
 #===== "REAL" WORK STARTS HERE ================================================
@@ -2238,6 +2259,63 @@ write_random_seed() {
     cmd chmod 600 $file
 }
 
+#------------------------------------------------------------------------------
+# Change the initrd file to the template initrd selected by the user.
+#------------------------------------------------------------------------------
+update_initrd() {
+    local main_dir=$1  initrd_template=$2
+
+    need_prog copy-initrd-programs unpack-initrd copy-initrd-modules vmlinuz-version
+
+    local initrd_path=$DEF_BOOT_DIR/initrd.gz
+    local initrd_file=$main_dir/$initrd_path
+    local linuxfs_path=$DEF_BOOT_DIR/linuxfs
+    local linuxfs_file=$main_dir/$linuxfs_path
+    local vmlinuz_path=$DEF_BOOT_DIR/vmlinuz
+    local vmlinuz_file=$main_dir/$vmlinuz_path
+
+    pause initrd
+
+    test -e $initrd_file  || fatal "Could not find %s file %s on main partition"  "$(pqw initrd)" "$(pqw $initrd_path)"
+    test -e $linuxfs_file || fatal "Could not find %s file %s on main partition"  "$(pqw linuxfs)" "$(pqw $linuxfs_path)"
+    test -e $vmlinuz_file || fatal "Could not find %s file %s on main partition"  "$(pqw vmlinuz)" "$(pqw $vmlinuz_path)"
+
+    local kernel=$(vmlinuz-version  --tabs --noheadings "$vmlinuz_file" | cut -f2)
+    fatal_z "$kernel" "Could not determine the kernel version"
+    msg "Found kernel %s" "$(pq $kernel)"
+
+    local linux_dir=$LINUX_DIR  initrd_dir=$WORK_DIR/initrd
+    mkdir -p $linux_dir  $initrd_dir || fatal "mkdir failed"
+
+    my_mount "$linuxfs_file" "$linux_dir" -t squashfs -o loop,ro
+
+    cmd unpack-initrd --from "$initrd_template" --dir "$initrd_dir" || fatal "Unpack failed"
+    copy_initrd_release "$linux_dir"  "$initrd_dir" 'always'
+    cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir --clear
+    cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir
+    cmd copy-initrd-modules --count --quiet --from=$linux_dir --to=$initrd_dir --kernel=$kernel
+
+    pause initrd
+
+    cmd unpack-initrd --from "$initrd_file" --dir "$initrd_dir" --repack || fatal "Repack failed"
+    local md5_sum=$(cd $(dirname $initrd_file) && md5sum $(basename $initrd_file))
+    cmd write_file "$initrd_file".md5 "$md5_sum"
+}
+
+#------------------------------------------------------------------------------
+# Copy the initrd-release file (if needed)
+#------------------------------------------------------------------------------
+copy_initrd_release() {
+    local from=$1  to=$2  always=$3
+    local from_release=$from/etc/initrd-release
+    local to_release=$to/etc/initrd-release
+
+    [ "$always" -o ! -e "$to_release" ] || return
+    test -e "$from_release"             || return
+    always_cmd cp "$from_release" "$to_release"
+}
+
+
 #===== Here come the utilities! ===============================================
 
 #------------------------------------------------------------------------------
@@ -2269,6 +2347,13 @@ check_target() {
 format_usb() {
     dev="/dev/${1#/dev/}"  type=$2  fstype=$3
 
+    local part_fstype
+    case $fstype in
+        ext[234]) part_fstype=$fstype ;;
+            vfat) part_fstype=fat32   ;;
+            ntfs) part_fstype=NTFS    ;;
+    esac
+
     msg "formating device %s" "$(pq $dev)"
 
     clear_partition "$dev"
@@ -2280,13 +2365,21 @@ format_usb() {
 
     local total_size=$(parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
     clear_filesystem $dev 1
-    cmd $preamb mkpart primary fat32 1 $((total_size - 1)) || fatal "$err_msg" bios
+    cmd $preamb mkpart primary $part_fstype 1 $((total_size - 1)) || fatal "$err_msg" bios
 
     sync
-    msg "Make %s filesystem" "$(pq fat32)"
+
+    local args  label="USB-DATA"
+    case $fstype in
+        vfat|exfat) args="-n $label" ;;
+          ext[234]) args="-L $label" ;;
+              ntfs) args="--fast -L $label" ;;
+    esac
+
+    msg "Make %s filesystem" "$(pq $fstype)"
     local part1=$(get_partition $dev 1)
-    cmd mkfs.vfat -n 'USB-DATA' $part1 \
-        || fatal "Could not make %s file system on %s" "fat32" "$part1"
+    cmd mkfs.$fstype $args $part1 \
+        || fatal "Could not make %s file system on %s" "$fstype" "$part1"
 
     sync
     cmd partprobe $dev
