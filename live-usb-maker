@@ -75,7 +75,7 @@ EXT_OVERHEAD_FORM="* 26 / 10000 - 2"
    PP_RAND_SOURCE="/dev/urandom"
 
   GRAPHICAL_MENUS="true"
-  AUTOMOUNT_DELAY="1"
+  AUTOMOUNT_DELAY="2"
 #== END_CONFIG
 
      MAIN_FS_TYPE="ext4"
@@ -185,7 +185,7 @@ Options:
                                usb: Ignore usb/removable check
                          ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
-                         automount: temporarily disable antiX automounting
+                         automount: don't temporarily disable antiX automounting
                             nofuse: don't use fuseiso to mount iso files
 
   -- --gui-progress           All remaining args are used as a gui progress bar program
@@ -743,7 +743,7 @@ main() {
     # Add last lines of dmesg output to log file on fatal errors
     ADD_DMESG_TO_FATAL=true
 
-    force automount && suspend_automount
+    force automount || suspend_automount
 
     START_T=$(date +%s)
 
@@ -758,8 +758,9 @@ main() {
 
     # msg "Unmount new partitions if needed ..."
 
+    msg $"Wait for automounting ..."
     sync; sync
-    #sleep ${AUTOMOUNT_DELAY:-2}
+    sleep ${AUTOMOUNT_DELAY:-2}
 
     # Make sure the new target partitions get unmounted if they were auto-mounted
     umount_all $target_dev
