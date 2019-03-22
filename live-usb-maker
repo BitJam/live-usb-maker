@@ -101,7 +101,7 @@ BACKUP_WORDS_FILE="/usr/share/dict/words"
 
     EXT4_NO_64BIT="-O ^64bit"
 
-ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main defrag copy-bios copy-uefi"
+ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main copy-bios copy-uefi"
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
@@ -162,7 +162,6 @@ Options:
   --clone-persist=<p>   or pass a parameter: h,home:  clone home
                                              r,root:  clone root
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
-  -d --defrag-all       Defragment all files on the main partitions using e4defrag
   -E --encrypt          Set up to boot from an encrypted partition
   --encrypt=<flag>      Phasephrase option:
                            ask         Enter the passphrase via the keyboard
@@ -265,7 +264,6 @@ eval_argument() {
      -clone-persist=*)  CLONE_PERSIST=$val               ;;
              -color|C)  COLOR_SCHEME=$val                ;;
              -color=*)  COLOR_SCHEME=$val                ;;
-        -defrag-all|d)  DEFRAG_ALL=true                  ;;
            -encrypt|E)  ENCRYPT=true                     ;;
            -encrypt=*)  ENCRYPT=true
                         PASS_PHRASE_TYPE=$val            ;;
@@ -358,7 +356,7 @@ takes_param() {
 # The main routine.  Called from the very bottom of this script.
 #------------------------------------------------------------------------------
 main() {
-    local SHIFT SHIFT_2 SHORT_STACK="bcCdDeEfFgGhIkLmnNpPqRsStuvVW"
+    local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFgGhIkLmnNpPqRsStuvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
     local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR
@@ -857,9 +855,10 @@ main() {
         do_copy_main $ISO_DIR $MAIN_DIR "$@"
         do_made_by $BIOS_DIR "$MADE_BY_FILE"
         write_random_seed $MAIN_DIR/$DEF_BOOT_DIR/$SEED_FNAME
+        test -e "$MAIN_DIR/.disk" && cmd rm -rf "$MAIN_DIR/.disk"
     fi
 
-    need defrag && do_defrag "$MAIN_DIR" "$DEFRAG_ALL"
+    #need defrag && do_defrag "$MAIN_DIR" "$DEFRAG_ALL"
 
     # if need_q copy-bios || need_q copy-main; then
     #     : ${ISO_BOOT_DIR:=$DEF_BOOT_DIR}
