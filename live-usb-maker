@@ -1221,6 +1221,11 @@ select_usb_src() {
 select_target_device() {
     local var=$1  live_dev=$2  from_dev=${3#clone=}
 
+    if is_mountpoint "$from_dev"; then
+        from_dev=$(df $(readlink -f "$from_dev") | tail -n1 | awk '{print $1}')
+        msg "From device %s" "$(pq $from_dev)"
+    fi
+
     local menu=$(cli_drive_menu "$live_dev" "$from_dev")
     local dev cnt=$(count_lines "$menu")
 
