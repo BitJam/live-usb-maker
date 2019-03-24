@@ -1861,7 +1861,7 @@ do_copy_main() {
         copy_with_progress "$from" "$to" "$err_msg" "$@"
 
     elif q_mode gui || [ "$NO_PROGRESS_BAR" ]; then
-        cmd cp $CP_ARGS $from/* $to/ || fatal "$err_msg"
+        copy_with_progress "$from" "$to" "$err_msg"
 
     elif [ "$PERCENT_PROG" ]; then
         copy_with_progress "$from" "$to" "$err_msg" percent_progress
