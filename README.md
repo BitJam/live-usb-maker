@@ -43,7 +43,6 @@ Options:
   --clone-persist=<p>   or pass a parameter: h,home:  clone home
                                              r,root:  clone root
   -C --color=<xxx>      Set color scheme to off|low|low2|bw|dark|high
-  -d --defrag-all       Defragment all files on the main partitions using e4defrag
   -E --encrypt          Set up to boot from an encrypted partition
   --encrypt=<flag>      Phasephrase option:
                            ask         Enter the passphrase via the keyboard
@@ -67,7 +66,7 @@ Options:
                                usb: Ignore usb/removable check
                          ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
-                         automount: temporarily disable antiX automounting
+                         automount: don't temporarily disable antiX automounting
                             nofuse: don't use fuseiso to mount iso files
 
   -- --gui-progress           All remaining args are used as a gui progress bar program
