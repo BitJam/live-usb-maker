@@ -101,7 +101,7 @@ ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi
 ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse"
    ALL_PAUSE="exit,initrd,copy"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -175,6 +175,7 @@ Options:
                             makefs: Make the ext4 filesystem even if one exists
                          automount: temporarily disable antiX automounting
                             nofuse: don't use fuseiso to mount iso files
+                              fuse: only use fuse to mount iso files
 
   -- --gui-progress     All remaining args are used as a gui progress bar program
                         Example: --gui-progress yad --progress --auto-close
@@ -346,6 +347,7 @@ main() {
     # Let non-root users get usage.  Need to get --ignore-config early.
     read_early_params "$@"
 
+    force fuse && force nofuse && fatal "Cannot force both %s and %s" "$(pqw fuse)" "$(pqw nofuse)"
     need_root
     EXIT_NUM=100
 
