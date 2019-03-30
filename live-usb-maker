@@ -764,7 +764,7 @@ main() {
 
     msg $"Wait for automounting ..."
     sync; sync
-    sleep ${AUTOMOUNT_DELAY:-2}
+    sleep ${AUTOMOUNT_DELAY:-1}
 
     # Make sure the new target partitions get unmounted if they were auto-mounted
     umount_all $target_dev
