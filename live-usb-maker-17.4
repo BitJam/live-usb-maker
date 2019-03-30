@@ -97,11 +97,11 @@ BACKUP_WORDS_FILE="/usr/share/dict/words"
 
     EXT4_NO_64BIT="-O ^64bit"
 
-ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main copy-bios copy-uefi"
-ORDERED_CMDS="$ORDERED_CMDS uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
+ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main check-usb-md5 copy-bios"
+ORDERED_CMDS="$ORDERED_CMDS copy-uefi uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,nomd5"
    ALL_PAUSE="exit,initrd,copy"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -171,6 +171,7 @@ Options:
 
   -F --force=<xxx>      Force the options specfied:
                                usb: Ignore usb/removable check
+                             nomd5: Don't check md5 of files copied to live-usb
                          ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
                          automount: temporarily disable antiX automounting
@@ -280,7 +281,7 @@ eval_argument() {
               -size=*)  CMD_SIZE=${val%\%}               ;;
             -target|t)  TARGET=$val                      ;;
             -target=*)  TARGET=$val                      ;;
-            -update|u)  CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }copy-main"
+            -update|u)  CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }copy-main check-usb-md5"
                         SAVE_BOOT=true
                         KEEP_SYSLINUX=true               ;;
            -verbose|V)  VERBOSITY=$((VERBOSITY + 1))     ;;
@@ -776,6 +777,8 @@ main() {
         write_random_seed $MAIN_DIR/$DEF_BOOT_DIR/$SEED_FNAME
     fi
 
+    ! force nomd5 && have_usb_md5 "$MAIN_DIR" && need check-usb-md5 && check_usb_md5 "$MAIN_DIR"
+
     # need defrag && do_defrag "$MAIN_DIR" "$DEFRAG_ALL"
 
     # if need_q copy-bios || need_q copy-main; then
@@ -1077,7 +1080,8 @@ select_overall_mode() {
             uuids|install) cmd_val=$ans                              ;;
                    cheats) cmd_val=$ans ; : ${CHEATS:=yes}           ;;
                     clear) cmd_val="partition-clear"                 ;;
-                   update) cmd_val="copy-main" ; SAVE_BOOT=true      ;;
+                   update) cmd_val="copy-main check-usb-md5"
+                           SAVE_BOOT=true                            ;;
                         *) internal_error select_overall_mode "$ans" ;;
     esac
 
@@ -1654,6 +1658,43 @@ do_copy_main() {
 
     sync ; sync
     pause copy
+}
+
+#------------------------------------------------------------------------------
+# See if there are .md5 files under the given directory
+#------------------------------------------------------------------------------
+have_usb_md5() {
+    local dir=$1
+    [ -n "$(find $dir -maxdepth 3 -name "*.md5" -printf ".")" ]
+    return $?
+}
+
+#------------------------------------------------------------------------------
+# Check the integrity of all files listed in .md5 files
+#------------------------------------------------------------------------------
+check_usb_md5() {
+    local top_dir=$1
+    local md5_file  failed
+    while read md5_file; do
+        local fname=$(basename "$md5_file")
+        local name=${fname%.md5}
+        local dir=$(dirname "$md5_file")
+        msg "check md5 for %s" "$(pq "$name")"
+        (cd $dir && cmd md5sum -c "$fname") && continue
+        warn "MD5 CHECK FAILED FOR %s" "$(pqw $name)"
+        failed=true
+    done << MD5_Files
+$(find "$top_dir" -maxdepth 3 -name "*.md5")
+MD5_Files
+
+    [ -z "$failed" ] && return
+
+    echo
+
+    yes_NO_fatal "nomd5"                         \
+        "Do you want to continue anway?"         \
+        "Use %s to always ignore this warning"   \
+        "At least one file failed the md5 check"
 }
 
 #------------------------------------------------------------------------------
