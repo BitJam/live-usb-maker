@@ -64,10 +64,12 @@ Options:
 
   -F --force=<xxx>      Force the options specfied:
                                usb: Ignore usb/removable check
+                             nomd5: Don't check md5 of files copied to live-usb
                          ultra-fit: don't warn about SanDisk utra-fit devices
                             makefs: Make the ext4 filesystem even if one exists
                          automount: don't temporarily disable antiX automounting
                             nofuse: don't use fuseiso to mount iso files
+                              fuse: only use fuseiso to mount iso files
 
   -- --gui-progress           All remaining args are used as a gui progress bar program
                               Example: --gui-progress yad --progress --auto-close
