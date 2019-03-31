@@ -1283,7 +1283,8 @@ verify_sizes() {
     # Get total size of target live-usb device
     local total_size=$(parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
 
-    local main_needed=$(du_ap_size_spec $dir "*")
+    # Note du will fail when fuseiso is used and there are large files
+    local main_needed=${XORRISO_SIZE:-$(du_ap_size_spec $dir "*")}
     local uefi_needed=$(du_ap_size_spec $dir "$UEFI_FILES")
     local bios_needed=$(du_ap_size_spec $dir "$BIOS_FILES")
 
