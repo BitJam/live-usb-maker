@@ -105,7 +105,7 @@ ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi
 ORDERED_CMDS="$ORDERED_CMDS copy-uefi uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy"
    ALL_PAUSE="exit,initrd,copy,uuids"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
