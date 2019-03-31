@@ -1894,7 +1894,7 @@ do_copy_main() {
 #------------------------------------------------------------------------------
 have_usb_md5() {
     local dir=$1
-    [ -n "$(find $dir -maxdepth 3 -name "*.md5" -printf ".")" ]
+    [ -n "$(find $dir -maxdepth 4 -name "*.md5" -printf ".")" ]
     return $?
 }
 
@@ -1909,11 +1909,18 @@ check_usb_md5() {
         local name=${fname%.md5}
         local dir=$(dirname "$md5_file")
         msg "check md5 for %s" "$(pq "$name")"
-        (cd $dir && cmd md5sum -c "$fname") && continue
+
+        # Workaround for bug in live-remaster created md5 file
+        # Thanks fehlix!
+        case $name in
+            linuxfs) (cd $dir && cmd md5sum -c "$fname" < "$name" ) && continue ;;
+                  *) (cd $dir && cmd md5sum -c "$fname"           ) && continue ;;
+        esac
+
         warn "MD5 CHECK FAILED FOR %s" "$(pqw $name)"
         failed=true
     done << MD5_Files
-$(find "$top_dir" -maxdepth 3 -name "*.md5")
+$(find "$top_dir" -maxdepth 4 -name "*.md5")
 MD5_Files
 
     [ -z "$failed" ] && return
