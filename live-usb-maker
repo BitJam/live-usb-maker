@@ -1902,7 +1902,7 @@ have_usb_md5() {
 # Check the integrity of all files listed in .md5 files
 #------------------------------------------------------------------------------
 check_usb_md5() {
-    local top_dir=$1
+    local top_dir=$1  ADD_DMESG_TO_FATAL=
     local md5_file  failed
     while read md5_file; do
         local fname=$(basename "$md5_file")
