@@ -1953,7 +1953,7 @@ fix_our_md5() {
     esac
 
     msg "Fix md5 file format in %s" "$(pqw $fname)"
-    cmd sed -i "s/ .*\|$/  $name/" "$md5_file" ;;
+    cmd sed -i "s/ .*\|$/  $name/" "$md5_file"
 }
 
 #------------------------------------------------------------------------------
