@@ -1680,19 +1680,22 @@ check_usb_md5() {
         local fname=$(basename "$md5_file")
         local name=${fname%.md5}
         local dir=$(dirname "$md5_file")
-        msg "check md5 for %s" "$(pq "$name")"
 
-        # Workaround for bug in live-remaster created md5 file
-        # Thanks fehlix!
         case $name in
-            linuxfs) (cd $dir && cmd md5sum -c "$fname" < "$name" ) && continue ;;
-                  *) (cd $dir && cmd md5sum -c "$fname"           ) && continue ;;
+            linuxfs|initrd.gz|vmlinuz)  fix_our_md5 "$md5_file" ;;
         esac
 
+        msg "check md5 for %s" "$(pq "$name")"
+        (cd $dir && cmd md5sum -c "$fname") && continue
+
         warn "MD5 CHECK FAILED FOR %s" "$(pqw $name)"
-        failed=true
+
+        # Only error out if it is one of our files
+        case $name in
+            linuxfs|initrd.gz|vmlinuz) failed=true ;;
+        esac
     done << MD5_Files
-$(find "$top_dir" -maxdepth 4 -name "*.md5")
+$(find "$top_dir" -maxdepth 4 -name "*.md5" | sort)
 MD5_Files
 
     [ -z "$failed" ] && return
@@ -1703,6 +1706,26 @@ MD5_Files
         "Do you want to continue anway?"         \
         "Use %s to always ignore this warning"   \
         "At least one file failed the md5 check"
+}
+
+#------------------------------------------------------------------------------
+# Fix the format of our own .md5 files
+#------------------------------------------------------------------------------
+fix_our_md5() {
+    local md5_file=$1 dir=$(dirname "$1")  fname=$(basename "$1")
+
+    local name=${fname%.md5}
+    test -f "$dir/$name" || return 0
+
+    local file=$(awk '{print $2}' "$md5_file")
+    local base=$(basename "$file")
+
+    case $file in
+        $name) return ;;
+    esac
+
+    msg "Fix md5 file format in %s" "$(pqw $fname)"
+    cmd sed -i "s/ .*\|$/  $name/" "$md5_file" ;;
 }
 
 #------------------------------------------------------------------------------
