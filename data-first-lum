@@ -405,14 +405,7 @@ main() {
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
 
-    validate_data_first "$DATA_FIRST"
-
-    # Only one size designation allowed
-    if [ -n "$DATA_FIRST_FS" ]; then
-        [ -n "$DATA_FIRST_SIZE" -a -n "$CMD_SIZE" ] \
-            && fatal "Cannot combine %s with %s" "$(pqw --data-first=size)" "$(pqw --size)"
-        : ${CMD_SIZE:=$((100 - DATA_FIRST_SIZE))}
-    fi
+    validate_data_first CMD_SIZE "$DATA_FIRST"
 
     validate_clone_persist "$CLONE_PERSIST" "$NO_CLONE_PERSIST"
 
@@ -825,7 +818,7 @@ main() {
 
         encrypt_partition $MAIN_DEV "$LUKS_NAME" "$phrase"
         if [ "$DATA_FIRST" ]; then
-            need makefs-data && do_makefs_ext 
+            need makefs-data && do_makefs_ext
         fi
 
         need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
@@ -1779,28 +1772,47 @@ validate_clone_persist() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Validate and process --data-first value
+# Make sure we can make the file system and make sure one and only one size
+# was give either --data-first=XX% or --size=YY%
 #------------------------------------------------------------------------------
 validate_data_first() {
-    local data_first=$1  param
+    local size_var=$1  data_first=$2
 
     data_first || return
 
-    for param in ${data_first/,/ /}; do
-        case $param in
-                "")                       ;;
-            [0-9]*)  DATA_FIRST_SIZE=${param%%%} ;;
-                 *)  DATA_FIRST_FS=$param ;;
-        esac
+    eval local size_val=\$$size_var
 
+    # Extract fs-type and size
+    local param data_size
+    for param in ${data_first//,/ }; do
+        case $param in
+                "")                         ;;
+            [0-9]*)  data_size=${param%%%}  ;;
+                 *)  DATA_FIRST_FS=$param   ;;
+        esac
     done
-    case $DATA_FIRST_SIZE in
+
+    # Validate the size (we already stripped off the "%"
+    case $data_size in
         [0-9]|[0-9][0-9]) ;;
-                       *) fatal "Invalide %s size specification %s" \
-                           "$(pqw --data-first)" "$(pqw $DATA_FIRST_SIZE)" ;;
+        *) fatal "Invalid %s size specification %s" "$(pqw --data-first)" "$(pqw $data_size)" ;;
     esac
 
+    fatal_z "$size_val$data_size" "A size must be specified to use the %s option" "$(pqw --data-first)"
+
+    # Maye sure we can create the file system type requested
     validate_fs_type "${DATA_FIRST_FS:=vfat}"
+
+    # Cannot specify the size in two different ways!
+    [ -n "$data_size" -a -n "$size_val" ] \
+        && fatal "Cannot combine %s with %s" "$(pqw --data-first=size)" "$(pqw --size)"
+
+    # if
+    : ${size_val:=$((100 - data_size))}
+
+    eval $size_var=\$size_val
+
 }
 
 #------------------------------------------------------------------------------
@@ -2582,7 +2594,7 @@ format_usb() {
     sync
 
     cmd partprobe $dev
-    
+
     local part=$(get_partition $dev 1)
 
     make_fs_dev $part $fstype "USB-DATA"
