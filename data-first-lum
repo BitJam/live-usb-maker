@@ -1339,18 +1339,20 @@ verify_sizes() {
         local min_percent=$((1 + 100 * (main_needed2 + uefi_val + bios_val + MAIN_MARGIN + UEFI_MARGIN + BIOS_MARGIN)
             / total_size))
 
+        local data_size=0
+        if data_first; then
+            data_size=$total_extra
+            total_extra=0
+            alloc_val=$total_size
+        fi
+
         log_it_q echo
         # Table headers for sizes of: entire drive, [bios partition], main partition, uefi partition
-        if [ $bios_val -gt 0 ]; then
             log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
+                               $"data partition"  "$data_size"  "0"              "$data_size"    \
                                $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
                                $"bios partition"  "$bios_val"   "$bios_needed"   "$bios_extra"   \
                                $"uefi partition"  "$uefi_val"   "$uefi_needed"   "$uefi_extra"
-        else
-            log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
-                               $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
-                               $"uefi partition"  "$uefi_val"   "$uefi_needed"   "$uefi_extra"
-        fi
         echo >>$LOG_FILE
 
         check_size main $main_extra $MAIN_MARGIN warn
