@@ -2387,7 +2387,7 @@ do_install_bootloader() {
     local fname
     case $type in
           gpt) fname=gptmbr.bin ;;
-        msdos) fname=mbr.bin    
+        msdos) fname=mbr.bin
                data_first && fname=altmbr.bin  ;;
             *) fatal "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
                ;;
