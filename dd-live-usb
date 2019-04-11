@@ -189,6 +189,7 @@ main() {
         cli_get_filename FROM $"Please enter the name of the iso file" "$ISO_FILE_DIR"
     fi
 
+    FROM=$(readlink -f "$FROM")
     check_is_file "$FROM"
 
     local from_size=$(du_size "$FROM")
