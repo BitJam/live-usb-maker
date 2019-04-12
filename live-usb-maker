@@ -101,8 +101,9 @@ BACKUP_WORDS_FILE="/usr/share/dict/words"
 
     EXT4_NO_64BIT="-O ^64bit"
 
-ORDERED_CMDS="partition-clear partition-make makefs-main makefs-bios makefs-uefi copy-main check-usb-md5 copy-bios"
-ORDERED_CMDS="$ORDERED_CMDS copy-uefi uuids cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
+ORDERED_CMDS="partition-clear partition-make makefs-data makefs-main makefs-bios makefs-uefi"
+ORDERED_CMDS="$ORDERED_CMDS copy-main check-usb-md5 copy-bios copy-uefi uuids"
+ORDERED_CMDS="$ORDERED_CMDS cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
    ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy"
@@ -173,6 +174,9 @@ Options:
 
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   --ext-options=<xx>    Use these options when creating the ext4 filesystem
+  --data-first          Place a data partition first on the live-usb
+  --data-first=<str>    Specify the file system and or the size (in percent)
+
 
     --format            Make a data usb formatted to fat32 by default
     --format=<fs>       Make a data usb formated to the give filesystem
@@ -273,6 +277,8 @@ eval_argument() {
          -ext-options)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
           -esp-size=*)  UEFI_SIZE=$val                   ;;
+          -data-first)  DATA_FIRST=fat32                 ;;
+        -data-first=*)  DATA_FIRST=$val                  ;;
               -format)  FORMAT_USB=true                  ;;
             -format=*)  FORMAT_USB=true; USB_FORMAT=$val ;;
               -from|f)  FROM=$val                        ;;
@@ -361,7 +367,7 @@ main() {
     local SHIFT SHIFT_2 SHORT_STACK="bcCDeEfFgGhIkLmnNpPqRsStuvVW"
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
-    local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR
+    local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR  TOTAL_SIZE
     local FORMAT_USB USB_FORMAT USING_GRUB_CONFIG_2
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
@@ -399,6 +405,8 @@ main() {
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
 
+    validate_data_first CMD_SIZE "$DATA_FIRST"
+
     validate_clone_persist "$CLONE_PERSIST" "$NO_CLONE_PERSIST"
 
     # Simple sanity check
@@ -406,7 +414,7 @@ main() {
     [ -n "$INITRD_FILE" -a -n "$CMD_CMDS"    ] && fatal "Cannot combine %s with any commands"  "--initrd"
     [ -n "$FORMAT_USB"  -a -n "$INITRD_FILE" ] && fatal "Cannot combine %s with %s" "--format" "--initrd"
 
-    validate_usb_format "$USB_FORMAT"
+    validate_fs_type "$USB_FORMAT"
 
     case $VERBOSITY in
         0) ;;
@@ -494,6 +502,7 @@ main() {
     BIOS_DIR=$WORK_DIR/bios
     MAIN_DIR=$WORK_DIR/main
     UEFI_DIR=$WORK_DIR/uefi
+    DATA_DIR=$WORK_DIR/data
     INITRD_DIR=$WORK_DIR/initrd
     LINUX_DIR=$WORK_DIR/linux
     MNT_DIR=$WORK_DIR/live-dev
@@ -532,6 +541,12 @@ main() {
     fi
 
     msg $"Will use target device %s" "$(pq "$TARGET ($(device_info $TARGET))")"
+    local target_dev=$(expand_device $TARGET)
+
+    # Make sure our target is a real device
+    [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
+
+    TOTAL_SIZE=$(get_total_size "$target_dev")
 
     [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui && select_overall_mode CMDS QUESTION_MODE
 
@@ -633,19 +648,15 @@ main() {
     if test -e $ISO_DIR/$EFI_GRUB_CONF; then
         msg "Found grub config %s"  "$(pq 2.0)"
         USING_GRUB_CONFIG_2=true
-    else
+    elif test -e $ISO_DIR/$GRUB_CONF; then
         msg "Found grub config %s"  "$(pq 1.0)"
     fi
 
     local distro_name=$(get_distro_name "$ISO_DIR/version")
     if [ -n "$distro_name" ]; then
         BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
-        ESP_LABEL=$(make_label 11 - "$distro_name" uefi)
+        ESP_LABEL=$(make_label  11 - "$distro_name" uefi)
     fi
-
-    # Make sure our target is a real device
-    local target_dev=$(expand_device $TARGET)
-    [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
     local cheats
     if need_q cheats; then
@@ -772,6 +783,11 @@ main() {
     # Nothing else makes sense if there is no partition table
     need_q partition-clear && ! need_q partition-make && exit_done
 
+    if [ "$DATA_FIRST_FS" ] && need makefs-data; then
+        cmd wait_for_file "$DATA_DEV"
+        make_fs_dev "$DATA_DEV" "$DATA_FIRST_FS" "USB-DATA"
+    fi
+
     cmd wait_for_file "$BIOS_DEV"
     need makefs-bios && do_makefs_ext "$BIOS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
@@ -801,6 +817,9 @@ main() {
         esac
 
         encrypt_partition $MAIN_DEV "$LUKS_NAME" "$phrase"
+        if [ "$DATA_FIRST" ]; then
+            need makefs-data && do_makefs_ext
+        fi
 
         need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
@@ -825,9 +844,11 @@ main() {
 
     my_mount $BIOS_DEV $BIOS_DIR  -t $MAIN_FS_TYPE
     my_mount $UEFI_DEV $UEFI_DIR  -t $UEFI_FS_TYPE
+    data_first && my_mount $DATA_DEV $DATA_DIR -t $DATA_FIRST_FS
 
     local mp_list="$BIOS_DIR $UEFI_DIR"
-    encrypt && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
+    encrypt   && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
+    data_first && mp_list="$DATA_DIR $mp_list"
 
     display_df_output $mp_list
 
@@ -878,7 +899,10 @@ main() {
 
     local main_dir
     encrypt && main_dir=$MAIN_DIR
-    need uuids && do_uuids $BIOS_DIR "$bios_uuid" "$UEFI_DIR/$GRUB_CONF" "$uefi_uuid" "$UEFI_PART" "$main_dir"
+    if need uuids; then
+        do_uuids "$BIOS_DIR" "$bios_uuid" "$UEFI_DIR/$GRUB_CONF" "$uefi_uuid" "$UEFI_PART" "$main_dir"
+        data_first_uuid "$BIOS_DIR" "$DATA_DEV"
+    fi
 
     [ ${#cheats} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $BIOS_DIR "$cheats"
     [ ${#cheats} -gt 0 ] && need cheats-grub     && do_cheats_grub     $UEFI_DIR "$cheats"
@@ -1281,7 +1305,7 @@ verify_sizes() {
     local percent=${cmd_percent:-$default_size}
 
     # Get total size of target live-usb device
-    local total_size=$(parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
+    local total_size=$TOTAL_SIZE
 
     # Note du will fail when fuseiso is used and there are large files
     local main_needed=${XORRISO_SIZE:-$(du_ap_size_spec $dir "*")}
@@ -1315,18 +1339,20 @@ verify_sizes() {
         local min_percent=$((1 + 100 * (main_needed2 + uefi_val + bios_val + MAIN_MARGIN + UEFI_MARGIN + BIOS_MARGIN)
             / total_size))
 
+        local data_size=0
+        if data_first; then
+            data_size=$total_extra
+            total_extra=0
+            alloc_val=$total_size
+        fi
+
         log_it_q echo
         # Table headers for sizes of: entire drive, [bios partition], main partition, uefi partition
-        if [ $bios_val -gt 0 ]; then
             log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
+                               $"data partition"  "$data_size"  "0"              "$data_size"    \
                                $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
                                $"bios partition"  "$bios_val"   "$bios_needed"   "$bios_extra"   \
                                $"uefi partition"  "$uefi_val"   "$uefi_needed"   "$uefi_extra"
-        else
-            log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
-                               $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
-                               $"uefi partition"  "$uefi_val"   "$uefi_needed"   "$uefi_extra"
-        fi
         echo >>$LOG_FILE
 
         check_size main $main_extra $MAIN_MARGIN warn
@@ -1408,13 +1434,20 @@ guess_partitioning() {
     unset ENCRYPT
     local part1=$(get_partition $drive 1)
     local part2=$(get_partition $drive 2)
-    test -b $part1 || fatal "This does not look like a live-usb device (%s)" $part1
-    test -b $part2 || fatal "This does not look like a live-usb device (%s)" $part2
-    local fs_type=$(lsblk -no fstype $part2)
-    case $fs_type in
-        crypto_LUKS)  ENCRYPT=true ;;
-               vfat)               ;;
-               *)  fatal "This does not look like a live-usb device (%s)" $fs_type;;
+    local part3=$(get_partition $drive 3)
+    local part4=$(get_partition $drive 4)
+
+    local fs1=$(get_fstype "$part1")
+    local fs2=$(get_fstype "$part2")
+    local fs3=$(get_fstype "$part3")
+    local fs4=$(get_fstype "$part4")
+
+    case $fs1:$fs2:$fs3:$fs4 in
+                   ext4:vfat:*)                                  ;;
+                 *:ext4:vfat:*)  DATA_FIRST=true                  ;;
+        ext4:cryto_LUKS:vfat:*)                   ENCRYPT=true   ;;
+        *:ext4:cryto_LUKS:vfat) DATA_FIRST=true  ; ENCRYPT=true   ;;
+        *)  fatal "This does not look like a live-usb device (%s)" $fs_type ;;
     esac
 
     # Get the type of partitioning
@@ -1422,8 +1455,13 @@ guess_partitioning() {
     msg "Found %s partitioning" "$(pq $MSDOS_GPT)"
     encrypt && shout $"Assuming this is an encrypted live-usb"
     setup_devices $drive
-
 }
+
+#------------------------------------------------------------------------------
+# Get fstype of a partition.  Be silent on errors
+#------------------------------------------------------------------------------
+get_fstype() { lsblk --nodeps -no fstype "$1" 2>/dev/null; }
+get_uuid()   { lsblk --nodeps -no uuid   "$1" 2>/dev/null; }
 
 #------------------------------------------------------------------------------
 # Different actions take place on different partitions depending on if we are
@@ -1433,18 +1471,32 @@ setup_devices() {
     local drive=$1
 
     if encrypt; then
-        UEFI_PART=3
+        local bios_part=1  main_part=2  ;  UEFI_PART=3
+
+        if data_first; then
+            bios_part=2
+            main_part=3
+            UEFI_PART=4
+            DATA_DEV=$(get_partition $drive 1)
+        fi
 
         # Get first three partitions (lexically only)
-        BIOS_DEV=$(get_partition $drive 1)
-        MAIN_DEV=$(get_partition $drive 2)
-        UEFI_DEV=$(get_partition $drive 3)
+        BIOS_DEV=$(get_partition $drive $bios_part)
+        MAIN_DEV=$(get_partition $drive $main_part)
+        UEFI_DEV=$(get_partition $drive $UEFI_PART)
     else
-        UEFI_PART=2
+        local main_part=1 ; UEFI_PART=2
+
+        if data_first; then
+            main_part=2
+            UEFI_PART=3
+            DATA_DEV=$(get_partition $drive 1)
+        fi
+
 
         # Get first two partitions (lexically only)
-        MAIN_DEV=$(get_partition $drive 1)
-        UEFI_DEV=$(get_partition $drive 2)
+        MAIN_DEV=$(get_partition $drive $main_part)
+        UEFI_DEV=$(get_partition $drive $UEFI_PART)
 
         BIOS_SIZE=0
         BIOS_MARGIN=0
@@ -1722,11 +1774,59 @@ validate_clone_persist() {
 }
 
 #------------------------------------------------------------------------------
+# Validate and process --data-first value
+# Make sure we can make the file system and make sure one and only one size
+# was give either --data-first=XX% or --size=YY%
+#------------------------------------------------------------------------------
+validate_data_first() {
+    local size_var=$1  data_first=$2
+
+    data_first || return
+
+    eval local size_val=\$$size_var
+
+    # Extract fs-type and size
+    local param data_size
+    for param in ${data_first//,/ }; do
+        case $param in
+                "")                         ;;
+            [0-9]*)  data_size=${param%%%}  ;;
+                 *)  DATA_FIRST_FS=$param   ;;
+        esac
+    done
+
+    # Validate the size (we already stripped off the "%"
+    case $data_size in
+        [0-9]|[0-9][0-9]) ;;
+        *) fatal "Invalid %s size specification %s" "$(pqw --data-first)" "$(pqw $data_size)" ;;
+    esac
+
+    fatal_z "$size_val$data_size" "A size must be specified to use the %s option" "$(pqw --data-first)"
+
+    # Maye sure we can create the file system type requested
+    validate_fs_type "${DATA_FIRST_FS:=vfat}"
+
+    # Cannot specify the size in two different ways!
+    [ -n "$data_size" -a -n "$size_val" ] \
+        && fatal "Cannot combine %s with %s" "$(pqw --data-first=size)" "$(pqw --size)"
+
+    # if
+    : ${size_val:=$((100 - data_size))}
+
+    eval $size_var=\$size_val
+
+}
+
+#------------------------------------------------------------------------------
 #
 #------------------------------------------------------------------------------
-validate_usb_format() {
+validate_fs_type() {
     local fstype=$1
     [ -z "$fstype" ]  && return 0
+
+    case $fstype in
+        fat32) fstype=vfat
+    esac
 
     which "mkfs.$fstype" &>/dev/null && return 0
 
@@ -1766,7 +1866,6 @@ clear_partition() {
 #------------------------------------------------------------------------------
 do_partition() {
     local dev=$1  type=${2:-msdos}  bios_size=${3:-0}  main_size=$4  uefi_size=$5
-    local alloc_size=$((bios_size + main_size + uefi_size))
 
     local boot_flag
     case $type in
@@ -1779,35 +1878,65 @@ do_partition() {
     # Using <gpt|msdos> partitioning
     msg $"Using %s partitioning" $(pq $type)
     local err_msg="Partitioning failed at %s"
-    local preamb="parted --script --align optimal $dev unit MiB"
-    cmd $preamb mklabel $type || fatal "$err_msg" start
+    local PREAMB="parted --script --align optimal $dev unit MiB"
+    cmd $PREAMB mklabel $type || fatal "$err_msg" making partition
 
-    local main_start=1  main_end=$main_size  main_fs=ext4  uefi_part=2
-    if [ $bios_size -gt 0 ]; then
+    local START=1  PART_NUM=0  main_fs=ext4
 
-        clear_filesystem $dev 1
-        cmd $preamb mkpart primary ext4 1 $bios_size || fatal "$err_msg" bios
-
-        main_start=$((bios_size))
-        main_end=$((main_size + bios_size))
-        uefi_part=3
-        main_fs=
+    if data_first; then
+        local total_size=$TOTAL_SIZE
+        local remaining=$((total_size - uefi_size - main_size - bios_size -1))
+        local fs_type=${DATA_FIRST:-fat32}
+        _add_partition "$remaining" $fs_type data
     fi
 
-    clear_filesystem $dev $main_start
-    cmd $preamb mkpart primary $main_fs $main_start $main_end  || fatal "$err_msg" main
-    clear_filesystem $dev $main_end
-    cmd $preamb mkpart primary fat32 $main_end $alloc_size     || fatal "$err_msg" uefi
-    cmd $preamb set 1 $boot_flag on set $uefi_part esp on      || fatal "$err_msg" flags
+    if [ $bios_size -gt 0 ]; then
+        _add_partition $bios_size bios
+        main_fs=
+    fi
+    _add_partition "$main_size" $main_fs  main
+    cmd $PREAMB set $PART_NUM $boot_flag on || fatal "$err_msg" boot-flag
+    _add_partition "$uefi_size" fat32  uefi
+    cmd $PREAMB set $PART_NUM esp on || fatal "$err_msg" esp-flag
 
     if [ "$type" = 'gpt' -a "$DO_PMBR" ]; then
-        cmd $preamb disk_set pmbr_boot on || fatal "$err_msg" disk_set
+        cmd $PREAMB disk_set pmbr_boot on || fatal "$err_msg" disk-set
     fi
 
     # Tell kernel the partition table has changed
     cmd partprobe $dev
 
     DID_PARTITION=true
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+_add_partition() {
+    local fs_type=$1 size=$1  fs_type=$2  name=$3
+    local err_msg="partitioning failed at %s partition"
+    fatal_z "$START" "internal error: no start was specified"
+
+    local part_fstype
+    case $fstype in
+        ext[234]) part_fstype=$fstype ;;
+            vfat) part_fstype=fat32   ;;
+            ntfs) part_fstype=NTFS    ;;
+    esac
+
+    clear_filesystem $dev $START
+    local end=$((START + size - 1))
+    cmd $PREAMB mkpart primary $part_type $START $end || fatal "$err_msg" "$name"
+    START=$((end + 0))
+    PART_NUM=$((PART_NUM + 1))
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+get_total_size() {
+    local dev=$1
+    parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p"
 }
 
 #------------------------------------------------------------------------------
@@ -2226,6 +2355,20 @@ do_uuids() {
 }
 
 #------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+data_first_uuid() {
+    bios_dir=$1  data_dev=$2
+
+    data_first || return
+    local uuid=$(get_uuid "$data_dev")
+    [ ${#uuid} -gt 0 ] || return
+    local uuid_file=$dir/antiX/storage-uuid
+    cmd mkdir -p $(dirname $uuid_file) || fatal "Making directory '%s' failed" "$(dirname $uuid_file)"
+    cmd write_file $uuid_file $uuid
+
+}
+#------------------------------------------------------------------------------
 # Create a random hex string $cnt * 2 chars long
 #------------------------------------------------------------------------------
 random_string() {
@@ -2244,7 +2387,8 @@ do_install_bootloader() {
     local fname
     case $type in
           gpt) fname=gptmbr.bin ;;
-        msdos) fname=mbr.bin    ;;
+        msdos) fname=mbr.bin
+               data_first && fname=altmbr.bin  ;;
             *) fatal "Unknown partitioning scheme: %s.  Expected msdos or gpt" "$type"
                ;;
     esac
@@ -2257,7 +2401,12 @@ do_install_bootloader() {
     done
 
     [ "$file" ] || fatal "Could not find file %s" "$fname"
-    cmd_dd bs=440 conv=notrunc count=1 if=$file of=$dev
+    case $fname in
+        altmbr.bin) printf '\2' | cat "$file" - \
+            | cmd_dd bs=440 count=1 iflag=fullblock conv=notrunc of=$dev ;;
+
+                 *) cmd_dd bs=440 conv=notrunc count=1 if=$file of=$dev  ;;
+    esac
 
     local sdir idir syslinux_dir isolinux_dir
     for sdir in boot/syslinux syslinux; do
@@ -2430,29 +2579,39 @@ check_target() {
 format_usb() {
     dev="/dev/${1#/dev/}"  type=$2  fstype=$3
 
-    local part_fstype
-    case $fstype in
-        ext[234]) part_fstype=$fstype ;;
-            vfat) part_fstype=fat32   ;;
-            ntfs) part_fstype=NTFS    ;;
-    esac
-
     msg "formating device %s" "$(pq $dev)"
+    local START=1  PART_NUM=0
 
     clear_partition "$dev"
 
     msg $"Using %s partitioning" $(pq $type)
-    local err_msg="Partitioning failed at %s"
-    local preamb="parted --script --align optimal $dev unit MiB"
-    cmd $preamb mklabel $type || fatal "$err_msg" start
 
-    local total_size=$(parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p")
-    clear_filesystem $dev 1
-    cmd $preamb mkpart primary $part_fstype 1 $((total_size - 1)) || fatal "$err_msg" bios
+    local err_msg="Partitioning failed at %s"
+
+    local PREAMB="parted --script --align optimal $dev unit MiB"
+    cmd $PREAMB mklabel $type || fatal "$err_msg" partitioning
+
+    _add_partition $((TOTAL_SIZE - 1)) "$fstype" data
 
     sync
 
-    local args  label="USB-DATA"
+    cmd partprobe $dev
+
+    local part=$(get_partition $dev 1)
+
+    make_fs_dev $part $fstype "USB-DATA"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+make_fs_dev() {
+    local part=$1  fstype=$2  label=$3
+    local args
+
+    case $fstype in
+        fat32) fstype=vfat ;;
+    esac
     case $fstype in
         vfat|exfat) args="-n $label" ;;
           ext[234]) args="-L $label" ;;
@@ -2460,9 +2619,8 @@ format_usb() {
     esac
 
     msg "Make %s filesystem" "$(pq $fstype)"
-    local part1=$(get_partition $dev 1)
-    cmd mkfs.$fstype $args $part1 \
-        || fatal "Could not make %s file system on %s" "$fstype" "$part1"
+    cmd mkfs.$fstype $args $part \
+        || fatal "Could not make %s file system on %s" "$fstype" "$part"
 
     sync
     cmd partprobe $dev
@@ -2499,7 +2657,8 @@ makefs_select() {
 #------------------------------------------------------------------------------
 # Convenience routines to save a little typing
 #------------------------------------------------------------------------------
-encrypt()             {  [ "$ENCRYPT" ];             return $?; }
+encrypt()             {  [ "$ENCRYPT"   ];           return $?; }
+data_first()           {  [ "$DATA_FIRST" ];           return $?; }
 using_grub_config_2() {  [ "$USING_GRUB_CONFIG_2" ]; return $?; }
 
 #------------------------------------------------------------------------------
