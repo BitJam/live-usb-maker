@@ -2537,7 +2537,7 @@ update_initrd() {
     # Accommodate a template file or directory (repo)
     local size
     if test -f "$initrd_template"; then
-        lsize=$(du -sm "$initrd_template" | tail -n1 | awk '{print $1}')
+        size=$(du -sm "$initrd_template" | tail -n1 | awk '{print $1}')
     elif test -d "$initrd_template"; then
         size=$(du -scm "$initrd_template"/[a-z]* | tail -n1 | awk '{print $1}')
     else
