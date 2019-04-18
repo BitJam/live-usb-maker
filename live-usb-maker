@@ -2366,7 +2366,7 @@ data_first_uuid() {
     data_first || return
     local uuid=$(get_uuid "$data_dev")
     [ ${#uuid} -gt 0 ] || return
-    local uuid_file=$dir/antiX/storage-uuid
+    local uuid_file=$dir/antiX/data-uuid
     cmd mkdir -p $(dirname $uuid_file) || fatal "Making directory '%s' failed" "$(dirname $uuid_file)"
     cmd write_file $uuid_file $uuid
 
