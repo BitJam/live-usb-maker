@@ -54,6 +54,9 @@ Options:
 
   -e --esp-size=<xx>    Size of ESP (uefi) partition in MiB (default 50)
   --ext-options=<xx>    Use these options when creating the ext4 filesystem
+  --data-first          Place a data partition first on the live-usb
+  --data-first=<str>    Specify the file system and or the size (in percent)
+
 
     --format            Make a data usb formatted to fat32 by default
     --format=<fs>       Make a data usb formated to the give filesystem
@@ -78,6 +81,7 @@ Options:
      --gpt-pmbr               Set pmbr_boot disk flag (prevents booting via UEFI)
   -h --help                   Show this usage
   -i --initrd=<file>          Update the initrd from using a template-initrd.gz
+  -i --initrd=<dir>           Use a directory tree as a template
   -I --ignore-config          Ignore the configuration file
   -k --keep-syslinux          Don't replace the syslinux files
   -L --label=Name             Label ext partition with Name
