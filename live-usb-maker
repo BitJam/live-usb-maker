@@ -76,6 +76,7 @@ EXT_OVERHEAD_FORM="* 26 / 10000 - 2"
 
   GRAPHICAL_MENUS="true"
   AUTOMOUNT_DELAY="2"
+  INITRD_MAX_SIZE="200"
 #== END_CONFIG
 
      MAIN_FS_TYPE="ext4"
@@ -727,7 +728,9 @@ main() {
         q_mode gui && : ${USB_FORMAT:=vfat}
         makefs_select USB_FORMAT
         msg "Will create a %s filesystem" "$(pq $USB_FORMAT)"
-    elif [ -n "$INITRD_FILE" ]; then
+    elif [ -d "$INITRD_FILE" ]; then
+        msg "Will update the initrd from directory %s" "$(pq $INITRD_FILE)"
+    elif [ -f "$INITRD_FILE" ]; then
         msg "Will update the initrd from file %s" "$(pq $INITRD_FILE)"
     fi
 
@@ -2495,7 +2498,7 @@ write_random_seed() {
 # Change the initrd file to the template initrd selected by the user.
 #------------------------------------------------------------------------------
 update_initrd() {
-    local main_dir=$1  initrd_template=$2
+    local main_dir=$1  initrd_template=$(readlink -f "$2")
 
     need_prog copy-initrd-programs unpack-initrd copy-initrd-modules vmlinuz-version
 
@@ -2506,22 +2509,50 @@ update_initrd() {
     local vmlinuz_path=$DEF_BOOT_DIR/vmlinuz
     local vmlinuz_file=$main_dir/$vmlinuz_path
 
-    pause initrd
+    #pause initrd
 
+    # Sanity checks
     test -e $initrd_file  || fatal "Could not find %s file %s on main partition"  "$(pqw initrd)" "$(pqw $initrd_path)"
     test -e $linuxfs_file || fatal "Could not find %s file %s on main partition"  "$(pqw linuxfs)" "$(pqw $linuxfs_path)"
     test -e $vmlinuz_file || fatal "Could not find %s file %s on main partition"  "$(pqw vmlinuz)" "$(pqw $vmlinuz_path)"
 
+    # Get live kernel so we can copy in the right modules
     local kernel=$(vmlinuz-version  --tabs --noheadings "$vmlinuz_file" | cut -f2)
     fatal_z "$kernel" "Could not determine the kernel version"
     msg "Found kernel %s" "$(pq $kernel)"
 
+    # Mount the linuxfs so we can get modules and programs from the horse's mouth
     local linux_dir=$LINUX_DIR  initrd_dir=$WORK_DIR/initrd
     mkdir -p $linux_dir  $initrd_dir || fatal "mkdir failed"
 
     my_mount "$linuxfs_file" "$linux_dir" -t squashfs -o loop,ro
 
-    cmd unpack-initrd --from "$initrd_template" --dir "$initrd_dir" || fatal "Unpack failed"
+    # Sanity checks for the template and work with directories as well as files
+    if ! test -e "$initrd_template"; then
+        fatal "Could not find initrd template file %s" "$initrd_template"
+    fi
+
+    # We are copying to RAM so we don't want to use up too much space
+    # Accommodate a template file or directory (repo)
+    local size
+    if test -f "$initrd_template"; then
+        lsize=$(du -sm "$initrd_template" | tail -n1 | awk '{print $1}')
+    elif test -d "$initrd_template"; then
+        size=$(du -scm "$initrd_template"/[a-z]* | tail -n1 | awk '{print $1}')
+    else
+        fatal "The initrd template %s is not a file or a directory" "$initrd_template"
+    fi
+
+    msg "initrd size %s" "$(nq $size MiB)"
+
+    [ "$size" -gt "$INITRD_MAX_SIZE" ] && fatal "The initrd template %s seems too large" "$initrd_template"
+
+    if test -f "$initrd_template"; then
+        cmd unpack-initrd --from "$initrd_template" --dir "$initrd_dir" || fatal "Unpack failed"
+    elif test -d "$initrd_template"; then
+        (cd ../Live-initrd && find  . | grep "^\./[a-z]" | cpio --quiet -pd "$initrd_dir")
+    fi
+
     copy_initrd_release "$linux_dir"  "$initrd_dir" 'always'
     cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir --clear
     cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir
