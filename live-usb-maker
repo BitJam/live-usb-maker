@@ -759,9 +759,6 @@ main() {
 
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
-    # Add last lines of dmesg output to log file on fatal errors
-    ADD_DMESG_TO_FATAL=true
-
     force automount || suspend_automount
 
     START_T=$(date +%s)
@@ -1568,7 +1565,7 @@ encrypt_partition() {
                   *) internal_error phrase-type "$phrase"
         esac
 
-        [ $ret -eq 0 ] || fatal $"Failed to create encrypted device"
+        [ $ret -eq 0 ] || dmesg_fatal $"Failed to create encrypted device"
     fi
 
     case $phrase in
@@ -1582,7 +1579,7 @@ encrypt_partition() {
                 fi ;;
     esac
 
-    [ $ret -eq 0 ] || fatal $"Failed to open encrypted device"
+    [ $ret -eq 0 ] || dmesg_fatal $"Failed to open encrypted device"
 
     LUKS_DEV=/dev/mapper/$name
     msg $"Encryption successful"
@@ -1883,7 +1880,7 @@ do_partition() {
     msg $"Using %s partitioning" $(pq $type)
     local err_msg="Partitioning failed at %s"
     local PREAMB="parted --script --align optimal $dev unit MiB"
-    cmd $PREAMB mklabel $type || fatal "$err_msg" making partition
+    cmd $PREAMB mklabel $type || dmesg_fatal "$err_msg" making partition
 
     local START=1  PART_NUM=0  main_fs=ext4
 
@@ -1899,12 +1896,12 @@ do_partition() {
         main_fs=
     fi
     _add_partition "$main_size" $main_fs  main
-    cmd $PREAMB set $PART_NUM $boot_flag on || fatal "$err_msg" boot-flag
+    cmd $PREAMB set $PART_NUM $boot_flag on || dmesg_fatal "$err_msg" boot-flag
     _add_partition "$uefi_size" fat32  uefi
-    cmd $PREAMB set $PART_NUM esp on || fatal "$err_msg" esp-flag
+    cmd $PREAMB set $PART_NUM esp on || dmesg_fatal "$err_msg" esp-flag
 
     if [ "$type" = 'gpt' -a "$DO_PMBR" ]; then
-        cmd $PREAMB disk_set pmbr_boot on || fatal "$err_msg" disk-set
+        cmd $PREAMB disk_set pmbr_boot on || dmesg_fatal "$err_msg" disk-set
     fi
 
     # Tell kernel the partition table has changed
@@ -1930,7 +1927,7 @@ _add_partition() {
 
     clear_filesystem $dev $START
     local end=$((START + size - 1))
-    cmd $PREAMB mkpart primary $part_type $START $end || fatal "$err_msg" "$name"
+    cmd $PREAMB mkpart primary $part_type $START $end || dmesg_fatal "$err_msg" "$name"
     START=$((end + 0))
     PART_NUM=$((PART_NUM + 1))
 }
@@ -1962,7 +1959,7 @@ do_makefs_ext() {
 
     force makefs && force_ext="-F"
     cmd mkfs.ext4 $force_ext $EXT4_NO_64BIT $options $dev \
-        || fatal 'makefs' "Could not make %s file system on %s.  Perhaps try %s" 'ext4' $dev "--force=makefs"
+        || dmesg_fatal 'makefs' "Could not make %s file system on %s." 'ext4' "$dev"
 
     [ -n "$label" ] && cmd tune2fs -L "${label:0:16}" $dev
 }
@@ -1973,7 +1970,7 @@ do_makefs_ext() {
 do_makefs_uefi() {
     local uefi_dev=$1  label=${2:-live-esp}
     cmd mkfs.vfat -n "${label:0:11}" $uefi_dev \
-        || fatal "Could not make %s file system on %s" "fat32" "$uefi_dev"
+        || dmesg_fatal "Could not make %s file system on %s" "fat32" "$uefi_dev"
 }
 
 #------------------------------------------------------------------------------
@@ -2621,7 +2618,7 @@ format_usb() {
     local err_msg="Partitioning failed at %s"
 
     local PREAMB="parted --script --align optimal $dev unit MiB"
-    cmd $PREAMB mklabel $type || fatal "$err_msg" partitioning
+    cmd $PREAMB mklabel $type || dmesg_fatal "$err_msg" partitioning
 
     _add_partition $((TOTAL_SIZE - 1)) "$fstype" data
 
@@ -2652,7 +2649,7 @@ make_fs_dev() {
 
     msg "Make %s filesystem" "$(pq $fstype)"
     cmd mkfs.$fstype $args $part \
-        || fatal "Could not make %s file system on %s" "$fstype" "$part"
+        || dmesg_fatal "Could not make %s file system on %s" "$fstype" "$part"
 
     sync
     cmd partprobe $dev
