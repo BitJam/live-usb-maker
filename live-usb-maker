@@ -818,10 +818,6 @@ main() {
         esac
 
         encrypt_partition $MAIN_DEV "$LUKS_NAME" "$phrase"
-        if [ "$DATA_FIRST" ]; then
-            need makefs-data && do_makefs_ext
-        fi
-
         need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
         local main_uuid=$(lsblk --nodeps -no uuid $MAIN_DEV)
