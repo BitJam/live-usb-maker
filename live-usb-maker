@@ -1441,9 +1441,9 @@ guess_partitioning() {
 
     case $fs1:$fs2:$fs3:$fs4 in
                    ext4:vfat:*)                                  ;;
-                 *:ext4:vfat:*)  DATA_FIRST=true                  ;;
-        ext4:cryto_LUKS:vfat:*)                   ENCRYPT=true   ;;
-        *:ext4:cryto_LUKS:vfat) DATA_FIRST=true  ; ENCRYPT=true   ;;
+                 *:ext4:vfat:*) DATA_FIRST=true                  ;;
+        ext4:cryto_LUKS:vfat:*)                    ENCRYPT=true  ;;
+        *:ext4:cryto_LUKS:vfat) DATA_FIRST=true  ; ENCRYPT=true  ;;
         *)  fatal "This does not look like a live-usb device (%s)" $fs_type ;;
     esac
 
