@@ -2688,7 +2688,7 @@ makefs_select() {
 # Convenience routines to save a little typing
 #------------------------------------------------------------------------------
 encrypt()             {  [ "$ENCRYPT"   ];           return $?; }
-data_first()           {  [ "$DATA_FIRST" ];           return $?; }
+data_first()          {  [ "$DATA_FIRST" ];          return $?; }
 using_grub_config_2() {  [ "$USING_GRUB_CONFIG_2" ]; return $?; }
 
 #------------------------------------------------------------------------------
