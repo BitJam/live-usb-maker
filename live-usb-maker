@@ -1962,10 +1962,11 @@ do_makefs_ext() {
 
 #------------------------------------------------------------------------------
 # Make the fat32 file system
+# Note: we convert the label to upper case to prevent whining
 #------------------------------------------------------------------------------
 do_makefs_uefi() {
-    local uefi_dev=$1  label=${2:-live-esp}
-    cmd mkfs.vfat -n "${label:0:11}" $uefi_dev \
+    local uefi_dev=$1  label=${2:-LIVE-ESP}
+    cmd mkfs.vfat -n "${label^^}" $uefi_dev \
         || dmesg_fatal "Could not make %s file system on %s" "fat32" "$uefi_dev"
 }
 
