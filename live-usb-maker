@@ -524,6 +524,7 @@ main() {
             shout $"Found live media device %s" "$(pqb /dev/$(get_drive $live_dev))"
         else
             # Don't error out on systems running toram, just inform
+            :
             msg $"The live media is not mounted"
         fi
     fi
@@ -546,6 +547,7 @@ main() {
     local target_dev=$(expand_device $TARGET)
 
     # Make sure our target is a real device
+    :
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
     TOTAL_SIZE=$(get_total_size "$target_dev")
@@ -1177,7 +1179,7 @@ select_overall_mode() {
     local cmd_var=$1 q_var=$2 ans cmd_val q_val
 
     while true; do
-        local title=$"Please select what action to perform"
+        local title=$"Please select an action to perform"
         local menu=$(overall_mode_menu)
         local not_done=""
         my_select 'ans' "$title" "$menu"
@@ -1218,7 +1220,7 @@ other_mode_menu() {
 select_other_mode() {
     local ans2 title="Please select what other action to perform"
     local menu=$(other_mode_menu)
-    BACK_TO_MAIN=$"go back to main menu"
+    BACK_TO_MAIN=$"Go back to main menu"
     my_select 'ans2' "$title" "$menu"
     case $ans2 in
                  quit) not_done=true                             ;;
@@ -1344,7 +1346,7 @@ verify_sizes() {
         fi
 
         log_it_q echo
-        # Table headers for sizes of: entire drive, [bios partition], main partition, uefi partition
+        # Table headers for sizes of: entire drive, [data partition] [bios partition], main partition, uefi partition
             log_it_q usb_stats $"entire drive"    "$total_size" "$alloc_val"     "$total_extra"  \
                                $"data partition"  "$data_size"  "0"              "$data_size"    \
                                $"main partition"  "$main_val"   "$main_needed2"  "$main_extra"   \
@@ -1731,7 +1733,7 @@ add_one_persist_file() {
     local flag=$1  full=$2  name=${2##*/}
     local du_opts="--apparent-size --human-readable"
     local size=$(du $du_opts "$full" | cut -f1)
-    #echo
+
     # Found (<size>) <name> persistence file
     msg $"Found (%s) %s persistence file" "$(nq $size)" "$(pq $name)"
     if [ "$flag" ] || q_mode gui || YES_no $"Do you want to clone this file?"; then
@@ -2094,7 +2096,7 @@ copy_files_spec() {
     test -z "$spec" && fatal "Missing list of files to copy to %s" "$(pqw $targ)"
 
     msg $"copy from %s to %s partition" "$(pq $(basename $src))" "$(pq $(basename $targ))"
-    msg $"files: %s" "$(pq $spec)"
+    msg $"files %s" "$(pq $spec)"
 
     while read file; do
         test -z "$file" && continue
