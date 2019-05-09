@@ -279,10 +279,10 @@ eval_argument() {
          -ext-options)  EXT4_OPTIONS=$val                ;;
        -ext-options=*)  EXT4_OPTIONS=$val                ;;
           -esp-size=*)  UEFI_SIZE=$val                   ;;
-          -data-first)  DATA_FIRST=fat32                 ;;
+          -data-first)  DATA_FIRST=choose                ;;
         -data-first=*)  DATA_FIRST=$val                  ;;
-              -format)  FORMAT_USB=true                  ;;
-            -format=*)  FORMAT_USB=true; USB_FORMAT=$val ;;
+              -format)  FORMAT_USB=choose                ;;
+            -format=*)  FORMAT_USB=$val                  ;;
               -from|f)  FROM=$val                        ;;
               -from=*)  FROM=$val                        ;;
        --graphic-ui|G)  GRAPHICAL_MENUS=true             ;;
@@ -370,7 +370,7 @@ main() {
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
     local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR  TOTAL_SIZE
-    local FORMAT_USB USB_FORMAT USING_GRUB_CONFIG_2
+    local FORMAT_USB USING_GRUB_CONFIG_2
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
 
@@ -416,7 +416,7 @@ main() {
     [ -n "$INITRD_FILE" -a -n "$CMD_CMDS"    ] && fatal "Cannot combine %s with any commands"  "--initrd"
     [ -n "$FORMAT_USB"  -a -n "$INITRD_FILE" ] && fatal "Cannot combine %s with %s" "--format" "--initrd"
 
-    validate_fs_type "$USB_FORMAT"
+    #validate_fs_type "$USB_FORMAT"
 
     case $VERBOSITY in
         0) ;;
@@ -477,8 +477,6 @@ main() {
     shout_title $"Starting %s" "$ME"
     set_window_title "$ME"
     start_log "$THE_LOG_FILE" "$orig_args"
-
-    [ -n "$DATA_FIRST" ] && msg $"Will create a leading data partition"
 
     # NOTE: this placement is not ideal because it allows the user to
     # write an invalid pass_phrase_type to the config file
@@ -554,11 +552,21 @@ main() {
 
     TOTAL_SIZE=$(get_total_size "$target_dev")
 
-    [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui && select_overall_mode CMDS QUESTION_MODE
+    if [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui; then
+
+        data_first && msg $"Will create a leading data partition"
+        encrypt    && msg $"Will create an encrypted live-usb"
+        select_overall_mode CMDS QUESTION_MODE
+    fi
 
     if need_q copy && ! encrypt; then
         expert_yes_NO $"Create an encrypted live-usb?" && ENCRYPT=true
     fi
+
+    if need_q copy && ! data_first; then
+        expert_yes_NO $"Create a leading data partition on the live-usb?" && DATA_FIRST_FS=choose
+    fi
+
 
     # FIXME: better error messsage!!
     encrypt && need_prog copy-initrd-programs unpack-initrd cryptsetup dmsetup
@@ -730,13 +738,15 @@ main() {
 
     # FIXME: add sanity checks for "uuids" and for update-initrd
     if [ -n "$FORMAT_USB" ]; then
-        q_mode gui && : ${USB_FORMAT:=vfat}
-        makefs_select USB_FORMAT
-        msg $"Will create a %s filesystem" "$(pq $USB_FORMAT)"
+        makefs_select FORMAT_USB
+        msg $"Will create a %s filesystem" "$(pq $FORMAT_USB)"
     elif [ -d "$INITRD_FILE" ]; then
         msg $"Will update the initrd from directory %s" "$(pq $INITRD_FILE)"
     elif [ -f "$INITRD_FILE" ]; then
         msg $"Will update the initrd from file %s" "$(pq $INITRD_FILE)"
+    elif data_first; then
+        makefs_select DATA_FIRST_FS
+        msg $"Will create a leading %s data partition" "$(pq $DATA_FIRST_FS)"
     fi
 
     #=========================================================================
@@ -768,7 +778,7 @@ main() {
     START_T=$(date +%s)
 
     if [ "$FORMAT_USB" ]; then
-        format_usb "$target_dev" "$MSDOS_GPT"  "$USB_FORMAT"
+        format_usb "$target_dev" "$MSDOS_GPT"  "$FORMAT_USB"
         say_done
         my_exit 0
     fi
@@ -1172,7 +1182,6 @@ overall_mode_menu() {
     menu_printf encrypt $"Make an encrypted full-featured live-usb"
     menu_printf default $"Make a customized live-usb (includes encryption option)"
     menu_printf other   $"Other options"
-
 }
 
 #------------------------------------------------------------------------------
@@ -1190,7 +1199,7 @@ select_overall_mode() {
                       encrypt) q_val=simple ; ENCRYPT=true               ;;
                       default) q_val=$ans                                ;;
                        simple) q_val=$ans                                ;;
-                         data) DATA_FIRST=choose                         ;;
+                         data) q_val=simple ; DATA_FIRST_FS=choose       ;;
                         other) select_other_mode                         ;;
                             *) internal_error select_overall_mode "$ans" ;;
         esac
@@ -1801,6 +1810,8 @@ validate_data_first() {
         esac
     done
 
+    : ${DATA_FIRST_FS:=choose}
+
     # Validate the size (we already stripped off the "%"
     case $data_size in
                       "") ;;
@@ -1811,8 +1822,10 @@ validate_data_first() {
     q_mode gui && fatal_z "$size_val$data_size" \
         "A size must be specified to use the %s option" "$(pqw --data-first)"
 
-    # Maye sure we can create the file system type requested
-    validate_fs_type "${DATA_FIRST_FS:=vfat}"
+    # Make sure we can create the file system type requested
+    # Postpone this check until after we've offered the menu if needed
+
+    #validate_fs_type "${DATA_FIRST_FS:=choose}"
 
     # Cannot specify the size in two different ways!
     [ -n "$data_size" -a -n "$size_val" ] \
@@ -1833,7 +1846,7 @@ validate_fs_type() {
     [ -z "$fstype" ]  && return 0
 
     case $fstype in
-        fat32) fstype=vfat
+        fat32) fstype=vfat ;;
     esac
 
     which "mkfs.$fstype" &>/dev/null && return 0
@@ -1894,7 +1907,7 @@ do_partition() {
     if data_first; then
         local total_size=$TOTAL_SIZE
         local remaining=$((total_size - uefi_size - main_size - bios_size -1))
-        local fs_type=${DATA_FIRST:-fat32}
+        local fs_type=${DATA_FIRST_FS:-fat32}
         _add_partition "$remaining" $fs_type data
     fi
 
@@ -2678,12 +2691,25 @@ makefs_menu() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Let user select a file system type if the current type is "choose"
+# Otherwise make sure we can make the specified file system type.
 #------------------------------------------------------------------------------
 makefs_select() {
     local var=$1  val
     eval val=\$$var
-    [ -n "$val" ] && return
+
+    [ -z "$val" ] && return
+
+    # In gui mode use fat32 instead of giving the user a menu
+    case $val in
+        choose) q_mode gui && val=vfat ;;
+    esac
+
+    # Only make a menu if "choose" is the fs_type, otherwise validate and return
+    case $val in
+        choose) ;;
+             *) validate_fs_type $val ; return ;;
+    esac
 
     local menu=$(makefs_menu)
     local cnt=$(count_lines "$menu")
@@ -2698,9 +2724,9 @@ makefs_select() {
 #------------------------------------------------------------------------------
 # Convenience routines to save a little typing
 #------------------------------------------------------------------------------
-encrypt()             {  [ "$ENCRYPT"   ];           return $?; }
-data_first()          {  [ "$DATA_FIRST" ];          return $?; }
-using_grub_config_2() {  [ "$USING_GRUB_CONFIG_2" ]; return $?; }
+encrypt()             {  [ "$ENCRYPT"   ]                 ;  return $?; }
+data_first()          {  [ "$DATA_FIRST_FS$DATA_FIRST" ]  ;  return $?; }
+using_grub_config_2() {  [ "$USING_GRUB_CONFIG_2" ]       ;  return $?; }
 
 #------------------------------------------------------------------------------
 # Make sure we have enough left over space on a partition.  Can generate
@@ -2891,7 +2917,7 @@ load_lib() {
         return 0
     done
 
-    printf "Could not find library '%s' on path '%s'\n" "$file" "$path" >&2
+    printf "Could not find library %s on path %s\n" "$file" "$path" >&2
     printf "This is a fatal error\n" >&2
     exit 17
 }
