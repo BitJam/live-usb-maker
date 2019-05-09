@@ -449,7 +449,7 @@ main() {
     case $percent_size in
         "") ;;
         [1-9]|[0-9][0-9]|100) ;;
-        *) fatal $"Wrong percentage value '%s'.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
+        *) fatal $"Wrong percentage value %s.  Should be between %s and %s inclusive." "$(pqh $percent_size)" "1%" "100%"
     esac
 
     [ -z "${UEFI_SIZE##[0-9]}" ] && fatal "esp-size must be larger than %s" 9
@@ -523,8 +523,6 @@ main() {
         if [ -n "$live_dev" ]; then
             shout $"Found live media device %s" "$(pqb /dev/$(get_drive $live_dev))"
         else
-            # Don't error out on systems running toram, just inform
-            :
             msg $"The live media is not mounted"
         fi
     fi
@@ -645,7 +643,7 @@ main() {
                 from_thing=$"directory"
 
             else
-                fatal $"Can only clone devices and directories, not '%s" "$from_value"
+                fatal $"Can only clone devices and directories, not %s" "$from_value"
             fi
             ;;
 
@@ -683,6 +681,7 @@ main() {
     fi
 
     # These are mostly for a manually entered target
+    :
     test -e $target_dev || fatal $"Target device %s does not exist" $target_dev
     test -b $target_dev || fatal $"Target device %s is not a block device" $target_dev
 
@@ -767,7 +766,6 @@ main() {
     else
         echo
         shout_subtitle "$final_q"
-        #final_q=$(printf "%s\n%s" "$final_q" "$(quest $"Shall we begin?")")
         YES_no_pretend $"Shall we begin?" || my_exit
     fi
 
@@ -1298,7 +1296,6 @@ select_target_device() {
     case $cnt in
         0) fatal $"No available target usb devices were found" ;;
         1) dev=$(echo "$menu" | cut -d"$P_IFS" -f1 | head -n1)
-            #Msg $"Only one target usb device was found %s" "$(echo $(echo "$menu" | cut -d"$P_IFS" -f2))"
             Msg $"Only one target usb device was found %s" "$(pq $dev)"
            eval $var=\$dev
            return ;;
@@ -1608,7 +1605,7 @@ mount_device() {
     local dev=$(expand_device "$1")  dir=$2
     [ ${#dev} -gt 0 ]     || fatal $"Could not find device %s" "$1"
     mkdir -p "$dir"       || fatal $"Failed to create mountpoint directory %s" "$dir"
-    is_mountpoint "$dir"  && fatal $"Directory '%s' is already a mountpoint"   "$dir"
+    is_mountpoint "$dir"  && fatal $"Directory %s is already a mountpoint"   "$dir"
 
     [ -z "$3" ] && is_mounted "$dev" && fatal $"Device %s is already mounted" "$dev"
 
@@ -1624,10 +1621,10 @@ mount_device() {
 #------------------------------------------------------------------------------
 clone_directory() {
     local from_dir=$1  targ_dir=$2  live_dev=$3
-    is_mountpoint "$targ_dir" && fatal $"Directory '%s' is already a mountpoint" "$targ_dir"
+    is_mountpoint "$targ_dir" && fatal $"Directory %s is already a mountpoint" "$targ_dir"
 
-    test -d "$from_dir"       || fatal $"Clone directory '%s' is not a directory"   "$from_dir"
-    #is_mountpoint "$from_dir" || warn  "Clone directory '%s' is not a mountpoint"  "$from_dir"
+    test -d "$from_dir"       || fatal $"Clone directory %s is not a directory"   "$from_dir"
+    #is_mountpoint "$from_dir" || warn  "Clone directory %s is not a mountpoint"  "$from_dir"
 
     # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
     # making directories
@@ -1642,9 +1639,9 @@ clone_directory() {
     local ret=$?
     case $ret in
         0) ;;
-        1) fatal $"No '%s' file found in any directory on clone device at '%s'"   "$LINUXFS_NAME" "$from_dir" ;;
-        2) fatal $"No live-boot directory found on clone device at '%s'"          "$from_dir" ;;
-        3) fatal $"Multiple live-boot directories found on clone device at '%s'"  "$from_dir" ;;
+        1) fatal $"No %s file found in any directory on clone device at %s"     "$LINUXFS_NAME" "$from_dir" ;;
+        2) fatal $"No live-boot directory found on clone device at %s"          "$from_dir" ;;
+        3) fatal $"Multiple live-boot directories found on clone device at %s"  "$from_dir" ;;
         *) internal_error "find_live_boot_dir" $ret ;;
     esac
 
@@ -2270,7 +2267,7 @@ do_cheats_syslinux() {
         Msg "syslinux params: %s" "$(pq $params $cheats)"
         VERBOSE=$verbose CMDLINE="$params $cheats" cmd gfxsave $bios_dir/boot both
     else
-        pwarn "Could not find '%s' file to update" "$(basename $syslinux_cfg)"
+        pwarn "Could not find %s file to update" "$(basename $syslinux_cfg)"
     fi
 }
 
@@ -2292,7 +2289,7 @@ do_cheats_grub() {
         cmd grub2-save $uefi_dir --no-kernel --cheats="${params% } $cheats"
     else
         # Could not find '<grub.cfg>' file to update
-        pwarn "Could not find '%s' file to update" $(basename $grub_cfg)
+        pwarn "Could not find %s file to update" $(basename $grub_cfg)
     fi
 }
 
@@ -2314,7 +2311,7 @@ do_uuids() {
     for dir in $bios_dir $main_dir; do
         [ ${#uefi_uuid} -gt 0 ] || continue
         local uefi_file=$dir/antiX/esp-uuid
-        cmd mkdir -p $(dirname $uefi_file) || fatal "Making directory '%s' failed" "$(dirname $uefi_file)"
+        cmd mkdir -p $(dirname $uefi_file) || fatal "Making directory %s failed" "$(dirname $uefi_file)"
         cmd write_file $uefi_file $uefi_uuid
     done
 
@@ -2390,7 +2387,7 @@ data_first_uuid() {
     local uuid=$(get_uuid "$data_dev")
     [ ${#uuid} -gt 0 ] || return
     local uuid_file=$bios_dir/antiX/data-uuid
-    cmd mkdir -p $(dirname $uuid_file) || fatal "Making directory '%s' failed" "$(dirname $uuid_file)"
+    cmd mkdir -p $(dirname $uuid_file) || fatal "Making directory %s failed" "$(dirname $uuid_file)"
     cmd write_file $uuid_file $uuid
 
 }
@@ -2624,7 +2621,7 @@ check_target() {
     [ ${#live_dev}   -gt 0 ] || return
     local live_drive=$(get_drive ${live_dev##*/} )
     local targ_drive=$(get_drive ${target##*/}   )
-    [ "$live_drive" = "$targ_drive" ] && fatal $"Target %s cannot be on the live device '%s'" "$target" "$live_drive"
+    [ "$live_drive" = "$targ_drive" ] && fatal $"Target %s cannot be on the live device %s" "$target" "$live_drive"
 }
 
 #------------------------------------------------------------------------------
