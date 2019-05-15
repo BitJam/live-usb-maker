@@ -1857,22 +1857,25 @@ validate_fs_type() {
 
 #------------------------------------------------------------------------------
 # Clear out previous partition tables.
+# Note we use 512 byte blocks because some devices have an odd number of such
+# blocks.  This only matters when we write to the end of the device.
 #------------------------------------------------------------------------------
 clear_partition() {
     local dev=$1
-    local total=$(parted --script $dev unit KiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)kiB$/\1/ip")
+    local bytes=$(parted --script $dev unit B print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)B$/\1/ip")
+    local blocks=$((bytes / 512))
 
     # Clear out previous primary partition table
-    cmd_dd if=/dev/zero of=$dev bs=1K count=17
+    cmd_dd if=/dev/zero of=$dev bs=512 count=34
 
     # Clear out sneaky iso-hybrid partition table
-    cmd_dd if=/dev/zero of=$dev bs=1K count=17 seek=32
+    cmd_dd if=/dev/zero of=$dev bs=512 count=34 seek=64
 
-    [ -n "$total" ] || return
-    local offset=$((total - 17))
+    [ -n "$bytes" ] || return
+    local offset=$((blocks - 34))
 
     # Clear out secondary gpt partition table
-    cmd_dd conv=notrunc if=/dev/zero of=$dev bs=1K count=17 seek=$offset
+    cmd_dd conv=notrunc if=/dev/zero of=$dev bs=512 count=34 seek=$offset
 
     # Tell kernel the partition table has changed
     cmd partprobe $dev
