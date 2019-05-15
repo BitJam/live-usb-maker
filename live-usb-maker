@@ -549,6 +549,7 @@ main() {
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
     TOTAL_SIZE=$(get_total_size "$target_dev")
+    fatal_z "$TOTAL_SIZE" "Could not get total size of device %s" "$target_dev"
 
     if [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui; then
 
@@ -1950,11 +1951,14 @@ _add_partition() {
 }
 
 #------------------------------------------------------------------------------
-#
+# Gives the size in MiB
+# Ask for bytes and divide by 1 MiB to ensure we round down.
 #------------------------------------------------------------------------------
 get_total_size() {
     local dev=$1
-    parted --script $dev unit MiB print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)MiB$/\1/p"
+    local bytes=$(parted --script $dev unit B print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)B$/\1/p")
+    [ -z "$bytes" ] && return
+    echo $((bytes / 1024 / 1024))
 }
 
 #------------------------------------------------------------------------------
