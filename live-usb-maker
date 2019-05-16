@@ -1858,24 +1858,31 @@ validate_fs_type() {
 #------------------------------------------------------------------------------
 # Clear out previous partition tables.
 # Note we use 512 byte blocks because some devices have an odd number of such
-# blocks.  This only matters when we write to the end of the device.
+# blocks.  This mostly matters when we write to the end of the device to clear
+# the 2nd gpt partition table.
 #------------------------------------------------------------------------------
 clear_partition() {
     local dev=$1
     local bytes=$(parted --script $dev unit B print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)B$/\1/ip")
-    local blocks=$((bytes / 512))
+    local block_size=512
+    local pt_size=$((17 * 1024))
+    local pt_cnt=$((pt_size / block_size))
+    local sneaky_bytes=$((32 * 1024))
+    local sneaky_offset=$((sneaky_bytes / block_size))
+
+    local total_blocks=$((bytes / $block_size))
 
     # Clear out previous primary partition table
-    cmd_dd if=/dev/zero of=$dev bs=512 count=34
+    cmd_dd if=/dev/zero of=$dev bs=$block_size count=$pt_cnt
 
     # Clear out sneaky iso-hybrid partition table
-    cmd_dd if=/dev/zero of=$dev bs=512 count=34 seek=64
+    cmd_dd if=/dev/zero of=$dev bs=$block_size count=$pt_cnt seek=64
 
     [ -n "$bytes" ] || return
-    local offset=$((blocks - 34))
+    local offset=$((total_blocks - $pt_cnt))
 
     # Clear out secondary gpt partition table
-    cmd_dd conv=notrunc if=/dev/zero of=$dev bs=512 count=34 seek=$offset
+    cmd_dd conv=notrunc if=/dev/zero of=$dev bs=$block_size count=$pt_cnt seek=$offset
 
     # Tell kernel the partition table has changed
     cmd partprobe $dev
