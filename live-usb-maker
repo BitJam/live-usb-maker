@@ -847,6 +847,8 @@ main() {
 
     [ -z "$DID_PARTITION" ] && guess_partitioning $target_dev
 
+    encrypt && [ "$INITRD_FILE" ] && fatal "Cannot update initrd on encrypted live-usb"
+
     sync; sync
 
     # Tell OS partitioning has changed (after we've created the new file systems)
@@ -857,7 +859,7 @@ main() {
     data_first && my_mount $DATA_DEV $DATA_DIR -t $DATA_FIRST_FS
 
     local mp_list="$BIOS_DIR $UEFI_DIR"
-    encrypt   && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
+    encrypt    && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
     data_first && mp_list="$DATA_DIR $mp_list"
 
     display_df_output $mp_list
@@ -1455,12 +1457,16 @@ guess_partitioning() {
     local fs3=$(get_fstype "$part3")
     local fs4=$(get_fstype "$part4")
 
-    case $fs1:$fs2:$fs3:$fs4 in
+    local fs_str="$fs1:$fs2:$fs3:$fs4"
+    printf "File systems on device %s\n" "$fs_str" >> $LOG_FILE
+    case $fs_str in
                    ext4:vfat:*)                                  ;;
-                 *:ext4:vfat:*) DATA_FIRST=true                  ;;
+                 *:ext4:vfat:*) DATA_FIRST=true
+                                DATA_FIRST_FS=$fs1               ;;
         ext4:cryto_LUKS:vfat:*)                    ENCRYPT=true  ;;
-        *:ext4:cryto_LUKS:vfat) DATA_FIRST=true  ; ENCRYPT=true  ;;
-        *)  fatal $"This does not look like a live-usb device (%s)" $fs_type ;;
+       *:ext4:crypto_LUKS:vfat) DATA_FIRST=true  ; ENCRYPT=true
+                                DATA_FIRST_FS=$fs1               ;;
+        *)  fatal $"This does not look like a live-usb device %s" "$fs_str" ;;
     esac
 
     # Get the type of partitioning
@@ -2547,7 +2553,10 @@ update_initrd() {
 
     # Sanity checks
     test -e $initrd_file  || fatal "Could not find %s file %s on main partition"  "$(pqw initrd)" "$(pqw $initrd_path)"
-    test -e $linuxfs_file || fatal "Could not find %s file %s on main partition"  "$(pqw linuxfs)" "$(pqw $linuxfs_path)"
+
+    test -e $linuxfs_file || encrypt \
+        || fatal "Could not find %s file %s on main partition"  "$(pqw linuxfs)" "$(pqw $linuxfs_path)"
+
     test -e $vmlinuz_file || fatal "Could not find %s file %s on main partition"  "$(pqw vmlinuz)" "$(pqw $vmlinuz_path)"
 
     # Get live kernel so we can copy in the right modules
