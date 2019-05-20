@@ -924,7 +924,7 @@ main() {
     encrypt && main_dir=$MAIN_DIR
     if need uuids; then
         do_uuids "$BIOS_DIR" "$bios_uuid" "$UEFI_DIR/$GRUB_CONF" "$uefi_uuid" "$UEFI_PART" "$main_dir"
-        data_first_uuid "$BIOS_DIR" "$DATA_DEV"
+        data_first_uuid "$BIOS_DIR" "$DATA_DEV"  "$main_dir"
     fi
 
     [ ${#cheats} -gt 0 ] && need cheats-syslinux && do_cheats_syslinux $BIOS_DIR "$cheats"
@@ -2353,21 +2353,17 @@ do_uuids() {
 
     pause uuids
 
-    local dir
-    for dir in $bios_dir $main_dir; do
-        [ ${#uefi_uuid} -gt 0 ] || continue
-        local uefi_file=$dir/antiX/esp-uuid
-        cmd mkdir -p $(dirname $uefi_file) || fatal "Making directory %s failed" "$(dirname $uefi_file)"
-        cmd write_file $uefi_file $uefi_uuid
-    done
-
     if [ ${#bios_uuid} -eq 0 ]; then
-        warn "No %s given for %s partition" UUID ext4
+        warn "No %s given for %s partition" UUID bios
         return
     fi
 
-    local bios_uuid_file=$dir/antiX/bios-dev-uuid
-    encrypt && cmd_write_file $bios_uuid_file  "$bios_uuid"
+    if encrypt; then
+        fatal_z $main_dir "In do_uuids()  main_dir must be given in encrypt mode"
+        local bios_uuid_file=$main_dir/antiX/bios-dev-uuid
+        cmd mkdir -p $(dirname $bios_uuid_file)
+        cmd write_file "$bios_uuid_file" "$bios_uuid"
+    fi
 
     local base_grub_cfg=$(basename $efi_grub_cfg)
 
@@ -2377,7 +2373,7 @@ do_uuids() {
         # Do not make multiple id files
         test -e $bios_dir/$DID_EFI_FILE && return
 
-        msg "Using grub config %s" "$(pq 2.0)"
+        msg $"Using %s grub config %s" "$(pq antiX/MX)" "$(pq 2.0)"
 
         # Copy over the efi-grub.cfg and signal we have done it
         cmd mkdir -p $(dirname $efi_grub_cfg)
@@ -2400,6 +2396,16 @@ do_uuids() {
 
         return
     fi
+
+    msg $"Using % grub config %s" "$(pq antiX/MX)" "$(pq 1.0)"
+
+    local dir
+    for dir in $bios_dir $main_dir; do
+        [ ${#uefi_uuid} -gt 0 ] || continue
+        local uefi_file=$dir/antiX/esp-uuid
+        cmd mkdir -p $(dirname $uefi_file) || fatal "Making directory %s failed" "$(dirname $uefi_file)"
+        cmd write_file $uefi_file $uefi_uuid
+    done
 
     if ! test -e $efi_grub_cfg; then
         # Could not find <grub.cfg> file
@@ -2430,16 +2436,22 @@ do_uuids() {
 #
 #------------------------------------------------------------------------------
 data_first_uuid() {
-    bios_dir=$1  data_dev=$2
-
+    bios_dir=$1  data_dev=$2  main_dir=$3
     data_first || return
     local uuid=$(get_uuid "$data_dev")
     [ ${#uuid} -gt 0 ] || return
-    local uuid_file=$bios_dir/antiX/data-uuid
-    cmd mkdir -p $(dirname $uuid_file) || fatal "Making directory %s failed" "$(dirname $uuid_file)"
-    cmd write_file $uuid_file $uuid
 
+    # Only write the file once if the directories are the same
+    [ "$bios_dir" = "$main_dir" ] && main_dir=""
+
+    local dir
+    for dir in $bios_dir $main_dir; do
+        local uuid_file=$dir/antiX/data-uuid
+        cmd mkdir -p $(dirname $uuid_file) || fatal "Making directory %s failed" "$(dirname $uuid_file)"
+        cmd write_file $uuid_file $uuid
+    done
 }
+
 #------------------------------------------------------------------------------
 # Create a random hex string $cnt * 2 chars long
 #------------------------------------------------------------------------------
