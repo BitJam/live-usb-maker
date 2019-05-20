@@ -370,7 +370,7 @@ main() {
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
     local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR  TOTAL_SIZE
-    local FORMAT_USB USING_GRUB_CONFIG_2
+    local FORMAT_USB USING_GRUB_CONFIG_2  CRYPT_PART
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
 
@@ -845,27 +845,38 @@ main() {
     fi
     #=========================================================================
 
-    [ -z "$DID_PARTITION" ] && guess_partitioning $target_dev
+    if [ -z "$DID_PARTITION" ]; then
+        guess_partitioning $target_dev
 
-    encrypt && [ "$INITRD_FILE" ] && fatal "Cannot update initrd on encrypted live-usb"
+        if encrypt; then
+            remount_encrypted "$CRYPT_PART" "$LUKS_NAME"
+            my_mount "$LUKS_DEV" "$MAIN_DIR"
+        fi
 
-    sync; sync
+        my_mount $BIOS_DEV $BIOS_DIR  -t $MAIN_FS_TYPE
+        my_mount $UEFI_DEV $UEFI_DIR  -t $UEFI_FS_TYPE
+    else
 
-    # Tell OS partitioning has changed (after we've created the new file systems)
-    cmd partprobe $target_dev
+        sync; sync
 
-    my_mount $BIOS_DEV $BIOS_DIR  -t $MAIN_FS_TYPE
-    my_mount $UEFI_DEV $UEFI_DIR  -t $UEFI_FS_TYPE
+        # Tell OS partitioning has changed (after we've created the new file systems)
+        cmd partprobe $target_dev
+
+        my_mount $BIOS_DEV $BIOS_DIR  -t $MAIN_FS_TYPE
+        my_mount $UEFI_DEV $UEFI_DIR  -t $UEFI_FS_TYPE
+    fi
+
     data_first && my_mount $DATA_DEV $DATA_DIR -t $DATA_FIRST_FS
 
     local mp_list="$BIOS_DIR $UEFI_DIR"
+
     encrypt    && mp_list="$BIOS_DIR $MAIN_DIR $UEFI_DIR"
     data_first && mp_list="$DATA_DIR $mp_list"
 
     display_df_output $mp_list
 
     if [ "$INITRD_FILE" ]; then
-        update_initrd  "$MAIN_DIR"  "$INITRD_FILE"
+        update_initrd  "$BIOS_DIR" "$MAIN_DIR"  "$INITRD_FILE"
         say_done
         my_exit 0
     fi
@@ -1460,12 +1471,11 @@ guess_partitioning() {
     local fs_str="$fs1:$fs2:$fs3:$fs4"
     printf "File systems on device %s\n" "$fs_str" >> $LOG_FILE
     case $fs_str in
-                   ext4:vfat:*)                                  ;;
-                 *:ext4:vfat:*) DATA_FIRST=true
-                                DATA_FIRST_FS=$fs1               ;;
-        ext4:cryto_LUKS:vfat:*)                    ENCRYPT=true  ;;
-       *:ext4:crypto_LUKS:vfat) DATA_FIRST=true  ; ENCRYPT=true
-                                DATA_FIRST_FS=$fs1               ;;
+                   ext4:vfat:*)                                             ;;
+                 *:ext4:vfat:*) DATA_FIRST=true ; DATA_FIRST_FS=$fs1        ;;
+        ext4:cryto_LUKS:vfat:*) ENCRYPT=true    ; CRYPT_PART=$part2         ;;
+       *:ext4:crypto_LUKS:vfat) ENCRYPT=true    ; CRYPT_PART=$part3
+                                DATA_FIRST=true ; DATA_FIRST_FS=$fs1        ;;
         *)  fatal $"This does not look like a live-usb device %s" "$fs_str" ;;
     esac
 
@@ -1503,6 +1513,10 @@ setup_devices() {
         BIOS_DEV=$(get_partition $drive $bios_part)
         MAIN_DEV=$(get_partition $drive $main_part)
         UEFI_DEV=$(get_partition $drive $UEFI_PART)
+
+        # We need to fix this when setup_devices() is run a 2nd time
+        BIOS_DIR=$WORK_DIR/bios
+
     else
         local main_part=1 ; UEFI_PART=2
 
@@ -1555,6 +1569,18 @@ write_phrase_file() {
     local dir=$(dirname $pfile)
     cmd mkdir -p $dir
     [ "$PRETEND_MODE" ] || echo -n "$phrase" > $pfile
+}
+
+#------------------------------------------------------------------------------
+# Remount the main partition from an encrypted live-usb
+#------------------------------------------------------------------------------
+remount_encrypted() {
+    local dev=$1  name=$2
+    echo "dev=$dev  name=$name"
+    cryptsetup open --type luks "$dev" "$name" \
+        || fatal "Could not remount encrypted partition %s" "$(pqw $dev)"
+
+    LUKS_DEV=/dev/mapper/$name
 }
 
 #------------------------------------------------------------------------------
@@ -2340,6 +2366,9 @@ do_uuids() {
         return
     fi
 
+    local bios_uuid_file=$dir/antiX/bios-dev-uuid
+    encrypt && cmd_write_file $bios_uuid_file  "$bios_uuid"
+
     local base_grub_cfg=$(basename $efi_grub_cfg)
 
     # Detect the newer grub config
@@ -2538,16 +2567,16 @@ write_random_seed() {
 # Change the initrd file to the template initrd selected by the user.
 #------------------------------------------------------------------------------
 update_initrd() {
-    local main_dir=$1  initrd_template=$(readlink -f "$2")
+    local bios_dir=$1  main_dir=$2  initrd_template=$(readlink -f "$3")
 
     need_prog copy-initrd-programs unpack-initrd copy-initrd-modules vmlinuz-version
 
     local initrd_path=$DEF_BOOT_DIR/initrd.gz
-    local initrd_file=$main_dir/$initrd_path
+    local initrd_file=$bios_dir/$initrd_path
     local linuxfs_path=$DEF_BOOT_DIR/linuxfs
     local linuxfs_file=$main_dir/$linuxfs_path
     local vmlinuz_path=$DEF_BOOT_DIR/vmlinuz
-    local vmlinuz_file=$main_dir/$vmlinuz_path
+    local vmlinuz_file=$bios_dir/$vmlinuz_path
 
     #pause initrd
 
@@ -2597,8 +2626,14 @@ update_initrd() {
     fi
 
     copy_initrd_release "$linux_dir"  "$initrd_dir" 'always'
-    cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir --clear
-    cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir
+
+    local e_args
+    encrypt && e_args="--encrypt"
+
+    verbose_cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir --clean
+    verbose_cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir $e_args \
+        || fatal $"Was unable to add all required programs to the live initrd"
+
     cmd copy-initrd-modules --count --quiet --from=$linux_dir --to=$initrd_dir --kernel=$kernel
 
     pause initrd
