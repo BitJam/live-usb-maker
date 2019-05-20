@@ -738,14 +738,14 @@ main() {
 
     # FIXME: add sanity checks for "uuids" and for update-initrd
     if [ -n "$FORMAT_USB" ]; then
-        makefs_select FORMAT_USB
+        makefs_select FORMAT_USB $"data usb-stick"
         msg $"Will create a %s filesystem" "$(pq $FORMAT_USB)"
     elif [ -d "$INITRD_FILE" ]; then
         msg $"Will update the initrd from directory %s" "$(pq $INITRD_FILE)"
     elif [ -f "$INITRD_FILE" ]; then
         msg $"Will update the initrd from file %s" "$(pq $INITRD_FILE)"
     elif data_first; then
-        makefs_select DATA_FIRST_FS
+        makefs_select DATA_FIRST_FS "data partition"
         msg $"Will create a leading %s data partition" "$(pq $DATA_FIRST_FS)"
     fi
 
@@ -2750,7 +2750,7 @@ makefs_menu() {
 # Otherwise make sure we can make the specified file system type.
 #------------------------------------------------------------------------------
 makefs_select() {
-    local var=$1  val
+    local var=$1  name=$2  val
     eval val=\$$var
 
     [ -z "$val" ] && return
@@ -2772,7 +2772,7 @@ makefs_select() {
         0) fatal $"No filesystem creation tools were found!"    ;;
         1) warn  $"Only one filesystem creation tool was found" ;;
     esac
-    local title=$"Please select the filesystem type"
+    local title=$(printf $"Please select the %s filesystem type" "$(pqq $name)")
     my_select $var "$title" "$menu"
 }
 
