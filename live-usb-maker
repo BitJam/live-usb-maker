@@ -2399,7 +2399,7 @@ do_uuids() {
         return
     fi
 
-    msg $"Using % grub config %s" "$(pq antiX/MX)" "$(pq 1.0)"
+    msg $"Using %s grub config %s" "$(pq antiX/MX)" "$(pq 1.0)"
 
     local dir
     for dir in $bios_dir $main_dir; do
