@@ -2642,11 +2642,14 @@ update_initrd() {
     local e_args
     encrypt && e_args="--encrypt"
 
-    verbose_cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir --clean
-    verbose_cmd copy-initrd-programs --quiet --from=$linux_dir --to=$initrd_dir $e_args \
+    verbose_cmd copy-initrd-programs --no-color --from=$linux_dir --to=$initrd_dir --clean
+    verbose_cmd copy-initrd-programs --no-color --from=$linux_dir --to=$initrd_dir $e_args \
         || fatal $"Was unable to add all required programs to the live initrd"
 
     cmd copy-initrd-modules --count --quiet --from=$linux_dir --to=$initrd_dir --kernel=$kernel
+
+    cmd copy-initrd-modules --quiet --only-encrypt --from=$linux_dir --to=$initrd_dir $e_args \
+            || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
 
     pause initrd
 
