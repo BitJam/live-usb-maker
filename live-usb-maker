@@ -325,7 +325,7 @@ eval_argument() {
       -reset-config|R)                                   ;;
       -write-config|W)                                   ;;
 
-               *)  fatal "Unknown parameter %s" "-$arg"  ;;
+               *)  fatal $"Unknown parameter %s" "-$arg"  ;;
     esac
 }
 
@@ -381,7 +381,7 @@ main() {
     # Let non-root users get usage.  Need to get --ignore-config early.
     read_early_params "$@"
 
-    force fuse && force nofuse && fatal "Cannot force both %s and %s" "$(pqw fuse)" "$(pqw nofuse)"
+    force fuse && force nofuse && fatal $"Cannot force both %s and %s" "$(pqw fuse)" "$(pqw nofuse)"
     need_root
     EXIT_NUM=100
 
@@ -393,7 +393,7 @@ main() {
     # Force stored 'gpt' value back to msdos.  Can still be overridden by the
     # --gpt command line parameter
     if [ -z "$CMD_GPT" -a "$MSDOS_GPT" != 'msdos' ]; then
-        warn "Forcing partitioning to be %s" "$(pqh msdos)"
+        warn $"Forcing partitioning to be %s" "$(pqh msdos)"
         MSDOS_GPT=msdos
         write_config "$CONFIG_FILE"
     fi
@@ -412,9 +412,10 @@ main() {
     validate_clone_persist "$CLONE_PERSIST" "$NO_CLONE_PERSIST"
 
     # Simple sanity check
-    [ -n "$FORMAT_USB"  -a -n "$CMD_CMDS"    ] && fatal "Cannot combine %s with any commands"  "--format"
-    [ -n "$INITRD_FILE" -a -n "$CMD_CMDS"    ] && fatal "Cannot combine %s with any commands"  "--initrd"
-    [ -n "$FORMAT_USB"  -a -n "$INITRD_FILE" ] && fatal "Cannot combine %s with %s" "--format" "--initrd"
+    :
+    [ -n "$FORMAT_USB"  -a -n "$CMD_CMDS"    ] && fatal $"Cannot combine %s with any commands"  "--format"
+    [ -n "$INITRD_FILE" -a -n "$CMD_CMDS"    ] && fatal $"Cannot combine %s with any commands"  "--initrd"
+    [ -n "$FORMAT_USB"  -a -n "$INITRD_FILE" ] && fatal $"Cannot combine %s with %s" "--format" "--initrd"
 
     #validate_fs_type "$USB_FORMAT"
 
@@ -549,7 +550,7 @@ main() {
     [ ${#target_dev} -gt 0 ] || fatal $"Could not find device %s" "$TARGET"
 
     TOTAL_SIZE=$(get_total_size "$target_dev")
-    fatal_z "$TOTAL_SIZE" "Could not get total size of device %s" "$target_dev"
+    fatal_z "$TOTAL_SIZE" $"Could not get total size of device %s" "$target_dev"
 
     if [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui; then
 
@@ -694,11 +695,12 @@ main() {
 
     # fatal "The device %s does not seem to be usb or removable."
     # FIXME: move this to the lib?
+    :
     force usb || is_usb_or_removable $target_dev \
         || yes_NO_fatal "usb" \
-        "Do you want to use it anyway (dangerous)?" \
-        "Use %s to always ignore this warning"      \
-        "The device %s does not seem to be usb or removeable."  "$target_dev"
+        $"Do you want to use it anyway (dangerous)?" \
+        $"Use %s to always ignore this warning"      \
+        $"The device %s does not seem to be usb or removeable."  "$target_dev"
 
     local bios_size  main_size  uefi_size
 
@@ -745,7 +747,7 @@ main() {
     elif [ -f "$INITRD_FILE" ]; then
         msg $"Will update the initrd from file %s" "$(pq $INITRD_FILE)"
     elif data_first; then
-        makefs_select DATA_FIRST_FS "data partition"
+        makefs_select DATA_FIRST_FS $"data partition"
         msg $"Will create a leading %s data partition" "$(pq $DATA_FIRST_FS)"
     fi
 
@@ -1104,10 +1106,10 @@ test_phrase_file() {
     case $lines in
         0)  ;;
 
-        1) warn "Phrase files should not have a trailing new-line character"
-           msg  "Will work around this" ;;
+        1) warn $"Phrase files should not have a trailing new-line character"
+           msg  $"Will work around this" ;;
 
-        *) fatal "Phrase file can have only one line" ;;
+        *) fatal $"Phrase file can have only one line" ;;
     esac
     msg $"Will read passphrase from file %s" "$(pq "$file")"
 }
@@ -1481,7 +1483,7 @@ guess_partitioning() {
 
     # Get the type of partitioning
     MSDOS_GPT=$(parted --script $drive unit MiB print | sed -n "s/^Partition Table: *//p")
-    msg "Found %s partitioning" "$(pq $MSDOS_GPT)"
+    msg $"Found %s partitioning" "$(pq $MSDOS_GPT)"
     encrypt && shout $"Assuming this is an encrypted live-usb"
     setup_devices $drive
 }
@@ -1578,7 +1580,7 @@ remount_encrypted() {
     local dev=$1  name=$2
     echo "dev=$dev  name=$name"
     cryptsetup open --type luks "$dev" "$name" \
-        || fatal "Could not remount encrypted partition %s" "$(pqw $dev)"
+        || fatal $"Could not remount encrypted partition %s" "$(pqw $dev)"
 
     LUKS_DEV=/dev/mapper/$name
 }
@@ -2653,7 +2655,7 @@ update_initrd() {
 
     pause initrd
 
-    cmd unpack-initrd --from "$initrd_file" --dir "$initrd_dir" --repack || fatal "Repack failed"
+    cmd unpack-initrd --from "$initrd_file" --dir "$initrd_dir" --repack || fatal $"Repack failed"
     local md5_sum=$(cd $(dirname $initrd_file) && md5sum $(basename $initrd_file))
     cmd write_file "$initrd_file".md5 "$md5_sum"
 }
@@ -2744,7 +2746,7 @@ make_fs_dev() {
 
     msg $"Make %s filesystem" "$(pq $fstype)"
     cmd mkfs.$fstype $args $part \
-        || dmesg_fatal "Could not make %s file system on %s" "$fstype" "$part"
+        || dmesg_fatal $"Could not make %s file system on %s" "$fstype" "$part"
 
     sync
     cmd partprobe $dev
@@ -2875,8 +2877,8 @@ Umount_Dirs
 write_config() {
     local file=${1:-$CONFIG_FILE}
     local dir=$(dirname "$file")
-    mkdir -p "$dir" || fatal "Could not make config file directory %s" "$dir"
-    msg "Writing config file %s" "$(pq "$file")"
+    mkdir -p "$dir" || fatal $"Could not make config file directory %s" "$dir"
+    msg $"Writing config file %s" "$(pq "$file")"
 
     cat<<Config_File >"$file"
 $(config_header "$file" "$ME" "$VERSION" "$VERSION_DATE")
