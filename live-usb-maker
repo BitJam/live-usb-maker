@@ -2024,7 +2024,7 @@ do_makefs_ext() {
 
     force makefs && force_ext="-F"
     cmd mkfs.ext4 $force_ext $EXT4_NO_64BIT $options $dev \
-        || dmesg_fatal 'makefs' $"Could not make %s file system on %s." 'ext4' "$dev"
+        || dmesg_fatal 'makefs' $"Could not make %s file system on %s" 'ext4' "$dev"
 
     [ -n "$label" ] && cmd tune2fs -L "${label:0:16}" $dev
 }
