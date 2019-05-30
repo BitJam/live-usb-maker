@@ -2636,7 +2636,7 @@ update_initrd() {
     if test -f "$initrd_template"; then
         cmd unpack-initrd --from "$initrd_template" --dir "$initrd_dir" || fatal "Unpack failed"
     elif test -d "$initrd_template"; then
-        (cd ../Live-initrd && find  . | grep "^\./[a-z]" | cpio --quiet -pd "$initrd_dir")
+        (cd "$initrd_template" && find . | grep "^\./[a-z]" | cpio --quiet -pd "$initrd_dir")
     fi
 
     copy_initrd_release "$linux_dir"  "$initrd_dir" 'always'
