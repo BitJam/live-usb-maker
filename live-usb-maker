@@ -590,7 +590,15 @@ main() {
 
         clone)
             #
-            from=clone=$LIVE_MP ;;
+            if test -e /live/config/toram-all; then
+                from=clone=$TORAM_MP
+            else
+                from=clone=$LIVE_MP
+
+            fi;;
+
+        clone-toram)
+            from=clone=$TORAM_MP ;;
 
         dev=*|clone=*|file=*)   ;;
         null=*)                 ;;
