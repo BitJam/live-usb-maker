@@ -530,7 +530,11 @@ main() {
 
     # Check cmdline target *before* the first menu
     if [ ${#TARGET} -eq 0 ]; then
-        select_target_device TARGET "$live_dev" "$FROM"
+        if need_q update-initrd; then
+            select_target_device TARGET "" "$FROM"
+        else
+            select_target_device TARGET "$live_dev" "$FROM"
+        fi
     else
         check_target "$TARGET" "$live_dev"
     fi
@@ -721,7 +725,7 @@ main() {
     given_cmd sizes && my_exit 0
 
     # Make sure the target is not in use
-    umount_all $target_dev
+    need_q update-initrd || umount_all $target_dev
 
     local encrypted_lab=""
 
@@ -802,7 +806,7 @@ main() {
     #sleep ${AUTOMOUNT_DELAY:-1}
 
     # Make sure the new target partitions get unmounted if they were auto-mounted
-    umount_all $target_dev
+    need_q update-initrd || umount_all $target_dev
 
     # Nothing else makes sense if there is no partition table
     need_q partition-clear && ! need_q partition-make && exit_done
