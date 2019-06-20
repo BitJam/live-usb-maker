@@ -475,8 +475,8 @@ main() {
         fatal_z "$TARGET"  "No --target was given while in %s mode" gui
     fi
 
-    shout_title $"Starting %s" "$ME"
-    set_window_title "$ME"
+    shout_title $"Starting %s" "$ME $VERSION"
+    set_window_title "$ME $VERSION"
     start_log "$THE_LOG_FILE" "$orig_args"
 
     # NOTE: this placement is not ideal because it allows the user to
