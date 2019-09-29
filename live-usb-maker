@@ -1490,6 +1490,7 @@ guess_partitioning() {
         ext4:cryto_LUKS:vfat:*) ENCRYPT=true    ; CRYPT_PART=$part2         ;;
        *:ext4:crypto_LUKS:vfat) ENCRYPT=true    ; CRYPT_PART=$part3
                                 DATA_FIRST=true ; DATA_FIRST_FS=$fs1        ;;
+            # This does not look like a live-usb device <device signature>
         *)  fatal $"This does not look like a live-usb device %s" "$fs_str" ;;
     esac
 
