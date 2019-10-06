@@ -107,7 +107,7 @@ ORDERED_CMDS="$ORDERED_CMDS copy-main check-usb-md5 copy-bios copy-uefi uuids"
 ORDERED_CMDS="$ORDERED_CMDS cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy,initrd"
    ALL_PAUSE="exit,initrd,copy,uuids"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -755,6 +755,21 @@ main() {
         makefs_select FORMAT_USB $"data usb-stick"
         msg $"Will create a %s filesystem" "$(pq $FORMAT_USB)"
     elif [ -d "$INITRD_FILE" ]; then
+
+        # Some quick checks
+        if ! force initrd; then
+            local name file bash_error
+            for name in init etc/init.d/live-init; do
+                file="$INITRD_FILE/$name"
+                test -x "$file" || continue
+                head -n1 "$file" | grep -q "^#\!/bin/[a-z]*sh" || continue
+                bash -n "$file" && continue
+                warn 'Bash errors in file %s' "$(pqw "$file")"
+                bash_error=true
+            done
+            [ "$bash_error" ] && fatal 'One or more Bash errors were detected'
+        fi
+
         msg $"Will update the initrd from directory %s" "$(pq $INITRD_FILE)"
     elif [ -f "$INITRD_FILE" ]; then
         msg $"Will update the initrd from file %s" "$(pq $INITRD_FILE)"
