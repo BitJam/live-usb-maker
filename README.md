@@ -66,14 +66,15 @@ Options:
                         clone=<xxx> to clone another live-usb
 
   -F --force=<xxx>      Force the options specfied:
-                               usb: Ignore usb/removable check
-                             nomd5: Don't check md5 of files copied to live-usb
-                         ultra-fit: don't warn about SanDisk utra-fit devices
-                            makefs: Make the ext4 filesystem even if one exists
-                         automount: don't temporarily disable antiX automounting
-                            nofuse: don't use fuseiso to mount iso files
-                              fuse: only use fuseiso to mount iso files
+                            automount:  don't temporarily disable antiX automounting
+                            fuse:       only use fuseiso to mount iso files
+                            initrd:     ignore Bash errors when copying initrd from directory
+                            makefs:     make the ext4 filesystem even if one exists
+                            nofuse:     don't use fuseiso to mount iso files
+                            nomd5:      don't check md5 of files copied to live-usb
+                            ultra-fit:  don't warn about SanDisk utra-fit devices
 
+usb: Ignore usb/removable check
   -- --gui-progress           All remaining args are used as a gui progress bar program
                               Example: --gui-progress yad --progress --auto-close
   -g --gpt                    Use gpt partitioning instead of msdos
@@ -110,7 +111,7 @@ Options:
 Notes:
   - short options stack. Example: -pv is the same as --pretend --verbose
   - options can be intermingled with commands and parameters
-  - config file: /root/.config/live-usb-maker/live-usb-maker.conf
+  - config file: /etc/live-usb-maker/live-usb-maker.conf
   - the config file will be sourced if it exists
   - it will be created if it doesn't exist
 ```
