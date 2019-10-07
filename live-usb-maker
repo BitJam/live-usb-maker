@@ -2064,7 +2064,7 @@ do_makefs_ext() {
 #------------------------------------------------------------------------------
 do_makefs_uefi() {
     local uefi_dev=$1  label=${2:-LIVE-ESP}
-    cmd mkfs.vfat -n "${label^^}" $uefi_dev \
+    cmd mkfs.vfat -F 32 -n "${label^^}" $uefi_dev \
         || dmesg_fatal $"Could not make %s file system on %s" "fat32" "$uefi_dev"
 }
 
@@ -2768,8 +2768,9 @@ make_fs_dev() {
         fat32) fstype=vfat ;;
     esac
     case $fstype in
-        vfat|exfat) args="-n $label" ;;
-          ext[234]) args="-L $label" ;;
+             exfat) args="-n $label"        ;;
+              vfat) args="-F 32 -n $label"  ;;
+          ext[234]) args="-L $label"        ;;
               ntfs) args="--fast -L $label" ;;
     esac
 
