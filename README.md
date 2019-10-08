@@ -73,8 +73,8 @@ Options:
                             nofuse:     don't use fuseiso to mount iso files
                             nomd5:      don't check md5 of files copied to live-usb
                             ultra-fit:  don't warn about SanDisk utra-fit devices
+                            usb: Ignore usb/removable check
 
-usb: Ignore usb/removable check
   -- --gui-progress           All remaining args are used as a gui progress bar program
                               Example: --gui-progress yad --progress --auto-close
   -g --gpt                    Use gpt partitioning instead of msdos
