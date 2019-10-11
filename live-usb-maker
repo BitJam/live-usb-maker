@@ -380,7 +380,6 @@ main() {
     # Let non-root users get usage.  Need to get --ignore-config early.
     read_early_params "$@"
 
-    force fuse && force nofuse && fatal $"Cannot force both %s and %s" "$(pqw fuse)" "$(pqw nofuse)"
     need_root
     EXIT_NUM=100
 
@@ -405,6 +404,8 @@ main() {
 
     read_all_cmdline_mingled "$@"
     set_colors $COLOR_SCHEME
+
+    force fuse && force nofuse && fatal $"Cannot force both %s and %s" "$(pqw fuse)" "$(pqw nofuse)"
 
     validate_data_first CMD_SIZE "$DATA_FIRST"
 
