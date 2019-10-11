@@ -758,18 +758,7 @@ main() {
     elif [ -d "$INITRD_FILE" ]; then
 
         # Some quick checks
-        if ! force initrd; then
-            local name file bash_error
-            for name in init etc/init.d/live-init; do
-                file="$INITRD_FILE/$name"
-                test -x "$file" || continue
-                head -n1 "$file" | grep -q "^#\!/bin/[a-z]*sh" || continue
-                bash -n "$file" && continue
-                warn 'Bash errors in file %s' "$(pqw "$file")"
-                bash_error=true
-            done
-            [ "$bash_error" ] && fatal 'One or more Bash errors were detected'
-        fi
+        force initrd || check_recent_executables "$INITRD_FILE"
 
         msg $"Will update the initrd from directory %s" "$(pq $INITRD_FILE)"
     elif [ -f "$INITRD_FILE" ]; then
@@ -2687,6 +2676,26 @@ update_initrd() {
     cmd unpack-initrd --from "$initrd_file" --dir "$initrd_dir" --repack || fatal $"Repack failed"
     local md5_sum=$(cd $(dirname $initrd_file) && md5sum $(basename $initrd_file))
     cmd write_file "$initrd_file".md5 "$md5_sum"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+check_recent_executables() {
+    local dir=$1  file  bash_error  cnt=0
+    while read file; do
+        head -n1 "$file" | egrep -q "^#\!(/live)?/bin/[a-z]*sh" || continue
+        cnt=$((cnt + 1))
+        bash -n "$file" && continue
+        warn 'Bash errors in file %s' "$(pqw "$file")"
+        bash_error=true
+    done<<Recent_Execs
+$(find "$dir"/[a-z]* -maxdepth 3 -type f -executable -ctime -2)
+Recent_Execs
+
+    msg "Checked %s recent executables under %s" "$(nq $cnt)" "$(pq "$dir")"
+
+    [ "$bash_error" ] && fatal 'One or more Bash errors were detected'
 }
 
 #------------------------------------------------------------------------------
