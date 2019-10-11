@@ -250,7 +250,6 @@ eval_early_argument() {
        -reset-config|R) RESET_CONFIG=true    ;;
         -gpt|-gpt-pmbr) CMD_GPT=true         ;;
            -progress|P) PROGRESS=true        ;;
-                -pause) PAUSE="$PAUSE${PAUSE:+,}exit" ;;
                -help|h) usage                ;;
             -version|v) show_version         ;;
     esac
