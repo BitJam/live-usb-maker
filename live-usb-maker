@@ -249,8 +249,6 @@ eval_early_argument() {
        -write-config|W) WRITE_CONFIG=true    ;;
        -reset-config|R) RESET_CONFIG=true    ;;
         -gpt|-gpt-pmbr) CMD_GPT=true         ;;
-              -force|F) FORCE="$FORCE,$val"  ;;
-              -force=*) FORCE="$FORCE,$val"  ;;
            -progress|P) PROGRESS=true        ;;
                 -pause) PAUSE="$PAUSE${PAUSE:+,}exit" ;;
                -help|h) usage                ;;
@@ -282,6 +280,8 @@ eval_argument() {
           -esp-size=*)  UEFI_SIZE=$val                   ;;
           -data-first)  DATA_FIRST=choose                ;;
         -data-first=*)  DATA_FIRST=$val                  ;;
+             -force|F)  FORCE="$FORCE,$val"              ;;
+             -force=*)  FORCE="$FORCE,$val"              ;;
               -format)  FORMAT_USB=choose                ;;
             -format=*)  FORMAT_USB=$val                  ;;
               -from|f)  FROM=$val                        ;;
@@ -320,13 +320,11 @@ eval_argument() {
 
        # These are read early.  They are not unknown
 
-             -force|F)                                   ;;
-             -force=*)                                   ;;
      -ignore-config|I)                                   ;;
       -reset-config|R)                                   ;;
       -write-config|W)                                   ;;
 
-               *)  fatal $"Unknown parameter %s" "-$arg"  ;;
+              *)  fatal $"Unknown parameter %s" "-$arg"  ;;
     esac
 }
 
