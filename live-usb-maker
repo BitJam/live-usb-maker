@@ -107,7 +107,7 @@ ORDERED_CMDS="$ORDERED_CMDS copy-main check-usb-md5 copy-bios copy-uefi uuids"
 ORDERED_CMDS="$ORDERED_CMDS cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy,initrd"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy,check-sh"
    ALL_PAUSE="exit,initrd,copy,uuids"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -756,7 +756,7 @@ main() {
     elif [ -d "$INITRD_FILE" ]; then
 
         # Some quick checks
-        force initrd || check_recent_executables "$INITRD_FILE"
+        force check-sh && check_recent_executables "$INITRD_FILE"
 
         msg $"Will update the initrd from directory %s" "$(pq $INITRD_FILE)"
     elif [ -f "$INITRD_FILE" ]; then
