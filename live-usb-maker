@@ -1975,10 +1975,13 @@ do_partition() {
 
     if [ $bios_size -gt 0 ]; then
         _add_partition $bios_size bios
+        cmd $PREAMB set $PART_NUM $boot_flag on || dmesg_fatal "$err_msg" boot-flag-1
         main_fs=
     fi
     _add_partition "$main_size" $main_fs  main
-    cmd $PREAMB set $PART_NUM $boot_flag on || dmesg_fatal "$err_msg" boot-flag
+    if ! encrypt; then
+        cmd $PREAMB set $PART_NUM $boot_flag on || dmesg_fatal "$err_msg" boot-flag-2
+    fi
     _add_partition "$uefi_size" fat32  uefi
     cmd $PREAMB set $PART_NUM esp on || dmesg_fatal "$err_msg" esp-flag
 
