@@ -2689,6 +2689,7 @@ update_initrd() {
 check_recent_executables() {
     local dir=$1  file  bash_error  cnt=0
     while read file; do
+        test -e "$file" || continue
         head -n1 "$file" | egrep -q "^#\!(/live)?/bin/[a-z]*sh" || continue
         cnt=$((cnt + 1))
         bash -n "$file" && continue
