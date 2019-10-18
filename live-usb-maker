@@ -866,6 +866,8 @@ main() {
         esac
 
         encrypt_partition $MAIN_DEV "$LUKS_NAME" "$phrase"
+        check_luks_version "$MAIN_DEV"
+
         need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
         local main_uuid=$(lsblk --nodeps -no uuid $MAIN_DEV)
@@ -1218,6 +1220,30 @@ dict_words() {
         | egrep -v -e ".{$((max_len + 1))}" -e "$SWEARS" -e "'" > $WORDS_FILE
 
     cat $WORDS_FILE
+}
+
+#------------------------------------------------------------------------------
+# Get just the major version number from cryptsetup --version output
+#------------------------------------------------------------------------------
+cryptsetup_major_version() { sed -nr "s/^[a-z]+\s+([0-9]+)\..*/\1/p";  }
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+check_luks_version() {
+    local part=$(expand_device "$1")
+    if ! test -b "$part"; then
+        warn "Encrypted partition %s is not a block device" "$(pqw $part)"
+        return 1
+    fi
+    local luks=$(echo $(dd status=none if=$part bs=1 count=4 | od -An -t x4 --endian=big))
+    if [ "$luks" != '4c554b53' ]; then
+        warn "%s does not look like a Luks partition.  Found %s" "$(pqw $part)" "$(pqw $luks)"
+        return 2
+    fi
+    local type=$(echo $(dd status=none if=$part bs=1 skip=6 count=2 | od -An -t x2 --endian=big))
+    msg "Luks type  %s" "$(nq $(printf "%d" "0x$type"))"
+    return 0
 }
 
 #------------------------------------------------------------------------------
