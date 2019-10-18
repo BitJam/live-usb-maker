@@ -1638,8 +1638,10 @@ write_phrase_file() {
 #------------------------------------------------------------------------------
 remount_encrypted() {
     local dev=$1  name=$2
-    echo "dev=$dev  name=$name"
-    cryptsetup open --type luks "$dev" "$name" \
+    #echo "dev=$dev  name=$name"
+
+    cmd mkdir -p /run/cryptsetup
+    cryptsetup open "$dev" "$name" \
         || fatal $"Could not remount encrypted partition %s" "$(pqw $dev)"
 
     LUKS_DEV=/dev/mapper/$name
