@@ -1534,7 +1534,7 @@ guess_partitioning() {
     case $fs_str in
                    ext4:vfat:*)                                             ;;
                  *:ext4:vfat:*) DATA_FIRST=true ; DATA_FIRST_FS=$fs1        ;;
-        ext4:cryto_LUKS:vfat:*) ENCRYPT=true    ; CRYPT_PART=$part2         ;;
+       ext4:crypto_LUKS:vfat:*) ENCRYPT=true    ; CRYPT_PART=$part2         ;;
        *:ext4:crypto_LUKS:vfat) ENCRYPT=true    ; CRYPT_PART=$part3
                                 DATA_FIRST=true ; DATA_FIRST_FS=$fs1        ;;
             # This does not look like a live-usb device <device signature>
