@@ -107,7 +107,7 @@ ORDERED_CMDS="$ORDERED_CMDS copy-main check-usb-md5 copy-bios copy-uefi uuids"
 ORDERED_CMDS="$ORDERED_CMDS cheats cheats-syslinux cheats-grub install encrypt-main encryption-initrd"
     ALL_CMDS="sizes all partition makefs copy cheats $ORDERED_CMDS"
 
-   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy,check-sh"
+   ALL_FORCE="automount,flock,makefs,ultra-fit,usb,nofuse,fuse,uuids,nomd5,debug-copy,check-sh,luks2"
    ALL_PAUSE="exit,initrd,copy,uuids"
 
     LIB_PATH="$MY_LIB_DIR:$LIB_DIR"
@@ -123,6 +123,7 @@ SYSLINUX_FILES="$SYSLINUX_FILES libmenu.c32 libutil.c32 linux.c32 menu.c32"
 
         SWEARS="asshole|bastard|bitch|cock|crap|cunt|damn|dick|douche|fag|fuck|piss|pussy|shit|slut"
 
+     LUKS_TYPE="luks1"
 
 #------------------------------------------------------------------------------
 # Show usage and exit
@@ -737,6 +738,21 @@ main() {
         local linuxfs_full=$ISO_DIR/$DEF_BOOT_DIR/$LINUXFS_NAME
         my_mount "$linuxfs_full" "$LINUX_DIR" -t squashfs -o loop,ro
 
+        if force luks2; then
+
+            local host_cs=$(cryptsetup --version | cryptsetup_major_version)
+            local targ_cs=$(chroot $LINUX_DIR /sbin/cryptsetup --version | cryptsetup_major_version)
+            : ${host_cs:=0}
+            : ${targ_cs:=0}
+            msg "Host using cryptsetup version %s" "$(pq $host_cs.x)"
+            msg "Target using cryptsetup version %s" "$(pq $targ_cs.x)"
+            if [ $host_cs -ge 2 -a $targ_cs -ge 2 ]; then
+                LUKS_TYPE="luks2"
+                msg "Using Luks version %s" "$(nq $LUKS_TYPE)"
+            else
+                msg "Leaving Luks version at %s" "$(nq $LUKS_TYPE)"
+            fi
+        fi
         local initrd_file=$ISO_DIR/$DEF_BOOT_DIR/initrd.gz
         start_initrd_encryption "$initrd_file" "$INITRD_DIR" "$LINUX_DIR"
         pause initrd
@@ -775,6 +791,8 @@ main() {
 
     local ready_str=$"Ready to perform %s action on %s"
     [ -z "${CMDS##* *}" ] && ready_str=$"Ready to perform %s actions on %s"
+
+
 
     [ "$CMDS" != 'all' ] \
         && final_q=$(printf "$ready_str" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
@@ -1611,18 +1629,20 @@ encrypt_partition() {
 
     msg $"About to encrypt device %s" "$(pq $dev)"
 
+    cmd mkdir -p /run/cryptsetup
+
     local val=${phrase#*=}  ret
     if [ -z "$PRETEND_MODE" ]; then
         case $phrase in
                 ask) shout
                      shout $"We want to overwrite the data on %s" $dev
                      shout $"Type in upper-case %s as suggested" "'YES'"
-                     cryptsetup luksFormat              $dev ; ret=$?
+                     cryptsetup luksFormat --type $LUKS_TYPE $dev ; ret=$?
                      shout $"You will be asked for the passphrase a third time" ;;
 
-             file=*) cat "$val"     | cryptsetup luksFormat --key-file - $dev ; ret=$? ;;
+             file=*) cat "$val"     | cryptsetup luksFormat --type $LUKS_TYPE --key-file - $dev ; ret=$? ;;
 
-           phrase=*) echo -n "$val" | cryptsetup luksFormat --key-file - $dev ; ret=$? ;;
+           phrase=*) echo -n "$val" | cryptsetup luksFormat --type $LUKS_TYPE --key-file - $dev ; ret=$? ;;
 
                   *) internal_error phrase-type "$phrase"
         esac
@@ -1631,13 +1651,13 @@ encrypt_partition() {
     fi
 
     case $phrase in
-           ask) cryptsetup open --type luks                   $dev $name; ret=$? ;;
-        file=*) cryptsetup open --type luks --key-file "$val" $dev $name; ret=$? ;;
+           ask) cryptsetup open --type $LUKS_TYPE $dev $name; ret=$? ;;
+        file=*) cryptsetup open --type $LUKS_TYPE --key-file "$val" $dev $name; ret=$? ;;
 
       phrase=*) if YES_no $"Do you want to try entering the new passphrase now?"; then
-                    cryptsetup open --type luks $dev $name; ret=$?
+                    cryptsetup open --type $LUKS_TYPE $dev $name; ret=$?
                 else
-                    echo -n "$val" | cryptsetup open --type luks --key-file - $dev $name; ret=$?
+                    echo -n "$val" | cryptsetup open --type $LUKS_TYPE --key-file - $dev $name; ret=$?
                 fi ;;
     esac
 
