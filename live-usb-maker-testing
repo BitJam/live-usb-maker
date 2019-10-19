@@ -427,7 +427,18 @@ main() {
 
     [ -n "$BE_VERBOSE" -a -n "$PRETEND_MODE" ] && VERY_VERBOSE=true
 
-    CMDS=${CMD_CMDS:-all}
+    # Start process auxilary modes of operation here.  If no aux mode then
+    # we default CMDS to "all".
+    local AUX_MODE
+    if [ -n "$FORMAT_USB" ]; then
+        AUX_MODE='format-usb'
+    elif [ -n "$INITRD_FILE" ]; then
+        AUX_MODE='update-initrd'
+        test -e "$INITRD_FILE" || fatal $"Could not find initrd file %s" "$(pqw $INITRD_FILE)"
+        test -r "$INITRD_FILE" || fatal $"Could not read initrd file %s" "$(pqw $INITRD_FILE)"
+    else
+        CMDS=${CMD_CMDS:-all}
+    fi
 
     # Let the gui take care of filtering out ultra-fit devices
     q_mode gui && FORCE="$FORCE,ultra-fit"
@@ -435,16 +446,6 @@ main() {
     check_cmds  CMDS  "$ALL_CMDS" "$ORDERED_CMDS"
     check_force FORCE "$ALL_FORCE"
     check_pause PAUSE "$ALL_PAUSE"
-
-    if [ "$FORMAT_USB" ]; then
-        CMDS='format-usb'
-        CMD_CMDS="$CMDS"
-    elif [ "$INITRD_FILE" ]; then
-        CMDS='update-initrd'
-        CMD_CMDS="$CMDS"
-        test -e "$INITRD_FILE" || fatal $"Could not find initrd file %s" "$(pqw $INITRD_FILE)"
-        test -r "$INITRD_FILE" || fatal $"Could not read initrd file %s" "$(pqw $INITRD_FILE)"
-    fi
 
     local percent_size=${CMD_SIZE%%%}
     case $percent_size in
@@ -467,10 +468,8 @@ main() {
     if q_mode gui; then
 
         case $CMDS in
-            partition-clear) ;;
-                 format-usb) ;;
-              update-initrd) ;;
-                          *) fatal_z "$FROM" "No --from was given while in %s mode" gui ;;
+            partition-clear|"") ;;
+                             *)  fatal_z "$FROM" "No --from was given while in %s mode" gui ;;
         esac
         fatal_z "$TARGET"  "No --target was given while in %s mode" gui
     fi
@@ -530,7 +529,7 @@ main() {
 
     # Check cmdline target *before* the first menu
     if [ ${#TARGET} -eq 0 ]; then
-        if need_q update-initrd; then
+        if aux_mode update-initrd; then
             select_target_device TARGET "" "$FROM"
         else
             select_target_device TARGET "$live_dev" "$FROM"
@@ -556,7 +555,7 @@ main() {
     TOTAL_SIZE=$(get_total_size "$target_dev")
     fatal_z "$TOTAL_SIZE" $"Could not get total size of device %s" "$target_dev"
 
-    if [ ${#CMD_CMDS} -eq 0  ] && ! q_mode simple gui; then
+    if [ -z "$CMD_CMDS$AUX_MODE" ] && ! q_mode simple gui; then
 
         data_first && msg $"Will create a leading data partition"
         encrypt    && msg $"Will create an encrypted live-usb"
@@ -725,7 +724,7 @@ main() {
     given_cmd sizes && my_exit 0
 
     # Make sure the target is not in use
-    need_q update-initrd || umount_all $target_dev
+    aux_mode update-initrd || umount_all $target_dev
 
     local encrypted_lab=""
 
@@ -766,6 +765,25 @@ main() {
     fi
 
     # FIXME: add sanity checks for "uuids" and for update-initrd
+    case $AUX_MODE in
+        format-usb)
+            makefs_select FORMAT_USB $"data usb-stick"
+            msg $"Will create a %s filesystem" "$(pq $FORMAT_USB)" ;;
+        update-initrd)
+            if test -d "$INITRD_FILE"; then
+                # Some quick checks
+                force check-sh && check_recent_executables "$INITRD_FILE"
+                msg $"Will update the initrd from directory %s" "$(pq $INITRD_FILE)"
+            elif test -f "$INITRD_FILE"; then
+                msg $"Will update the initrd from file %s" "$(pq $INITRD_FILE)"
+            fi;;
+        *)
+        if data_first; then
+            makefs_select DATA_FIRST_FS $"data partition"
+            msg $"Will create a leading %s data partition" "$(pq $DATA_FIRST_FS)"
+        fi;;
+    esac
+
     if [ -n "$FORMAT_USB" ]; then
         makefs_select FORMAT_USB $"data usb-stick"
         msg $"Will create a %s filesystem" "$(pq $FORMAT_USB)"
@@ -784,18 +802,19 @@ main() {
 
     #=========================================================================
 
+    # The action(s0 we display are either commands or an aux_mode
+    local actions=${CMDS:-$AUX_MDOE}
+
     local new_line=$(printf "$nc_co\n$bold_co...")
     # Ready to make live-usb on device X by <cloning|copying directory Y>
     local final_q=$(printf $"Ready to make %s on device %s by %s" "${encrypted_lab}$(pqb live-usb)" \
         "$(pqb ${target_dev##*/})$new_line" "$from_act $from_thing $(pqb $from_value)")
 
     local ready_str=$"Ready to perform %s action on %s"
-    [ -z "${CMDS##* *}" ] && ready_str=$"Ready to perform %s actions on %s"
-
-
+    [ -z "${actions##* *}" ] && ready_str=$"Ready to perform %s actions on %s"
 
     [ "$CMDS" != 'all' ] \
-        && final_q=$(printf "$ready_str" "$(pq $CMDS)" "$(pqq ${target_dev##*/})")
+        && final_q=$(printf "$ready_str" "$(pq $actions)" "$(pqq ${target_dev##*/})")
 
     if q_mode gui; then
         msg "$final_q"
@@ -811,7 +830,7 @@ main() {
 
     START_T=$(date +%s)
 
-    if [ "$FORMAT_USB" ]; then
+    if aux_mode format-usb; then
         format_usb "$target_dev" "$MSDOS_GPT"  "$FORMAT_USB"
         say_done
         my_exit 0
@@ -827,7 +846,7 @@ main() {
     #sleep ${AUTOMOUNT_DELAY:-1}
 
     # Make sure the new target partitions get unmounted if they were auto-mounted
-    need_q update-initrd || umount_all $target_dev
+    aux_mode update-initrd || umount_all $target_dev
 
     # Nothing else makes sense if there is no partition table
     need_q partition-clear && ! need_q partition-make && exit_done
@@ -1310,7 +1329,7 @@ select_other_mode() {
     my_select 'ans2' "$title" "$menu"
     case $ans2 in
                  quit) not_done=true                             ;;
-               format) cmd_val=format-usb                        ;;
+               format) AUX_MODE=format-usb                       ;;
                 clear) cmd_val="partition-clear"                 ;;
                update) cmd_val="copy-main check-usb-md5"
                        SAVE_BOOT=true                            ;;
@@ -2598,6 +2617,9 @@ do_install_bootloader() {
     cmd extlinux -i $syslinux_dir || fatal "%s command failed" extlinux
 }
 
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
 update_syslinux() {
     local to_dir=$1  xfer_files=$2  rm_files=$3
     local fname=gfxboot.c32  file  pre  post
@@ -2892,6 +2914,7 @@ makefs_select() {
 encrypt()             {  [ "$ENCRYPT"   ]                 ;  return $?; }
 data_first()          {  [ "$DATA_FIRST_FS$DATA_FIRST" ]  ;  return $?; }
 using_grub_config_2() {  [ "$USING_GRUB_CONFIG_2" ]       ;  return $?; }
+aux_mode()            {  [ "$AUX_MODE" = "$1" ]           ;  return $?; }
 
 #------------------------------------------------------------------------------
 # Make sure we have enough left over space on a partition.  Can generate
