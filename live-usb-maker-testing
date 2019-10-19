@@ -2637,15 +2637,11 @@ update_syslinux() {
         cmd chattr -i $to_dir/ldlinux.sys
     fi
 
-    while read fname; do
-        test -e $to_dir/$fname && cmd rm -f $to_dir/$fname
-    done<<Syslinux_Rm
-$(cd $to_dir && ls -d $rm_files 2>/dev/null)
-Syslinux_Rm
+    # Make output to log more compact by assuming no spaces in fnames
+    (cmd cd $to_dir && cmd rm -f $rm_files)
 
-    for fname in $xfer_files; do
-        test -e $from_dir/$fname && cmd cp $from_dir/$fname $to_dir/
-    done
+    # Make output to log more compact by assuming no spaces in fnames
+    (cmd cd $from_dir && cmd cp --target $to_dir $(cd $from_dir && ls -d $xfer_files 2>/dev/null))
 
     cmd write_file $to_dir/version $(get_extlinux_version)
 }
