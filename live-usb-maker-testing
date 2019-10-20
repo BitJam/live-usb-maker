@@ -142,6 +142,7 @@ is not supplied in the command line options.
      expert:  default "yes" to some questions.
      simple:  skip some questions
         gui:  non-interactive, disable progress bar, enable progress file
+    dry-run:  same as gui but provide more info and stop before doing anything
 
 Uses ext4 as the filesystem for the main live-usb partition and adds
 a small fat32 file system for booting via UEFI.
@@ -334,10 +335,11 @@ eval_argument() {
 assign_parameter() {
    local cnt=$1 param=$2
    case $param in
-       default) QUESTION_MODE=default          ;;
-        expert) QUESTION_MODE=expert           ;;
-        simple) QUESTION_MODE=simple           ;;
-           gui) QUESTION_MODE=gui              ;;
+       default) QUESTION_MODE=default                    ;;
+        expert) QUESTION_MODE=expert                     ;;
+        simple) QUESTION_MODE=simple                     ;;
+           gui) QUESTION_MODE=gui                        ;;
+       dry-run) DRY_RUN=true ; QUESTION_MODE=gui         ;;
              *) CMD_CMDS="$CMD_CMDS${CMD_CMDS:+ }$param" ;;
     esac
 }
@@ -369,7 +371,7 @@ main() {
     local BE_VERBOSE FROM TARGET FATAL_QUESTION CMD PARAM_CNT ENCRYPT
     local CLONE_PERSIST  NO_CLONE_PERSIST CLONE_HOME  NO_CLONE_HOME
     local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR  TOTAL_SIZE
-    local FORMAT_USB USING_GRUB_CONFIG_2  CRYPT_PART
+    local FORMAT_USB USING_GRUB_CONFIG_2  CRYPT_PART DRY_RUN
     local VERY_VERBOSE VERBOSITY=0
     local ISO_BOOT_DIR  START_T=0
 
@@ -2907,6 +2909,7 @@ encrypt()             {  [ "$ENCRYPT"   ]                 ;  return $?; }
 data_first()          {  [ "$DATA_FIRST_FS$DATA_FIRST" ]  ;  return $?; }
 using_grub_config_2() {  [ "$USING_GRUB_CONFIG_2" ]       ;  return $?; }
 aux_mode()            {  [ "$AUX_MODE" = "$1" ]           ;  return $?; }
+dry_run()             {  [ "$DRY_RUN" ]                   ;  return $?; }
 
 #------------------------------------------------------------------------------
 # Make sure we have enough left over space on a partition.  Can generate
