@@ -966,7 +966,7 @@ main() {
                 mount_file "$efi_img"  "$EFI_IMG_DIR"
                 copy_files_spec "$EFI_IMG_DIR" EFI     "$UEFI_DIR" efi
                 copy_files_spec "$ISO_DIR"     version "$UEFI_DIR" uefi
-                # umount "$EFI_IMG_DIR"
+                umount "$EFI_IMG_DIR"
             else
                 copy_files_spec $ISO_DIR "$UEFI_2_FILES" "$UEFI_DIR" uefi
             fi
