@@ -917,8 +917,9 @@ main() {
             my_mount "$LUKS_DEV" "$MAIN_DIR"
         fi
 
-        my_mount $BIOS_DEV $BIOS_DIR  -t $MAIN_FS_TYPE
-        my_mount $UEFI_DEV $UEFI_DIR  -t $UEFI_FS_TYPE
+        my_mount $BIOS_DEV $BIOS_DIR -t $MAIN_FS_TYPE
+        my_mount $UEFI_DEV $UEFI_DIR -t $UEFI_FS_TYPE
+
     else
 
         sync; sync
