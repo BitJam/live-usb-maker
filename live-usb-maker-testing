@@ -127,6 +127,10 @@ SYSLINUX_FILES="$SYSLINUX_FILES libmenu.c32 libutil.c32 linux.c32 menu.c32"
 
      LUKS_TYPE="luks1"
 
+    CHECKSUM_FILES="vmlinuz vmlinuz1 vmlinuz2 initrd.gz"
+    CHECKSUM_TYPES="md5 sha256"
+   BOOT_FILES_NAME="boot-files"
+
 #------------------------------------------------------------------------------
 # Show usage and exit
 #------------------------------------------------------------------------------
@@ -986,6 +990,9 @@ main() {
     fi
 
     ! force nomd5 && have_usb_md5 "$MAIN_DIR" && need check-usb-md5 && check_usb_md5 "$MAIN_DIR"
+
+    # Save checksums on the encrypted partition
+    encrypt && add_checksums "$BIOS_DIR" "$MAIN_DIR"
 
     #need defrag && do_defrag "$MAIN_DIR" "$DEFRAG_ALL"
 
@@ -2244,6 +2251,38 @@ fix_our_md5() {
 
     msg $"Fix md5 file format in %s" "$(pqw $fname)"
     cmd sed -i "s/ .*\|$/  $name/" "$md5_file"
+}
+
+#------------------------------------------------------------------------------
+#
+#------------------------------------------------------------------------------
+add_checksums() {
+    local boot_dir=$1/$DEF_BOOT_DIR  targ_dir=$2/$DEF_BOOT_DIR
+    local targ_fname="$targ_dir/$BOOT_FILES_NAME"
+
+    msg "Saving checksums ..."
+
+    cmd mkdir -p $(dirname $targ_fname)
+
+    local fname fname_list
+    for fname in $CHECKSUM_FILES; do
+        test -e $boot_dir/$fname || continue
+        file_list="$file_list $fname"
+        msg "  Found file %s" "$(pq $fname)"
+    done
+
+    local checksum
+    for checksum in $CHECKSUM_TYPES; do
+        local prog=${checksum}sum
+        if ! which $prog &>/dev/null; then
+            warn "Could not find program %s" "$(pqh $prog)"
+            continue
+        fi
+        msg "  found program %s" "$(pq $prog)"
+
+        local sum=$(cd $boot_dir && $prog $file_list)
+        cmd write_file $targ_fname.$checksum "$sum"
+    done
 }
 
 #------------------------------------------------------------------------------
