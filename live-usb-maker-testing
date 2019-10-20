@@ -821,7 +821,10 @@ main() {
     [ "$CMDS" != 'all' ] \
         && final_q=$(printf "$ready_str" "$(pq $actions)" "$(pqq ${target_dev##*/})")
 
-    if q_mode gui; then
+    if dry_run; then
+        msg "$final_q"
+        exit 0
+    elif q_mode gui; then
         msg "$final_q"
     else
         echo
