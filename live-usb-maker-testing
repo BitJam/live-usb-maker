@@ -500,15 +500,18 @@ main() {
     mkdir -p $WORK_DIR || fatal "Could not make a work directory under %s" "$(dirname "$WORK_DIR")"
     mount -t tmpfs tmpfs $WORK_DIR || fatal "Could not mount tmpfs at %s" $WORK_DIR
     # Set up our directories.  These a GLOBALS so they can be used in clean_up() on exit
-    ISO_DIR=$WORK_DIR/iso
-    BIOS_DIR=$WORK_DIR/bios
-    MAIN_DIR=$WORK_DIR/main
-    UEFI_DIR=$WORK_DIR/uefi
-    DATA_DIR=$WORK_DIR/data
-    INITRD_DIR=$WORK_DIR/initrd
-    LINUX_DIR=$WORK_DIR/linux
-    MNT_DIR=$WORK_DIR/live-dev
-    WORDS_FILE=$WORK_DIR/words
+        ISO_DIR=$WORK_DIR/iso
+       BIOS_DIR=$WORK_DIR/bios
+       MAIN_DIR=$WORK_DIR/main
+       UEFI_DIR=$WORK_DIR/uefi
+    EFI_IMG_DIR=$WORK_DIR/efi-img
+       DATA_DIR=$WORK_DIR/data
+     INITRD_DIR=$WORK_DIR/initrd
+      LINUX_DIR=$WORK_DIR/linux
+        MNT_DIR=$WORK_DIR/live-dev
+     WORDS_FILE=$WORK_DIR/words
+
+        EFI_IMG=boot/grub/efi.img
 
     mkdir $ISO_DIR $BIOS_DIR $MAIN_DIR $UEFI_DIR || fatal "Could not make %s subdirectories" "$WORK_DIR"
     echo $$ > $WORK_DIR/pid
@@ -949,7 +952,18 @@ main() {
 
     if need copy-uefi; then
         if using_grub_config_2; then
-            copy_files_spec $ISO_DIR "$UEFI_2_FILES" "$UEFI_DIR" uefi
+
+            # Try to use efi.img if it exists so we don't need /EFI/ on iso
+            local efi_img=$ISO_DIR/$EFI_IMG
+            if test -e $efi_img; then
+                mkdir -p $EFI_IMG_DIR
+                mount_file "$efi_img"  "$EFI_IMG_DIR"
+                copy_files_spec "$EFI_IMG_DIR" EFI     "$UEFI_DIR" efi
+                copy_files_spec "$ISO_DIR"     version "$UEFI_DIR" uefi
+                # umount "$EFI_IMG_DIR"
+            else
+                copy_files_spec $ISO_DIR "$UEFI_2_FILES" "$UEFI_DIR" uefi
+            fi
         else
             copy_files_spec $ISO_DIR "$UEFI_FILES" "$UEFI_DIR" uefi
         fi
@@ -1730,6 +1744,19 @@ mount_device() {
     [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount optical disc at %s" "$(pq $dev)"
     always_cmd mount -o ro "$dev" "$dir"
     is_mountpoint "$dir"  || fatal $"Failed to mount device %s at %s" "$dev"   "$dir"
+}
+
+#------------------------------------------------------------------------------
+# Just like above but with a file, not a device
+#------------------------------------------------------------------------------
+mount_file() {
+    local file=$1  dir=$2
+    test -f "$file"       || fatal $"Could not find file %s" "$1"
+    mkdir -p "$dir"       || fatal $"Failed to create mountpoint directory %s" "$dir"
+    is_mountpoint "$dir"  && fatal $"Directory %s is already a mountpoint"   "$dir"
+
+    always_cmd mount -o ro "$file" "$dir"
+    is_mountpoint "$dir"  || fatal $"Failed to mount file %s at %s" "$file"   "$dir"
 }
 
 #------------------------------------------------------------------------------
