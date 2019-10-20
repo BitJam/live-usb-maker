@@ -1729,37 +1729,6 @@ encrypt_partition() {
 }
 
 #------------------------------------------------------------------------------
-# Mount a device or know the reason why.  Should go in lib?
-# any 3rd arg means we are only going read so we can mount something that
-# is already mounted
-#------------------------------------------------------------------------------
-mount_device() {
-    local dev=$(expand_device "$1")  dir=$2
-    [ ${#dev} -gt 0 ]     || fatal $"Could not find device %s" "$1"
-    mkdir -p "$dir"       || fatal $"Failed to create mountpoint directory %s" "$dir"
-    is_mountpoint "$dir"  && fatal $"Directory %s is already a mountpoint"   "$dir"
-
-    [ -z "$3" ] && is_mounted "$dev" && fatal $"Device %s is already mounted" "$dev"
-
-    [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount optical disc at %s" "$(pq $dev)"
-    always_cmd mount -o ro "$dev" "$dir"
-    is_mountpoint "$dir"  || fatal $"Failed to mount device %s at %s" "$dev"   "$dir"
-}
-
-#------------------------------------------------------------------------------
-# Just like above but with a file, not a device
-#------------------------------------------------------------------------------
-mount_file() {
-    local file=$1  dir=$2
-    test -f "$file"       || fatal $"Could not find file %s" "$1"
-    mkdir -p "$dir"       || fatal $"Failed to create mountpoint directory %s" "$dir"
-    is_mountpoint "$dir"  && fatal $"Directory %s is already a mountpoint"   "$dir"
-
-    always_cmd mount -o ro "$file" "$dir"
-    is_mountpoint "$dir"  || fatal $"Failed to mount file %s at %s" "$file"   "$dir"
-}
-
-#------------------------------------------------------------------------------
 # When cloning a live-usb, we only want to copy certain files and ignore all
 # others.  We do this by bind mounting only the files and directories we want
 # and then copying that over to the target device. White-list not black-list.
