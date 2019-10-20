@@ -1290,8 +1290,8 @@ check_luks_version() {
 #------------------------------------------------------------------------------
 overall_mode_menu() {
     encrypt    || menu_printf simple  $"Make a full-featured live-usb"
-    data_first || menu_printf data    $"Start live-usb with a data partition"
     menu_printf encrypt $"Make an encrypted full-featured live-usb"
+    data_first || menu_printf data    $"Start live-usb with a data partition"
     menu_printf default $"Make a customized live-usb (includes encryption option)"
     menu_printf other   $"Other options"
 }
