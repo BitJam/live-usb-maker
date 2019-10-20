@@ -12,6 +12,8 @@
  VERSION_DATE="Fri 18 Oct 2019 01:27:21 AM MDT"
 
         ME=${0##*/}
+        [ -z "${ME%%*-testing}" ] &&  TESTING=true
+
     MY_DIR=$(dirname "$(readlink -f $0)")
 MY_LIB_DIR=$(readlink -f "$MY_DIR/../cli-shell-utils")
    LIB_DIR="/usr/local/lib/cli-shell-utils"
@@ -3086,26 +3088,30 @@ clean_up() {
 
 #------------------------------------------------------------------------------
 # Load the lib either from a neighboring repo or from the standard location.
+# first look for the -testing version if this program ends in "-testing".
 #------------------------------------------------------------------------------
 load_lib() {
-    local file=$1  path=$2
+    local files=$1  path=$2
+    [ "$TESTING" ] && files="$files-testing $files"
     unset FOUND_LIB
 
-    local dir lib found IFS=:
-    for dir in $path; do
-        lib=$dir/$file
-        test -r $lib || continue
-        if ! . $lib; then
-            printf "Error when loading library %s\n" "$lib" >&2
-            printf "This is a fatal error\n" >&2
-            exit 15
-        fi
-        FOUND_LIB=$lib
-        return 0
+    local f  dir lib found
+    for f in $files; do
+        for dir in ${path//:/ }; do
+            lib=$dir/$f
+            test -r $lib || continue
+            if ! . $lib; then
+                printf "Error when loading library %s\n" "$lib" >&2
+                printf "This is a fatal error\n" >&2
+                exit 15
+            fi
+            FOUND_LIB=$lib
+            return 0
+        done
+        printf "Could not find library %s on path %s\n" "$f" "$path" >&2
     done
 
-    printf "Could not find library %s on path %s\n" "$file" "$path" >&2
-    printf "This is a fatal error\n" >&2
+    printf "No library found. This is a fatal error\n" >&2
     exit 17
 }
 
