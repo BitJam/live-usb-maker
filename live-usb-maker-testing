@@ -2212,7 +2212,8 @@ check_usb_md5() {
         esac
 
         msg $"check md5 for %s" "$(pq "$name")"
-        (cd $dir && cmd md5sum -c "$fname") && continue
+
+        cd_cmd $dir md5sum -c "$fname" && continue
 
         warn $"MD5 CHECK FAILED FOR %s" "$(pqw $name)"
 
@@ -2682,10 +2683,19 @@ update_syslinux() {
     fi
 
     # Make output to log more compact by assuming no spaces in fnames
-    (cmd cd $to_dir && cmd rm -f $rm_files)
+    local fname_list=
+    for fname in $rm_files; do
+        test -e "$to_dir/$fname" && fname_list="$fname_list $fname"
+    done
 
-    # Make output to log more compact by assuming no spaces in fnames
-    (cmd cd $from_dir && cmd cp --target $to_dir $(cd $from_dir && ls -d $xfer_files 2>/dev/null))
+    cd_cmd $to_dir rm -f $fname_list
+
+    fname_list=
+    for fname in $xfer_files; do
+        test -e $from_dir/$fname && fname_list="$fname_list $fname"
+    done
+
+    [ -n "$fname_list" ] && cd_cmd $from_dir cp --target $to_dir $fname_list
 
     cmd write_file $to_dir/version $(get_extlinux_version)
 }
