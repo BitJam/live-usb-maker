@@ -170,7 +170,7 @@ main() {
     test -b $target_dev || fatal "Target device %s is not a block device" $target_dev
 
     # Require that an entire disk device be specified (could relax?)
-    local dev_type=$(lsblk -no type --nodeps $target_dev)
+    local dev_type=$(lsblk -no TYPE --nodeps $target_dev)
     [ "$dev_type" = 'disk' ] || fatal "Device %s is not a disk device" $target_dev
 
     # fatal "The device %s does not seem to be usb or removable."
