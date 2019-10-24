@@ -710,7 +710,7 @@ main() {
     test -b $target_dev || fatal $"Target device %s is not a block device" $target_dev
 
     # Require that an entire disk device be specified (could relax?)
-    local dev_type=$(lsblk -no type --nodeps $target_dev)
+    local dev_type=$(lsblk -no TYPE --nodeps $target_dev)
     [ "$dev_type" = 'disk' ] || fatal $"Device %s is not a disk device" $target_dev
 
     setup_devices $target_dev
@@ -903,7 +903,7 @@ main() {
 
         need makefs-main && do_makefs_ext "$LUKS_DEV" "$EXT4_OPTIONS" "$BIOS_LABEL"
 
-        local main_uuid=$(lsblk --nodeps -no uuid $MAIN_DEV)
+        local main_uuid=$(lsblk --nodeps -no UUID $MAIN_DEV)
         cmd write_file $encrypt_file "$main_uuid"
 
         sync
@@ -1003,8 +1003,8 @@ main() {
     #     enable_disable_initrd_encryption "$initrd_file" "$BIOS_DIR/$DEF_BOOT_DIR/initrd.gz" "$INITRD_DIR"
     # fi
 
-    local bios_uuid=$(lsblk -no uuid $BIOS_DEV)
-    local uefi_uuid=$(lsblk -no uuid $UEFI_DEV)
+    local bios_uuid=$(lsblk -no UUID $BIOS_DEV)
+    local uefi_uuid=$(lsblk -no UUID $UEFI_DEV)
 
     local main_dir
     encrypt && main_dir=$MAIN_DIR
@@ -1600,8 +1600,8 @@ guess_partitioning() {
 #------------------------------------------------------------------------------
 # Get fstype of a partition.  Be silent on errors
 #------------------------------------------------------------------------------
-get_fstype() { lsblk --nodeps -no fstype "$1" 2>/dev/null; }
-get_uuid()   { lsblk --nodeps -no uuid   "$1" 2>/dev/null; }
+get_fstype() { lsblk --nodeps -no FSTYPE "$1" 2>/dev/null; }
+get_uuid()   { lsblk --nodeps -no UUID   "$1" 2>/dev/null; }
 
 #------------------------------------------------------------------------------
 # Different actions take place on different partitions depending on if we are
