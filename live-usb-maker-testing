@@ -8,8 +8,8 @@
 # License: GPLv3 or later
 #==============================================================================
 
-      VERSION="T-2.50.03"
- VERSION_DATE="Wed 13 Nov 2019 05:56:34 PM MST"
+      VERSION="T-2.50.04"
+ VERSION_DATE="Thu 14 Nov 2019 12:16:48 AM MST"
 
         ME=${0##*/}
         [ -z "${ME%%*-testing}" ] &&  TESTING=true
