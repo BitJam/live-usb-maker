@@ -2508,7 +2508,7 @@ do_uuids() {
     if test -e $bios_dir/$EFI_GRUB_CONF; then
 
         # Do not make multiple id files
-        test -e $bios_dir/$DID_EFI_FILE && return
+        # test -e $bios_dir/$DID_EFI_FILE && return
 
         msg $"Using %s grub config %s" "$(pq antiX/MX)" "$(pq 2.0)"
 
