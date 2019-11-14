@@ -2524,8 +2524,8 @@ do_uuids() {
         force uuid || grep -q "$bios_uuid" $efi_grub_cfg \
             || warn "Failed to update UUID in %s" "$(pqw $base_grub_cfg)"
 
-
          if grep -q "^[^#]*%ID_FILE%" $efi_grub_cfg ; then
+            cmd rm -f $bios_dir/boot/grub/config/*.id
             local rand_file=/boot/grub/config/$(random_string).id
             cmd touch $bios_dir$rand_file
             cmd sed -i "/^\s*#/! s|%ID_FILE%|$rand_file|" $efi_grub_cfg
