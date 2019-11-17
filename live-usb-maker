@@ -2843,7 +2843,7 @@ make_fs_dev() {
         || dmesg_fatal $"Could not make %s file system on %s" "$fstype" "$part"
 
     sync
-    cmd partprobe $dev
+    cmd partprobe $part
 
     case $fstype in
         vfat|ntfs|exfat) return ;;
