@@ -1701,7 +1701,7 @@ encrypt_partition() {
 # is already mounted
 #------------------------------------------------------------------------------
 mount_device() {
-    local dev=$(expand_device "$1")  dir=$2
+    local dev=$(expand_device "$1")  dir=$2  opts=${3:+-o ro}
     [ ${#dev} -gt 0 ]     || fatal $"Could not find device %s" "$1"
     mkdir -p "$dir"       || fatal $"Failed to create mountpoint directory %s" "$dir"
     is_mountpoint "$dir"  && fatal $"Directory %s is already a mountpoint"   "$dir"
@@ -1709,7 +1709,7 @@ mount_device() {
     [ -z "$3" ] && is_mounted "$dev" && fatal $"Device %s is already mounted" "$dev"
 
     [ "$(stat -c %t "$dev")" = "b" ] && msg $"Please wait while we mount optical disc at %s" "$(pq $dev)"
-    always_cmd mount -o ro "$dev" "$dir"
+    always_cmd mount $opts "$dev" "$dir"
     is_mountpoint "$dir"  || fatal $"Failed to mount device %s at %s" "$dev"   "$dir"
 }
 
