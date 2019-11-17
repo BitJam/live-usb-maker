@@ -2801,8 +2801,10 @@ format_usb() {
     msg $"formating device %s" "$(pq $dev)"
     local START=1  PART_NUM=0
 
+    fake_need partition-clear
     clear_partition "$dev"
 
+    fake_need partition-make
     msg $"Using %s partitioning" $(pq $type)
 
     local err_msg=$"Partitioning failed at %s"
@@ -2822,6 +2824,17 @@ format_usb() {
 }
 
 #------------------------------------------------------------------------------
+# Show the need() output without actually needing anything
+# FIXME: this should go in the lib, obviously
+#------------------------------------------------------------------------------
+fake_need() {
+    local cmd=$1  xlat=${2:-$1}
+    log_it echo &>/dev/null
+    set_window_title "$ME $VERSION: $1"
+    Msg "$(bq ">>") $xlat"
+}
+
+#------------------------------------------------------------------------------
 # Create a file system on a partition
 #------------------------------------------------------------------------------
 make_fs_dev() {
@@ -2838,6 +2851,7 @@ make_fs_dev() {
               ntfs) args="--fast -L $label" ;;
     esac
 
+    fake_need makefs-data
     msg $"Make %s filesystem" "$(pq $fstype)"
     cmd mkfs.$fstype $args $part \
         || dmesg_fatal $"Could not make %s file system on %s" "$fstype" "$part"
@@ -2861,6 +2875,7 @@ make_fs_dev() {
 
     mount_device "$part" $DATA_DIR || return
 
+    fake_need set-ownership
     msg $"Setting data partition ownership to %s" "$(pq $user)"
 
     if which setfacl &>/dev/null; then
