@@ -2846,8 +2846,7 @@ make_fs_dev() {
     cmd partprobe $dev
 
     case $fstype in
-        ext[234])        ;;
-               *) return ;;
+        vfat|ntfs|exfat) return ;;
     esac
 
     local id=$SUDO_UID  gid=$SUDO_GID
