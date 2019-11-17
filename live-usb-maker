@@ -2864,7 +2864,8 @@ make_fs_dev() {
     esac
 
     # Change ownership of the data partition to the user
-    local user=$(logname)
+    local user=$SUDO_USER
+    [ -z "$user" -o "$user" = 'root' ] && user=$(logname)
     [ "$user" = 'root' ] && return
 
     local group=$(getent group users | cut -d: -f1)
