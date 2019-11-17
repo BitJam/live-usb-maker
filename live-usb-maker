@@ -2843,19 +2843,39 @@ make_fs_dev() {
         || dmesg_fatal $"Could not make %s file system on %s" "$fstype" "$part"
 
     sync
-    cmd partprobe $part
+    cmd partprobe "$part"
 
     case $fstype in
         vfat|ntfs|exfat) return ;;
     esac
 
-    local id=$SUDO_UID  gid=$SUDO_GID
-    [ -n "$id"  ] || return
-    [ -n "$gid" ] && id="$id:$gid"
+    # Change ownership of the data partition to the user
+    local user=$(logname)
+    [ "$user" = 'root' ] && return
+
+    local group=$(getent group users | cut -d: -f1)
+    [ -n "$user" ] && : ${group:=$(getent group $user | cut -d: -f1)}
+
+    [ -n "$group" ] && user="$user:$group"
+    [ -z "$user"  ] && return
+
     mount_device "$part" $DATA_DIR || return
-    cmd chown $id $DATA_DIR
+
+    msg $"Setting data partition ownership to %s" "$(pq $user)"
+
+    if which setfacl &>/dev/null; then
+        cmd setfacl     -m u::rwx,g::rwx,o::r-x $DATA_DIR/.
+        cmd setfacl  -d -m u::rwx,g::rwx,o::r-x $DATA_DIR/.
+    fi
+
+    cmd chown $user $DATA_DIR/.
+    cmd chmod g+rwx $DATA_DIR/.
+
+    # for shared write access set-gid bit
+    # cmd chmod g+rwxs $DATA_DIR/.
     sync
-    umount $DATA_DIR
+
+    always_cmd mount $DATA_DIR
 }
 
 #------------------------------------------------------------------------------
