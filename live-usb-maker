@@ -510,6 +510,7 @@ main() {
     LINUX_DIR=$WORK_DIR/linux
     MNT_DIR=$WORK_DIR/live-dev
     WORDS_FILE=$WORK_DIR/words
+    DATA_DIR=$WORK_DIR/data
 
     mkdir $ISO_DIR $BIOS_DIR $MAIN_DIR $UEFI_DIR || fatal "Could not make %s subdirectories" "$WORK_DIR"
     echo $$ > $WORK_DIR/pid
@@ -2843,6 +2844,19 @@ make_fs_dev() {
 
     sync
     cmd partprobe $dev
+
+    case $fstype in
+        ext[234])        ;;
+               *) return ;;
+    esac
+
+    local id=$SUDO_UID  gid=$SUDO_GID
+    [ -n "$id"  ] || return
+    [ -n "$gid" ] && id="$id:$gid"
+    mount_device "$part" $DATA_DIR || return
+    cmd chown $id $DATA_DIR
+    sync
+    umount $DATA_DIR
 }
 
 #------------------------------------------------------------------------------
