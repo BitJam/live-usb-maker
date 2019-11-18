@@ -2891,7 +2891,7 @@ make_fs_dev() {
     # cmd chmod g+rwxs $DATA_DIR/.
     sync
 
-    always_cmd mount $DATA_DIR
+    always_cmd umount $DATA_DIR
 }
 
 #------------------------------------------------------------------------------
