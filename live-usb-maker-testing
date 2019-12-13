@@ -2412,7 +2412,7 @@ find_bin() {
     local dir=$1 name=$2 path=${3:-$PATH}
     local p
     for p in ${path//:/ }; do
-        test -e $dir$p/$name || continue
+        test -x $dir$p/$name || continue
         echo $p/$name
         return 0
     done
