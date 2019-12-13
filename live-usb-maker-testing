@@ -517,6 +517,8 @@ main() {
      INITRD_DIR=$WORK_DIR/initrd
       LINUX_DIR=$WORK_DIR/linux
         MNT_DIR=$WORK_DIR/live-dev
+       BIND_DIR=$WORK_DIR/bind
+
      WORDS_FILE=$WORK_DIR/words
 
         EFI_IMG=boot/grub/efi.img
@@ -2147,6 +2149,22 @@ do_makefs_uefi() {
 do_copy_main() {
     local from=$1  to=$2  ;  shift 2
 
+    # Only copy the linuxfs file if creating an encrypted live-usb
+    # For now ASSume antiX/linuxfs exists under $from
+
+    if encrypt; then
+        local linuxfs=$DEF_BOOT_DIR/$LINUXFS_NAME
+
+        test -e $from/$linuxfs || fatal "Could not find file %s" "$from/$linuxfs"
+
+        cmd mkdir -p $BIND_DIR/$DEF_BOOT_DIR/
+        cmd touch $BIND_DIR/$linuxfs
+        cmd mount --bind $from/$linuxfs  $BIND_DIR/$linuxfs
+        from=$BIND_DIR
+
+        pause copy
+    fi
+
     if test -d $to/antiX; then
         msg "Removing existing %s directory" "$(pq antiX/)"
         cmd rm -rf $to/antiX
@@ -2182,6 +2200,8 @@ do_copy_main() {
         cmd rm -rf $to/boot
         cmd mv $to/boot.orig $to/boot
     fi
+
+    encrypt && cmd umount $BIND_DIR/$linuxfs
 
     sync ; sync
     pause copy
