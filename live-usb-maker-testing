@@ -2947,8 +2947,10 @@ format_usb() {
     msg $"formating device %s" "$(pq $dev)"
     local START=1  PART_NUM=0
 
+    fake_need partition-clear
     clear_partition "$dev"
 
+    fake_need partition-make
     msg $"Using %s partitioning" $(pq $type)
 
     local err_msg=$"Partitioning failed at %s"
@@ -2965,6 +2967,17 @@ format_usb() {
     local part=$(get_partition $dev 1)
 
     make_fs_dev $part $fstype "USB-DATA"
+}
+
+#------------------------------------------------------------------------------
+# Show the need() output without actually needing anything
+# FIXME: this should go in the lib, obviously
+#------------------------------------------------------------------------------
+fake_need() {
+    local cmd=$1  xlat=${2:-$1}
+    log_it echo &>/dev/null
+    set_window_title "$ME $VERSION: $1"
+    Msg "$(bq ">>") $xlat"
 }
 
 #------------------------------------------------------------------------------
