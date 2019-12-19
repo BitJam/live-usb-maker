@@ -2997,12 +2997,47 @@ make_fs_dev() {
               ntfs) args="--fast -L $label" ;;
     esac
 
+    fake_need makefs-data
     msg $"Make %s filesystem" "$(pq $fstype)"
     cmd mkfs.$fstype $args $part \
         || dmesg_fatal $"Could not make %s file system on %s" "$fstype" "$part"
 
     sync
-    cmd partprobe $dev
+    cmd partprobe "$part"
+
+    case $fstype in
+        vfat|ntfs|exfat) return ;;
+    esac
+
+    # Change ownership of the data partition to the user
+    local user=$SUDO_USER
+    [ -z "$user" -o "$user" = 'root' ] && user=$(logname)
+    [ "$user" = 'root' ] && return
+
+    local group=$(getent group users | cut -d: -f1)
+    [ -n "$user" ] && : ${group:=$(getent group $user | cut -d: -f1)}
+
+    [ -n "$group" ] && user="$user:$group"
+    [ -z "$user"  ] && return
+
+    mount_device "$part" $DATA_DIR || return
+
+    fake_need set-ownership
+    msg $"Setting data partition ownership to %s" "$(pq $user)"
+
+    if which setfacl &>/dev/null; then
+        cmd setfacl     -m u::rwx,g::rwx,o::r-x $DATA_DIR/.
+        cmd setfacl  -d -m u::rwx,g::rwx,o::r-x $DATA_DIR/.
+    fi
+
+    cmd chown $user $DATA_DIR/.
+    cmd chmod g+rwx $DATA_DIR/.
+
+    # for shared write access set-gid bit
+    # cmd chmod g+rwxs $DATA_DIR/.
+    sync
+
+    always_cmd umount $DATA_DIR
 }
 
 #------------------------------------------------------------------------------
