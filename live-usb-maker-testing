@@ -47,10 +47,13 @@ test -d "$domain_dir" && export TEXTDOMAINDIR=$domain_dir
      LINUXFS_NAME="linuxfs"
  MIN_LINUXFS_SIZE="120M"
      DEF_BOOT_DIR="antiX"
+      STORAGE_DIR="Live-usb-storage"
 
-       CLONE_DIRS="boot EFI efi"
-      CLONE_FILES="cdrom.ico version"
- CLONE_BDIR_FILES="{vmlinuz,vmlinuz1,initrd.gz,linuxfs}{,.md5}"
+          CLONE_DIRS="boot EFI efi"
+         CLONE_FILES="cdrom.ico version"
+ CLONE_LINUXFS_FILES="linuxfs{,.md5}"
+    CLONE_BOOT_FILES="{vmlinuz,vmlinuz1,initrd.gz}{,.md5}"
+
 
        UEFI_FILES="[Ee][Ff][Ii] boot/{grub,uefi-mt} version"
      UEFI_2_FILES="[Ee][Ff][Ii] version"
@@ -606,6 +609,9 @@ main() {
 
         clone)
             #
+            if test -e /live/config/encrypted; then
+                CLONE_ENCRYPTED_LIVE=true
+            fi
             if test -e /live/config/toram-all; then
                 from=clone=$TORAM_MP
             else
@@ -659,12 +665,23 @@ main() {
 
             if [ ${#from_dev} -gt 0 ]; then
                 mount_device "$from_dev"  "$MNT_DIR" 'from'
-                clone_directory "$MNT_DIR"  "$ISO_DIR"  "$live_dev"
+                clone_directory "$MNT_DIR" "$MNT_DIR" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
                 from_thing=$"device"
 
             elif test -d "$from_value"; then
-                clone_directory "$from_value" "$ISO_DIR"  "$live_dev"
+
+                # If we are cloning an encrypted system then we need to get most
+                # files and directories from the boot/bios partition and only get
+                # linuxfs and persist files from the main partition (sigh)
+                local bios_dir="$from_value"
+                if [ "$CLONE_ENCRYPTED_LIVE" ]; then
+                    mount_boot_device "$from_value" $BIOS_DIR
+                    msg $"Clone running encrypted live system"
+                    bios_dir=$BIOS_DIR
+                fi
+
+                clone_directory "$from_value" "$bios_dir" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
                 from_thing=$"directory"
 
@@ -990,12 +1007,16 @@ main() {
         do_made_by $BIOS_DIR "$MADE_BY_FILE"
         write_random_seed $MAIN_DIR/$DEF_BOOT_DIR/$SEED_FNAME
         test -e "$MAIN_DIR/.disk" && cmd rm -rf "$MAIN_DIR/.disk"
+
+        # Disable initrd encryption when we clone an encrypted system to an
+        # non-encrypted system
+        if ! encrypt && [ -n "$CLONE_ENCRYPTED_LIVE" ]; then
+            msg $"Disabling initrd encryption"
+            disable_initrd_encryption $MAIN_DIR/$DEF_BOOT_DIR/initrd.gz $INITRD_DIR
+        fi
     fi
 
     ! force nomd5 && have_usb_md5 "$MAIN_DIR" && need check-usb-md5 && check_usb_md5 "$MAIN_DIR"
-
-    # Save checksums on the encrypted partition
-    encrypt && add_checksums "$BIOS_DIR" "$MAIN_DIR"
 
     #need defrag && do_defrag "$MAIN_DIR" "$DEFRAG_ALL"
 
@@ -1750,12 +1771,17 @@ encrypt_partition() {
 # When cloning a live-usb, we only want to copy certain files and ignore all
 # others.  We do this by bind mounting only the files and directories we want
 # and then copying that over to the target device. White-list not black-list.
+# Now for cloning from an encrypted live-usb we clone most files/dirs from the
+# bios/boot partition (which is usually just the same as $from_dir most of the
+# time).
 #------------------------------------------------------------------------------
 clone_directory() {
-    local from_dir=$1  targ_dir=$2  live_dev=$3
+    local from_dir=$1  bios_dir=$2  targ_dir=$3  live_dev=$4
     is_mountpoint "$targ_dir" && fatal $"Directory %s is already a mountpoint" "$targ_dir"
 
     test -d "$from_dir"       || fatal $"Clone directory %s is not a directory"   "$from_dir"
+    test -d "$bios_dir"       || fatal $"Clone directory %s is not a directory"   "$bios_dir"
+
     #is_mountpoint "$from_dir" || warn  "Clone directory %s is not a mountpoint"  "$from_dir"
 
     # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
@@ -1763,6 +1789,7 @@ clone_directory() {
     mount -t tmpfs tmpfs "$targ_dir"
 
     from_dir=$(readlink -f "$from_dir")
+    bios_dir=$(readlink -f "$bios_dir")
 
     # FIXME: should this error message have a device, not a directory?
     local boot_dir
@@ -1782,59 +1809,85 @@ clone_directory() {
 
     # Prepare to get all files/dirs from under the boot-directory on a frugal install
     local full_boot_dir="$from_dir/${boot_dir#/}"
-    local src_root_dir=$from_dir
+    local bios_boot_dir="$bios_dir/${boot_dir#/}"
+    local src_root_dir=$bios_dir
 
-    add_persist_files "$from_dir" "$boot_dir" "$live_dev"
-
-    if [ -z "${boot_dir##*Frugal*}" ]; then
+     if [ -z "${boot_dir##*Frugal*}" ]; then
         msg $"Cloning from a frugal directory"
         src_root_dir=$full_boot_dir
     fi
 
-    # NOTE:
-    # the cd && eval "ls ..." below allows us to use globbing expansions with spaces in paths
+    # Note: we now clone most files from the "bios_dir" which is usually the same
+    # as the from_dir.  This allows us to clone running encrypted live-usbs by
+    # mounting the bios/boot partition.  This split means we don't have to bind
+    # mount to bind mounts and we don't have to touch files or make directories
+    # on a real filesystem, only on tmpfs.
 
-    # Bind mount directories
-    local dir from dest
-    while read dir; do
-        [ ${#dir} -gt 0 ] || continue
-        from="$src_root_dir/$dir"
-        dest="$targ_dir/$dir"
-        test -d "$from" || continue
-        mkdir -p "$dest" || fatal $"Could not create directory %s" "$dest"
-        mount --bind "$from" "$dest"
-    done <<Clone_Dirs
-$(cd "$src_root_dir" && eval "ls -d $CLONE_DIRS" 2>/dev/null)
-Clone_Dirs
+
+    # Bind mount top level directories
+    bind_mount_files "$src_root_dir" "$targ_dir" "$CLONE_DIRS"
 
     # Bind mount top level files
-    local file
-    while read file; do
-        [ ${#file} -gt 0 ] || continue
-        from="$src_root_dir/$file"
-        dest="$targ_dir/$file"
-        test -f "$from" || continue
-        mkdir -p "$(dirname "$dest")" || fatal $"Could not mkdir %s" "$(dirname "$dest")"
-        touch "$dest"                 || fatal $"Could not touch file %s" "$dest"
-        mount --bind "$from" "$dest"
-    done <<Clone_Files
-$(cd "$src_root_dir" && eval "ls -d $CLONE_FILES" 2>/dev/null)
-Clone_Files
+    bind_mount_files "$src_root_dir" "$targ_dir" "$CLONE_FILES"
+    # Bind mount boot-dir linuxfs files
+    bind_mount_files "$full_boot_dir" "$targ_dir/$DEF_BOOT_DIR" "$CLONE_LINUXFS_FILES"
+    bind_mount_files "$bios_boot_dir" "$targ_dir/$DEF_BOOT_DIR" "$CLONE_BOOT_FILES"
 
-    # Bind mount boot-dir files
-    while read file; do
-        [ ${#file} -gt 0 ] || continue
-        from="$full_boot_dir/$file"
-        dest="$targ_dir/$DEF_BOOT_DIR/$file"
+    local used_size=$(du_ap_size "$targ_dir")
 
-        test -f "$from" || continue
-        mkdir -p "$(dirname "$dest")" || fatal $"Could not mkdir %s" "$(dirname "$dest")"
-        touch "$dest"                 || fatal $"Could not touch file %s" "$dest"
-        mount --bind "$from" "$dest"
-    done <<Clone_Bdir_Files
-$(cd "$full_boot_dir" && eval "ls -d $CLONE_BDIR_FILES" 2>/dev/null)
-Clone_Bdir_Files
+    # Get available size based on total size and cmd_size (in percent)
+
+    local cmd_size=${CMD_SIZE%%}
+    : ${cmd_size:=100}
+    local total_size=$((TOTAL_SIZE * cmd_size / 100))
+    local AVAIL_SIZE=$((total_size - UEFI_SIZE - MAIN_MARGIN - used_size))
+    echo "$TOTAL_SIZE - $UEFI_SIZE - $MAIN_MARGIN - $used_size"
+    msg "Available space %s" "$(nq_label_meg $AVAIL_SIZE)"
+
+    local CLONE_PERSIST_FILES
+    add_persist_files "$from_dir" "$boot_dir" "$live_dev"
+    if [[ -n "$CLONE_PERSIST_FILES" ]]; then
+        bind_mount_files "$full_boot_dir" "$targ_dir/$DEF_BOOT_DIR" "$CLONE_PERSIST_FILES"
+        msg "Available space %s" "$(nq_label_meg $AVAIL_SIZE)"
+    fi
+
+    local storage_dir=$from_dir/$STORAGE_DIR
+    test -d "$storage_dir" || return
+
+    local storage_size=$(du_ap_size "$storage_dir")
+    msg $"Found (%s) of storage under %s" "$(nq_label_meg $storage_size)" "$(pq $STORAGE_DIR)"
+    local remain=$((AVAIL_SIZE - storage_size))
+    if [[  $remain -lt 0 ]]; then
+        msg "Not enough space available to clone storage"
+        return
+    fi
+
+    msg "Approximately %s would be free after cloning %s" "$(nq_label_meg $remain)" "$(pq 'storage')"
+    if q_mode gui || YES_no $"Do you want to clone the live-usb storage?"; then
+        msg $"Will clone storage" "$(pq $name)"
+        bind_mount_files "$from_dir" "$targ_dir" "$STORAGE_DIR"
+        AVAIL_SIZE=$remain
+        msg "Available space %s" "$(nq_label_meg $AVAIL_SIZE)"
+    else
+        msg $"Will not clone storage"
+    fi
 }
+
+#------------------------------------------------------------------------------
+# Mount the boot partition if we are cloning from an encrypted live-usb
+#------------------------------------------------------------------------------
+mount_boot_device() {
+    main_dir=$1  bios_dir=$2
+    local bios_uuid_file=$main_dir/antiX/bios-dev-uuid
+    test -r "$bios_uuid_file" || fatal "Could not find %s file" bios-dev-uuid
+    local uuid=$(head -n1 "$bios_uuid_file" 2>/dev/null)
+    [ -z "$uuid" ] && fatal "Could not get uuid of existing bios/boot partition"
+    local boot_dev=$(blkid -U $uuid)
+    # FIXME: should we give them a chance to plug it in???
+    [ -z "$boot_dev" ] && fatal "Could not find boot partition with uuid %s" "$uuid"
+    mount_if_needed "$boot_dev" "$bios_dir"
+}
+
 
 #------------------------------------------------------------------------------
 # Add persistence files to list of files that get bind mounted when we clone.
@@ -1876,16 +1929,23 @@ add_persist_files() {
 #------------------------------------------------------------------------------
 add_one_persist_file() {
     local flag=$1  full=$2  name=${2##*/}
-    local du_opts="--apparent-size --human-readable"
-    local size=$(du $du_opts "$full" | cut -f1)
+    local size=$(du_ap_size "$full")
 
     # Found (<size>) <name> persistence file
-    msg $"Found (%s) %s persistence file" "$(nq $size)" "$(pq $name)"
+    msg $"Found (%s) %s persistence file" "$(nq_label_meg $size)" "$(pq $name)"
+    local remain=$((AVAIL_SIZE - size))
+    if [[ $remain -lt 0 ]]; then
+        msg "Not enough space left to clone %s" "$(pq $name)"
+        return
+    fi
+
+    msg "Approximately %s would be free after cloning %s" "$(nq_label_meg $remain)" "$(pq $name)"
     if [ "$flag" ] || q_mode gui || YES_no $"Do you want to clone this file?"; then
         msg $"Will clone %s persistence file" "$(pq $name)"
-        CLONE_BDIR_FILES="$CLONE_BDIR_FILES $name"
+        AVAIL_SIZE=$remain
+        CLONE_PERSIST_FILES="$CLONE_PERSIST_FILES $name"
     else
-        msg $"Will skip %s persistence file" "$(pq $name)"
+        msg $"Will not clone %s persistence file" "$(pq $name)"
     fi
 }
 
@@ -2006,6 +2066,8 @@ clear_partition() {
     local sneaky_offset=$((sneaky_bytes / block_size))
 
     local total_blocks=$((bytes / $block_size))
+
+    echo -e "Total bytes: $bytes\nTotal blocks: $total_blocks" >> $LOG_FILE
 
     # Clear out previous primary partition table
     cmd_dd if=/dev/zero of=$dev bs=$block_size count=$pt_cnt
@@ -2149,7 +2211,7 @@ do_makefs_uefi() {
 do_copy_main() {
     local from=$1  to=$2  ;  shift 2
 
-    # Only copy the linuxfs file if creating an encrypted live-usb
+    # Copy only the linuxfs file if creating an encrypted live-usb
     # For now ASSume antiX/linuxfs exists under $from
 
     if encrypt; then
@@ -2232,7 +2294,6 @@ check_usb_md5() {
         esac
 
         msg $"check md5 for %s" "$(pq "$name")"
-
         cd_cmd $dir md5sum -c "$fname" && continue
 
         warn $"MD5 CHECK FAILED FOR %s" "$(pqw $name)"
@@ -2359,6 +2420,35 @@ start_initrd_encryption() {
     local encrypt_file=$initrd_dir/etc/encrypt
     mkdir -p $(dirname $encrypt_file)
     echo "$ENCRYPT_ENABLE" > $encrypt_file
+}
+
+#------------------------------------------------------------------------------
+# When we clone a running encrypted system to a non-encrypted system, we need
+# to disable encryption in the initrd.
+#------------------------------------------------------------------------------
+disable_initrd_encryption() {
+    local from_file=$1  initrd_dir=$2  linux_dir=${3:-/}
+    test -r "$from_file" || fatal $"Could not find initrd file %s" "$(pqw $from_file)"
+    always_cmd unpack-initrd -f "$from_file" -d $initrd_dir || fatal $"An error occurred unpacking the initrd"
+
+    verbose_cmd copy-initrd-programs --no-color --from=$linux_dir --to=$initrd_dir --clean
+    verbose_cmd copy-initrd-programs --no-color --from=$linux_dir --to=$initrd_dir \
+        || fatal $"Was unable to add all required programs to the live initrd"
+
+    local kernel mod_dir=$initrd_dir/lib/modules
+    for kernel in $(ls $mod_dir); do
+
+        test -d $mod_dir/$kernel/kernel               || continue
+        test -d $linux_dir/lib/modules/$kernel/kernel || continue
+
+        msg $"add %s modules to initrd" "$(pq $kernel)"
+        cmd copy-initrd-modules --quiet --from=$linux_dir --to=$initrd_dir \
+            || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
+
+    done
+    local encrypt_file=$initrd_dir/etc/encrypt
+    cmd rm -f "$encrypt_file"
+    cmd unpack-initrd -f "$from_file" -d $initrd_dir -r || fatal $"An error occurred repacking the initrd"
 }
 
 #------------------------------------------------------------------------------
@@ -3095,9 +3185,10 @@ $(config_header "$file" "$ME" "$VERSION" "$VERSION_DATE")
 #  MIN_LINUXFS_SIZE="$MIN_LINUXFS_SIZE"
 #      DEF_BOOT_DIR="$DEF_BOOT_DIR"
 
-#        CLONE_DIRS="$CLONE_DIRS"
-#       CLONE_FILES="$CLONE_FILES"
-#  CLONE_BDIR_FILES="$CLONE_BDIR_FILES"
+#          CLONE_DIRS="$CLONE_DIRS"
+#         CLONE_FILES="$CLONE_FILES"
+# CLONE_LINUXFS_FILES="$CLONE_LINUXFS_FILES"
+#    CLONE_BOOT_FILES="$CLONE_BOOT_FILES"
 
 #        UEFI_FILES="$UEFI_FILES"
 #      UEFI_2_FILES="$UEFI_2_FILES"
