@@ -746,7 +746,7 @@ main() {
         "$ISO_DIR" "$percent_size" "$BIOS_SIZE" "$UEFI_SIZE" "${DEFAULT_SIZE%%%}"
 
     [ ${#cheats} -gt 0 ] && msg "Cheats %s" "$(pq $cheats)"
-    # Bail early if only size info is requested
+    # FIXME: seems too early?   Bail early if only size info is requested
     given_cmd sizes && my_exit 0
 
     # Make sure the target is not in use
@@ -829,7 +829,7 @@ main() {
     #=========================================================================
 
     # The action(s0 we display are either commands or an aux_mode
-    local actions=${CMDS:-$AUX_MDOE}
+    local actions=${CMDS:-$AUX_MODE}
 
     local new_line=$(printf "$nc_co\n$bold_co...")
     # Ready to make live-usb on device X by <cloning|copying directory Y>
@@ -841,6 +841,7 @@ main() {
 
     [ "$CMDS" != 'all' ] \
         && final_q=$(printf "$ready_str" "$(pq $actions)" "$(pqq ${target_dev##*/})")
+
 
     if dry_run; then
         msg "$final_q"
@@ -2756,7 +2757,7 @@ update_syslinux() {
         cmd chattr -i $to_dir/ldlinux.sys
     fi
 
-    # Make output to log more compact by assuming no spaces in fnames
+    # Make output in log more compact by assuming no spaces in fnames
     local fname_list=
     for fname in $rm_files; do
         test -e "$to_dir/$fname" && fname_list="$fname_list $fname"
