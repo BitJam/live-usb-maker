@@ -1833,7 +1833,9 @@ clone_directory() {
 
      if [ -z "${boot_dir##*Frugal*}" ]; then
         msg $"Cloning from a frugal directory"
+        # We get everything from full_boot_dir when cloning a frugal install
         src_root_dir=$full_boot_dir
+        bios_boot_dir=$full_boot_dir
     fi
 
     # Note: we now clone most files from the "bios_dir" which is usually the same
@@ -1843,13 +1845,11 @@ clone_directory() {
     # on a real filesystem, only on tmpfs.
 
 
-    # Bind mount top level directories
-    bind_mount_files "$src_root_dir" "$targ_dir" "$CLONE_DIRS"
-
-    # Bind mount top level files
-    bind_mount_files "$src_root_dir" "$targ_dir" "$CLONE_FILES"
-    # Bind mount boot-dir linuxfs files
+    # Bind mount top level directories and files
+    bind_mount_files "$src_root_dir" "$targ_dir" "$CLONE_DIRS $CLONE_FILES"
+    # Bind mount boot-dir linuxfs file(s)
     bind_mount_files "$full_boot_dir" "$targ_dir/$DEF_BOOT_DIR" "$CLONE_LINUXFS_FILES"
+    # Bind mount kernel and initrd
     bind_mount_files "$bios_boot_dir" "$targ_dir/$DEF_BOOT_DIR" "$CLONE_BOOT_FILES"
 
     local used_size=$(du_ap_size "$targ_dir")
@@ -2085,7 +2085,6 @@ clear_partition() {
     local sneaky_offset=$((sneaky_bytes / block_size))
 
     local total_blocks=$((bytes / $block_size))
-
     echo -e "Total bytes: $bytes\nTotal blocks: $total_blocks" >> $LOG_FILE
 
     # Clear out previous primary partition table
