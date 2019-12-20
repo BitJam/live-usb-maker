@@ -1812,11 +1812,11 @@ clone_directory() {
 
     # FIXME: should this error message have a device, not a directory?
     local boot_dir
-    # No <file-name> file found in any directory on clone device at <root-directory>
     find_live_boot_dir boot_dir "$from_dir" "$LINUXFS_NAME"
     local ret=$?
     case $ret in
         0) ;;
+        # No <file-name> file found in any directory on clone device at <root-directory>
         1) fatal $"No %s file found in any directory on clone device at %s"     "$LINUXFS_NAME" "$from_dir" ;;
         2) fatal $"No live-boot directory found on clone device at %s"          "$from_dir" ;;
         3) fatal $"Multiple live-boot directories found on clone device at %s"  "$from_dir" ;;
