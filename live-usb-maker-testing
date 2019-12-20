@@ -635,15 +635,17 @@ main() {
     case $from_type in
         file)
             mount_iso_file "$from_value" "$ISO_DIR"
+            from_thing=$"file"
+            check_versions "$ISO_DIR"
             check_md5 "$from_value"
             # What thing we are copying or cloning from: file, device or directory
-            from_thing=$"file"
             ;;
 
         dev)
             mount_device "$from_value" "$ISO_DIR" 'from'
             # What thing we are copying or cloning from: file, device or directory
             from_thing=$"device"
+            check_versions "$ISO_DIR"
             ;;
 
         clone)
@@ -661,9 +663,10 @@ main() {
 
             if [ ${#from_dev} -gt 0 ]; then
                 mount_device "$from_dev"  "$MNT_DIR" 'from'
+                from_thing=$"device"
+                check_versions "$from_dev"
                 clone_directory "$MNT_DIR" "$MNT_DIR" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
-                from_thing=$"device"
 
             elif test -d "$from_value"; then
 
@@ -677,9 +680,10 @@ main() {
                     bios_dir=$BIOS_DIR
                 fi
 
+                from_thing=$"directory"
+                check_versions "$bios_dir" "$from_value"
                 clone_directory "$from_value" "$bios_dir" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
-                from_thing=$"directory"
 
             else
                 fatal $"Can only clone devices and directories, not %s" "$from_value"
@@ -691,23 +695,6 @@ main() {
             internal_error "Bad from variable 2" "$from"
             ;;
     esac
-
-    # Will use source <file XYZ>
-    msg $"Will use source %s" "$from_thing $(pq $from_value)"
-    show_distro_version "$ISO_DIR" # "$from_value"
-
-    if test -e $ISO_DIR/$EFI_GRUB_CONF; then
-        msg $"Found grub config %s"  "$(pq 2.0)"
-        USING_GRUB_CONFIG_2=true
-    elif test -e $ISO_DIR/$GRUB_CONF; then
-        msg $"Found grub config %s"  "$(pq 1.0)"
-    fi
-
-    local distro_name=$(get_distro_name "$ISO_DIR/version")
-    if [ -n "$distro_name" ]; then
-        BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
-        ESP_LABEL=$(make_label  11 - "$distro_name" uefi)
-    fi
 
     local cheats
     if need_q cheats; then
@@ -1075,6 +1062,41 @@ check_from() {
     else
         fatal $"The %s parameter %s was not recognized" "--from" "$cmd_from"
     fi
+}
+
+#------------------------------------------------------------------------------
+# Check/report distro version.  Warn if it doesn't look like MX/antiX.
+#------------------------------------------------------------------------------
+check_versions() {
+    local bios_dir=$1  main_dir=${2:-$1}
+
+    # Will use source <file XYZ>
+    msg $"Will use source %s" "$from_thing $(pq $from_value)"
+    show_distro_version "$bios_dir" # "$from_value"
+
+    if test -e $bios_dir/$EFI_GRUB_CONF; then
+        msg $"Found grub config %s"  "$(pq 2.0)"
+        USING_GRUB_CONFIG_2=true
+    elif test -e $bios_dir/$GRUB_CONF; then
+        msg $"Found grub config %s"  "$(pq 1.0)"
+    fi
+
+    local distro_name=$(get_distro_name "$bios_dir/version")
+    if [ -n "$distro_name" ]; then
+        BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
+        ESP_LABEL=$(make_label  11 - "$distro_name" uefi)A
+        echo "$distro_name" | grep -E -q "^(MX|antiX)-" && return
+    fi
+
+    # Check for a linuxfs file if distro_name was not recognized
+    local boot_dir
+    find_live_boot_dir boot_dir "$main_dir" "$LINUXFS_NAME"
+    local ret=$?
+    case $ret in
+        0) return ;;
+    esac
+    warn $"This does not appear to be MX or antiX live media"
+    yes_NO $"Do you want to continue anyway?" || exit 0
 }
 
 #------------------------------------------------------------------------------
