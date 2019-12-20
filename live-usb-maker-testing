@@ -636,7 +636,7 @@ main() {
         file)
             mount_iso_file "$from_value" "$ISO_DIR"
             from_thing=$"file"
-            check_versions "$ISO_DIR"
+            check_versions "$ISO_DIR"  ""  "$from_thing"  "$from_value"
             check_md5 "$from_value"
             # What thing we are copying or cloning from: file, device or directory
             ;;
@@ -645,7 +645,7 @@ main() {
             mount_device "$from_value" "$ISO_DIR" 'from'
             # What thing we are copying or cloning from: file, device or directory
             from_thing=$"device"
-            check_versions "$ISO_DIR"
+            check_versions "$ISO_DIR"  ""  "$from_thing"  "$from_value"
             ;;
 
         clone)
@@ -664,7 +664,7 @@ main() {
             if [ ${#from_dev} -gt 0 ]; then
                 mount_device "$from_dev"  "$MNT_DIR" 'from'
                 from_thing=$"device"
-                check_versions "$from_dev"
+                check_versions "$from_dev"  ""  "$from_thing"  "$from_value"
                 clone_directory "$MNT_DIR" "$MNT_DIR" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
 
@@ -681,7 +681,7 @@ main() {
                 fi
 
                 from_thing=$"directory"
-                check_versions "$bios_dir" "$from_value"
+                check_versions "$bios_dir" "$from_value"  "$from_thing"  "$from_value"
                 clone_directory "$from_value" "$bios_dir" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
 
@@ -1068,7 +1068,7 @@ check_from() {
 # Check/report distro version.  Warn if it doesn't look like MX/antiX.
 #------------------------------------------------------------------------------
 check_versions() {
-    local bios_dir=$1  main_dir=${2:-$1}
+    local bios_dir=$1  main_dir=${2:-$1}  from_thing=$3  from_value=$4
 
     # Will use source <file XYZ>
     msg $"Will use source %s" "$from_thing $(pq $from_value)"
