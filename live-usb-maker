@@ -2040,6 +2040,7 @@ clear_partition() {
     local sneaky_offset=$((sneaky_bytes / block_size))
 
     local total_blocks=$((bytes / $block_size))
+    echo -e "Total bytes: $bytes\nTotal blocks: $total_blocks" >> $LOG_FILE
 
     # Clear out previous primary partition table
     cmd_dd if=/dev/zero of=$dev bs=$block_size count=$pt_cnt
