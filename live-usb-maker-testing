@@ -1924,14 +1924,24 @@ clone_directory() {
 #------------------------------------------------------------------------------
 mount_boot_device() {
     main_dir=$1  bios_dir=$2
+
+    # Don't mount it again if it was already mounted
+    mountpoint "$bios_dir" && return 0
+
     local bios_uuid_file=$main_dir/antiX/bios-dev-uuid
-    test -r "$bios_uuid_file" || fatal "Could not find %s file" bios-dev-uuid
+
+    # Simply signal failure if there is no bios-dev-uuid file
+    test -r "$bios_uuid_file" || return 1
+
+    # But error out if file exists but we can't mount the device
     local uuid=$(head -n1 "$bios_uuid_file" 2>/dev/null)
-    [ -z "$uuid" ] && fatal "Could not get uuid of existing bios/boot partition"
+    fatal_z "$uuid" "Could not get uuid of existing bios/boot partition"
     local boot_dev=$(blkid -U $uuid)
     # FIXME: should we give them a chance to plug it in???
-    [ -z "$boot_dev" ] && fatal "Could not find boot partition with uuid %s" "$uuid"
+    fatal_z "$boot_dev" "Could not find boot partition with uuid %s" "$uuid"
     mount_if_needed "$boot_dev" "$bios_dir"
+
+    return 0
 }
 
 
