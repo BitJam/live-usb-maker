@@ -3323,14 +3323,14 @@ clean_up() {
 # first look for the -testing version if this program ends in "-testing".
 #------------------------------------------------------------------------------
 load_lib() {
-    local files=$1  path=$2
-    [ "$TESTING" ] && files="$files-testing $files"
+    local files=$1  path=$2 testing_ext
+    [ "$TESTING" ] && testing_ext="-testing"
     unset FOUND_LIB
 
     local f  dir lib found
     for f in $files; do
         for dir in ${path//:/ }; do
-            lib=$dir/$f
+            lib=$dir/$f$testing_ext
             test -r $lib || continue
             if ! . $lib; then
                 printf "Error when loading library %s\n" "$lib" >&2
