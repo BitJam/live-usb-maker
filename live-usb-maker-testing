@@ -378,7 +378,7 @@ main() {
     local CLONE_ROOT  NO_CLONE_ROOT  NO_PROGRESS_BAR  TOTAL_SIZE
     local FORMAT_USB USING_GRUB_CONFIG_2  CRYPT_PART DRY_RUN
     local VERY_VERBOSE VERBOSITY=0
-    local ISO_BOOT_DIR  START_T=0
+    local LIVE_BOOT_DIR  LIVE_BOOT_RET ISO_BOOT_DIR  START_T=0
 
     set_colors
 
@@ -636,7 +636,7 @@ main() {
         file)
             mount_iso_file "$from_value" "$ISO_DIR"
             from_thing=$"file"
-            check_versions "$ISO_DIR"  ""  "$from_thing"  "$from_value"
+            check_versions "$ISO_DIR"  "$from_thing"  "$from_value"
             check_md5 "$from_value"
             # What thing we are copying or cloning from: file, device or directory
             ;;
@@ -645,7 +645,7 @@ main() {
             mount_device "$from_value" "$ISO_DIR" 'from'
             # What thing we are copying or cloning from: file, device or directory
             from_thing=$"device"
-            check_versions "$ISO_DIR"  ""  "$from_thing"  "$from_value"
+            check_versions "$ISO_DIR"  "$from_thing"  "$from_value"
             ;;
 
         clone)
@@ -663,27 +663,17 @@ main() {
 
             if [ ${#from_dev} -gt 0 ]; then
                 mount_device "$from_dev"  "$MNT_DIR" 'from'
-                from_thing=$"device"
-                check_versions "$from_dev"  ""  "$from_thing"  "$from_value"
-                clone_directory "$MNT_DIR" "$MNT_DIR" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
+                from_thing=$"device"
+                check_versions "$from_dev" "$from_thing"  "$from_value"
+                clone_directory "$MNT_DIR" "$ISO_DIR"  "$live_dev"
 
             elif test -d "$from_value"; then
 
-                # If we are cloning an encrypted system then we need to get most
-                # files and directories from the boot/bios partition and only get
-                # linuxfs and persist files from the main partition (sigh)
-                local bios_dir="$from_value"
-                if [ "$CLONE_ENCRYPTED_LIVE" ]; then
-                    mount_boot_device "$from_value" $BIOS_DIR
-                    msg $"Clone running encrypted live system"
-                    bios_dir=$BIOS_DIR
-                fi
-
-                from_thing=$"directory"
-                check_versions "$bios_dir" "$from_value"  "$from_thing"  "$from_value"
-                clone_directory "$from_value" "$bios_dir" "$ISO_DIR"  "$live_dev"
                 # What thing we are copying or cloning from: file, device or directory
+                from_thing=$"directory"
+                check_versions "$from_value"  "$from_thing"  "$from_value"
+                clone_directory "$from_value" "$ISO_DIR"  "$live_dev"
 
             else
                 fatal $"Can only clone devices and directories, not %s" "$from_value"
@@ -1066,20 +1056,33 @@ check_from() {
 
 #------------------------------------------------------------------------------
 # Check/report distro version.  Warn if it doesn't look like MX/antiX.
+# Yes, this repeats a lot with clone_directory().
 #------------------------------------------------------------------------------
 check_versions() {
-    local bios_dir=$1  main_dir=${2:-$1}  from_thing=$3  from_value=$4
+    local main_dir=$1  bios_dir=$1  from_thing=$2  from_value=$3
 
-    # Will use source <file XYZ>
     msg $"Will use source %s" "$from_thing $(pq $from_value)"
-    show_distro_version "$bios_dir" # "$from_value"
 
-    if test -e $bios_dir/$EFI_GRUB_CONF; then
-        msg $"Found grub config %s"  "$(pq 2.0)"
-        USING_GRUB_CONFIG_2=true
-    elif test -e $bios_dir/$GRUB_CONF; then
-        msg $"Found grub config %s"  "$(pq 1.0)"
+    # Check for a linuxfs so we can handle frugal properly
+
+    local boot_dir missing_linuxfs
+    find_live_boot_dir boot_dir "$main_dir" "$LINUXFS_NAME"
+    local ret=$?
+    LIVE_BOOT_RET=$ret
+    case $ret in
+        0) LIVE_BOOT_DIR=$boot_dir;;
+        2) missing_linuxfs=true;;
+    esac
+
+    # Use bios-dev-uuid unless this is a frugal install (sigh)
+    if [ -n "$boot_dir" -a -z "${boot_dir##*Frugal*}" ]; then
+        bios_dir=$main_dir/$boot_dir
+    # Otherwise check to see if this is encrypted (via bios-dev-uuid file)
+    elif mount_boot_device "$main_dir" "$BOOT_DIR"
+        bios_boot_dir="$BOOT_DIR"
     fi
+
+    show_distro_version "$bios_dir"
 
     local distro_name=$(get_distro_name "$bios_dir/version")
     if [ -n "$distro_name" ]; then
@@ -1789,31 +1792,31 @@ encrypt_partition() {
 #------------------------------------------------------------------------------
 # When cloning a live-usb, we only want to copy certain files and ignore all
 # others.  We do this by bind mounting only the files and directories we want
-# and then copying that over to the target device. White-list not black-list.
-# Now for cloning from an encrypted live-usb we clone most files/dirs from the
-# bios/boot partition (which is usually just the same as $from_dir most of the
-# time).
+# and then copying that over to the target device. White-list not black-list..
+# We also re-arrange things to make an encrypted live-usb or a frugal install
+# look like a normal iso file.
 #------------------------------------------------------------------------------
 clone_directory() {
-    local from_dir=$1  bios_dir=$2  targ_dir=$3  live_dev=$4
+    local from_dir=$1  targ_dir=$2  live_dev=$3
+
     is_mountpoint "$targ_dir" && fatal $"Directory %s is already a mountpoint" "$targ_dir"
-
     test -d "$from_dir"       || fatal $"Clone directory %s is not a directory"   "$from_dir"
-    test -d "$bios_dir"       || fatal $"Clone directory %s is not a directory"   "$bios_dir"
 
-    #is_mountpoint "$from_dir" || warn  "Clone directory %s is not a mountpoint"  "$from_dir"
-
-    # mounting it as tmpfs makes cleanup trivial (we are still touching files nad
+    # mounting it as tmpfs makes cleanup trivial (we are still touching files and
     # making directories
     mount -t tmpfs tmpfs "$targ_dir"
 
     from_dir=$(readlink -f "$from_dir")
-    bios_dir=$(readlink -f "$bios_dir")
 
-    # FIXME: should this error message have a device, not a directory?
-    local boot_dir
-    find_live_boot_dir boot_dir "$from_dir" "$LINUXFS_NAME"
-    local ret=$?
+    local boot_dir ret
+    if [ -n "$LIVE_BOOT_DIR" ]; then
+        boot_dir=$LIVE_BOOT_DIR
+        ret=$LIVE_BOOT_RET
+    else
+        find_live_boot_dir boot_dir "$from_dir" "$LINUXFS_NAME"
+        ret=$?
+    fi
+
     case $ret in
         0) ;;
         # No <file-name> file found in any directory on clone device at <root-directory>
@@ -1827,15 +1830,25 @@ clone_directory() {
     ISO_BOOT_DIR=$boot_dir
 
     # Prepare to get all files/dirs from under the boot-directory on a frugal install
-    local full_boot_dir="$from_dir/${boot_dir#/}"
-    local bios_boot_dir="$bios_dir/${boot_dir#/}"
-    local src_root_dir=$bios_dir
 
-     if [ -z "${boot_dir##*Frugal*}" ]; then
+    # Directory that contains linuxfs file
+    local full_boot_dir="$from_dir/${boot_dir#/}"
+
+    # Directory that contains vmlinuz and initrd.gz
+    local bios_boot_dir="$bios_dir/${boot_dir#/}"
+
+    # Directory that contains /boot/, /EFI/, etc
+    local src_root_dir=$from_dir
+
+    if [ -z "${boot_dir##*Frugal*}" ]; then
         msg $"Cloning from a frugal directory"
         # We get everything from full_boot_dir when cloning a frugal install
         src_root_dir=$full_boot_dir
         bios_boot_dir=$full_boot_dir
+    # Otherwise check to see if this is encrypted (via bios-dev-uuid file)
+    elif mount_boot_device "$from_dir" "$BOOT_DIR"
+        bios_boot_dir="$BOOT_DIR/${boot_dir#/}"
+        src_root_dir="$BOOT_DIR"
     fi
 
     # Note: we now clone most files from the "bios_dir" which is usually the same
