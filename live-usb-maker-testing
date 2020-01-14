@@ -511,12 +511,14 @@ main() {
        BIOS_DIR=$WORK_DIR/bios
        MAIN_DIR=$WORK_DIR/main
        UEFI_DIR=$WORK_DIR/uefi
+
     EFI_IMG_DIR=$WORK_DIR/efi-img
        DATA_DIR=$WORK_DIR/data
      INITRD_DIR=$WORK_DIR/initrd
       LINUX_DIR=$WORK_DIR/linux
         MNT_DIR=$WORK_DIR/live-dev
        BIND_DIR=$WORK_DIR/bind
+       BOOT_DIR=$WORK_DIR/boot-dir   # For input
 
      WORDS_FILE=$WORK_DIR/words
 
@@ -1091,14 +1093,26 @@ check_versions() {
         echo "$distro_name" | grep -E -q "^(MX|antiX)-" && return
     fi
 
-    # Check for a linuxfs file if distro_name was not recognized
-    local boot_dir
-    find_live_boot_dir boot_dir "$main_dir" "$LINUXFS_NAME"
-    local ret=$?
-    case $ret in
-        0) return ;;
-    esac
-    warn $"This does not appear to be MX or antiX live media"
+    if test -e $bios_dir/$EFI_GRUB_CONF; then
+        msg $"Found grub config %s"  "$(pq 2.0)"
+        USING_GRUB_CONFIG_2=true
+    elif test -e $bios_dir/$GRUB_CONF; then
+        msg $"Found grub config %s"  "$(pq 1.0)"
+    fi
+
+    local did_warn=0
+    if ! echo "$distro_name" | grep -Eqi "^(antiX|MX|)-"; then
+        warn $"This does not appear to be antiX or MX live media"
+        did_warn=$((did_warn + 1))
+    fi
+    if [ "$missing_linuxfs" ]; then
+        warn $"The %s file seems to missing" "$(pqw $LINUXFS_NAME)"
+        did_warn=$((did_warn + 1))
+    fi
+
+    [[ $did_warn -ge 1 ]] || return
+
+    q_mode gui && return
     yes_NO $"Do you want to continue anyway?" || exit 0
 }
 
