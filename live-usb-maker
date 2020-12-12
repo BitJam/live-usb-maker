@@ -700,7 +700,7 @@ main() {
         BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
         ESP_LABEL=$(make_label  11 - "$distro_name" uefi)
     fi
-    : BIOS_LABEL=${CMD_LABEL:-$BIOS_LABEL}
+    BIOS_LABEL=${CMD_LABEL:-$BIOS_LABEL}
 
     local cheats
     if need_q cheats; then
