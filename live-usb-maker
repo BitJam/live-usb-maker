@@ -295,8 +295,8 @@ eval_argument() {
             -initrd|i)  INITRD_FILE=$val                 ;;
             -initrd=*)  INITRD_FILE=$val                 ;;
      -keep-syslinux|k)  KEEP_SYSLINUX=true               ;;
-             -label|L)  BIOS_LABEL=$val                  ;;
-             -label=*)  BIOS_LABEL=$val                  ;;
+             -label|L)  CMD_LABEL=$val                   ;;
+             -label=*)  CMD_LABEL=$val                   ;;
              -msdos|m)  MSDOS_GPT="msdos"                ;;
        -no-prog-bar|n)  NO_PROGRESS_BAR=true             ;;
     -no-clone-persist)  NO_CLONE_PERSIST=home,root       ;;
@@ -700,6 +700,7 @@ main() {
         BIOS_LABEL=$(make_label 16 - "$distro_name" Live usb)
         ESP_LABEL=$(make_label  11 - "$distro_name" uefi)
     fi
+    : BIOS_LABEL=${CMD_LABEL:-$BIOS_LABEL}
 
     local cheats
     if need_q cheats; then
