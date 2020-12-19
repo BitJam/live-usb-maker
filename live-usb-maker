@@ -2337,7 +2337,7 @@ start_initrd_encryption() {
         test -d $linux_dir/lib/modules/$kernel/kernel || continue
 
         msg $"add %s modules to initrd" "$(pq $kernel encryption)"
-        cmd copy-initrd-modules --quiet --only-encrypt --from=$linux_dir --to=$initrd_dir \
+        cmd copy-initrd-modules --quiet --only-encrypt --from=$linux_dir --to=$initrd_dir --kernel=$kernel \
             || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
 
     done
@@ -2366,7 +2366,7 @@ disable_initrd_encryption() {
         test -d $linux_dir/lib/modules/$kernel/kernel || continue
 
         msg $"add %s modules to initrd" "$(pq $kernel)"
-        cmd copy-initrd-modules --quiet --from=$linux_dir --to=$initrd_dir \
+        cmd copy-initrd-modules --quiet --from=$linux_dir --to=$initrd_dir --kernel=$kernel \
             || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
 
     done
@@ -2819,7 +2819,7 @@ update_initrd() {
 
     cmd copy-initrd-modules --count --quiet --from=$linux_dir --to=$initrd_dir --kernel=$kernel
 
-    cmd copy-initrd-modules --quiet --only-encrypt --from=$linux_dir --to=$initrd_dir $e_args \
+    cmd copy-initrd-modules --quiet --only-encrypt --from=$linux_dir --to=$initrd_dir $e_args --kernel=$kernel \
             || fatal "Kernel modules were not copied.  Do you need to update copy-initrd-modules?"
 
     pause initrd
