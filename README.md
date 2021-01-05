@@ -4,6 +4,7 @@ Create an antiX/MX LiveUSB
 
     sudo apt-get update       # if needed
     sudo apt-get install git  # if needed
+    sudo apt-get install extlinux # if needed
     git clone https://github.com/BitJam/live-usb-maker
     git clone https://github.com/BitJam/cli-shell-utils
     cd live-usb-maker
