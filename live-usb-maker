@@ -1567,7 +1567,7 @@ guess_partitioning() {
     esac
 
     # Get the type of partitioning
-    MSDOS_GPT=$(parted --script $drive unit MiB print | sed -n "s/^Partition Table: *//p")
+    MSDOS_GPT=$(LC_ALL=C parted --script $drive unit MiB print | sed -n "s/^Partition Table: *//p")
     msg $"Found %s partitioning" "$(pq $MSDOS_GPT)"
     encrypt && shout $"Assuming this is an encrypted live-usb"
     setup_devices $drive
@@ -2033,7 +2033,7 @@ validate_fs_type() {
 #------------------------------------------------------------------------------
 clear_partition() {
     local dev=$1
-    local bytes=$(parted --script $dev unit B print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)B$/\1/ip")
+    local bytes=$(LC_ALL=C parted --script $dev unit B print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)B$/\1/ip")
     local block_size=512
     local pt_size=$((17 * 1024))
     local pt_cnt=$((pt_size / block_size))
@@ -2140,7 +2140,7 @@ _add_partition() {
 #------------------------------------------------------------------------------
 get_total_size() {
     local dev=$1
-    local bytes=$(parted --script $dev unit B print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)B$/\1/p")
+    local bytes=$(LC_ALL=C parted --script $dev unit B print 2>/dev/null | sed -rn "s/^Disk.*: ([0-9]+)B$/\1/p")
     [ -z "$bytes" ] && return
     echo $((bytes / 1024 / 1024))
 }
