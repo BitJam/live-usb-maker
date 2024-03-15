@@ -41,7 +41,7 @@ usage() {
 cat<<Usage
 Usage: $ME [<options>]
 
-A save and convenient way to make a "dd" live-usb from a .iso file.
+A safe and convenient way to make a "dd" live-usb from a .iso file.
 Will prompt you for the file and for the device to write to if they
 are not given on the command line.
 
